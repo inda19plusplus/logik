@@ -37,7 +37,7 @@ namespace LogikUI
 
             Test2(1337);
             Test();
-
+            
             Console.WriteLine($"Number added in rust: {Add(14, 8)}");
 
             CoolStruct stuff;

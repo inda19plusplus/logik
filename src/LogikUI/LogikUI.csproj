@@ -2,6 +2,9 @@
 
   <Import Project="../Native.targets" />
 
+  <!-- FIXME: Atm we rely on the automated visual studio added build stuff to resolve the t4 templates this might not be the best idea? I actually don't know if it's a good idea or not. We will see when we've tried to run it on more platforms -->
+  <!--<Import Project="../StructTemplating.targets" />-->
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -9,5 +12,13 @@
     <StartupObject>LogikUI.Program</StartupObject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <DefineConstants>TEMPLATE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
 
 </Project>

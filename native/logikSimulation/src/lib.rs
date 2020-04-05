@@ -31,3 +31,13 @@ ffi! {
         println!("{}: {}", (*arg).id, c);
     }
 }
+
+ffi! {
+    fn init() {
+        // Initialization code
+    }
+
+    fn exit() {
+        // Exit code
+    }
+}
