@@ -2,20 +2,25 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+#nullable enable
+
 namespace LogikUI
 {
     class Program
     {
-        [DllImport("Native/logik_simulation", EntryPoint = "test", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        const string Lib = "Native/logik_simulation";
+        const CallingConvention CallingConv = CallingConvention.Cdecl;
+
+        [DllImport(Lib, EntryPoint = "test", ExactSpelling = true, CallingConvention = CallingConv)]
         public static extern void Test();
 
-        [DllImport("Native/logik_simulation", EntryPoint = "test2", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(Lib, EntryPoint = "test2", ExactSpelling = true, CallingConvention = CallingConv)]
         public static extern void Test2(int i);
 
-        [DllImport("Native/logik_simulation", EntryPoint = "add", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(Lib, EntryPoint = "add", ExactSpelling = true, CallingConvention = CallingConv)]
         public static extern int Add(int a, int b);
 
-        [DllImport("Native/logik_simulation", EntryPoint = "do_cool_stuff", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(Lib, EntryPoint = "do_cool_stuff", ExactSpelling = true, CallingConvention = CallingConv)]
         public static extern void DoCoolStuff(ref CoolStruct stuff);
 
         [StructLayout(LayoutKind.Sequential)]
