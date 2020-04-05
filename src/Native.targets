@@ -30,12 +30,12 @@
 
     <PropertyGroup>
       <CargoPackage>logik_simulation</CargoPackage>
-      <CargoWorkspacePath>$(MSBuildThisFileDirectory)\..</CargoWorkspacePath>
+      <CargoWorkspacePath>$(MSBuildThisFileDirectory)..</CargoWorkspacePath>
     </PropertyGroup>
 
     <!-- Cargo configuration -->
     <PropertyGroup>
-        <CargoTargetPath>$(MSBuildThisFileDirectory)\..\target</CargoTargetPath>
+        <CargoTargetPath>$(MSBuildThisFileDirectory)..\target</CargoTargetPath>
 
         <CargoConfiguration>release</CargoConfiguration>
         <CargoConfiguration Condition=" '$(Configuration)' == 'Debug' ">debug</CargoConfiguration>
@@ -65,8 +65,21 @@
         <CargoBuildArg Condition=" '$(CargoConfiguration)' == 'release' " Include="--release" />
     </ItemGroup>
 
-    <Target Name="Cargo" BeforeTargets="Build">
+    <!--Workaround for https://github.com/dotnet/project-system/issues/5794 which causes updates not to be detected-->
+    <PropertyGroup><DisableFastUpToDateCheck>true</DisableFastUpToDateCheck></PropertyGroup>
+
+    <ItemGroup>
+       <RustFiles Include="$(CargoWorkspacePath)\**\*.rs" />
+    </ItemGroup>
+
+    <!-- We kind of want to clean this up... -->
+    <ItemGroup>
+      <RustResFiles Include="$(CargoWorkspacePath)\target\**\*" />
+    </ItemGroup>
+    
+    <Target Name="Cargo" BeforeTargets="Build" Inputs="@(RustFiles)" Outputs="@(RustResFiles)">
         <Exec Command="cargo @(CargoChannelArg, ' ') build @(CargoBuildArg, ' ')" WorkingDirectory="$(CargoWorkspacePath)" />
+        <Message Text="Compiled rust files: '@(RustFiles)'" Importance="normal"/>
     </Target>
 
     <!-- In AOT builds, add a reference to the IL compiler and link the static native artifact -->
@@ -91,6 +104,8 @@
         <CargoLibrary Include="$(CargoArtifactPath)" />
     </ItemGroup>
 
+    <!-- FIXME: Make sure to copy the .pdb file if there is one, that way debugging can work with much less effort -->
+    <!-- FIXME: Move the built library into its correct platform folder so that it's correctly picked up by DllImport -->
     <Target Name="CargoBuildCopy" DependsOnTargets="Cargo" AfterTargets="Build" Condition=" '$(IsAotBuild)' == 'false' ">
         <Copy Condition=" '$(TargetDir)' != '' " SourceFiles="@(CargoLibrary)" DestinationFolder="$(TargetDir)/Native" />
     </Target>

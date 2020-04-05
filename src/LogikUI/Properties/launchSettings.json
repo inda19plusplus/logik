@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "LogikUI": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}
