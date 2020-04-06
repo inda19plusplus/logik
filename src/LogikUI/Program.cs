@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Gtk;
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -33,6 +34,7 @@ namespace LogikUI
 
         static void Main(string[] args)
         {
+            /*
             Console.WriteLine("Hello World from C#!");
 
             Test2(1337);
@@ -44,6 +46,28 @@ namespace LogikUI
             stuff.ID = 5;
             stuff.ThisIsAnInterestingThing = "CoolName";
             DoCoolStuff(ref stuff);
+            */
+            Application.Init();
+
+            Window wnd = new Window("Logik");
+            wnd.Resize(200, 200);
+
+            wnd.Destroyed += Wnd_Destroyed;
+
+            //Create a label and put some text in it.
+            Label myLabel = new Label("Hello World!!!!");
+
+            //Add the label to the form
+            wnd.Add(myLabel);
+
+            wnd.ShowAll();
+
+            Application.Run();
+        }
+
+        private static void Wnd_Destroyed(object? sender, EventArgs e)
+        {
+            Application.Quit();
         }
     }
 }
