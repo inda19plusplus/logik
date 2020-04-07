@@ -38,31 +38,27 @@ namespace LogikUI
 
             Window wnd = new Window("Logik");
             wnd.Resize(1600, 800);
-
-            wnd.Destroyed += Wnd_Destroyed;
             
-            HPaned vPaned = new HPaned();
-
-            //Create a label and put some text in it.
-            Label myLabel = new Label("Hello World!!!!");
+            HPaned hPaned = new HPaned();
 
             Notebook nbook = new Notebook();
-            nbook.AppendPage(myLabel, new Label("Circut editor"));
-            nbook.AppendPage(new Label("Some new content"), new Label("Package editor"));
+            nbook.AppendPage(new Label("TODO: Circut editor"), new Label("Circut editor"));
+            nbook.AppendPage(new Label("TODO: Package editor"), new Label("Package editor"));
 
             Notebook sideBar = new Notebook();
             var components = new ComponentView();
             sideBar.AppendPage(components.TreeView, new Label("Components"));
             sideBar.AppendPage(new Label("TODO: Hierarchy view"), new Label("Hierarchy"));
 
-            vPaned.Pack1(sideBar, true, true);
-            vPaned.Pack2(nbook, true, true);
+            hPaned.Pack1(sideBar, false, true);
+            hPaned.Pack2(nbook, false, true);
 
             //Add the label to the form
-            wnd.Add(vPaned);
+            wnd.Add(hPaned);
+
+            wnd.Destroyed += Wnd_Destroyed;
 
             wnd.ShowAll();
-
             Application.Run();
         }
 
