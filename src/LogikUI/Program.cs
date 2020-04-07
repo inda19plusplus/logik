@@ -50,8 +50,8 @@ namespace LogikUI
             sideBar.AppendPage(components.TreeView, new Label("Components"));
             sideBar.AppendPage(new Label("TODO: Hierarchy view"), new Label("Hierarchy"));
 
-            hPaned.Pack1(sideBar, false, true);
-            hPaned.Pack2(nbook, false, true);
+            hPaned.Pack1(sideBar, false, false);
+            hPaned.Pack2(nbook, true, false);
 
             //Add the label to the form
             wnd.Add(hPaned);
