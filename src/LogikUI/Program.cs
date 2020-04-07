@@ -34,31 +34,32 @@ namespace LogikUI
 
         static void Main(string[] args)
         {
-            /*
-            Console.WriteLine("Hello World from C#!");
-
-            Test2(1337);
-            Test();
-            
-            Console.WriteLine($"Number added in rust: {Add(14, 8)}");
-
-            CoolStruct stuff;
-            stuff.ID = 5;
-            stuff.ThisIsAnInterestingThing = "CoolName";
-            DoCoolStuff(ref stuff);
-            */
             Application.Init();
 
             Window wnd = new Window("Logik");
-            wnd.Resize(200, 200);
+            wnd.Resize(1600, 800);
 
             wnd.Destroyed += Wnd_Destroyed;
+            
+            HPaned vPaned = new HPaned();
 
             //Create a label and put some text in it.
             Label myLabel = new Label("Hello World!!!!");
 
+            Notebook nbook = new Notebook();
+            nbook.AppendPage(myLabel, new Label("Circut editor"));
+            nbook.AppendPage(new Label("Some new content"), new Label("Package editor"));
+
+            Notebook sideBar = new Notebook();
+            var components = new ComponentView();
+            sideBar.AppendPage(components.TreeView, new Label("Components"));
+            sideBar.AppendPage(new Label("TODO: Hierarchy view"), new Label("Hierarchy"));
+
+            vPaned.Pack1(sideBar, true, true);
+            vPaned.Pack2(nbook, true, true);
+
             //Add the label to the form
-            wnd.Add(myLabel);
+            wnd.Add(vPaned);
 
             wnd.ShowAll();
 
