@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using LogikUI.Component;
 using LogikUI.Hierarchy;
+using LogikUI.Circut;
 
 #nullable enable
 
@@ -12,29 +13,6 @@ namespace LogikUI
 {
     class Program
     {
-        const string Lib = "Native/logik_simulation";
-        const CallingConvention CallingConv = CallingConvention.Cdecl;
-
-        [DllImport(Lib, EntryPoint = "test", ExactSpelling = true, CallingConvention = CallingConv)]
-        public static extern void Test();
-
-        [DllImport(Lib, EntryPoint = "test2", ExactSpelling = true, CallingConvention = CallingConv)]
-        public static extern void Test2(int i);
-
-        [DllImport(Lib, EntryPoint = "add", ExactSpelling = true, CallingConvention = CallingConv)]
-        public static extern int Add(int a, int b);
-
-        [DllImport(Lib, EntryPoint = "do_cool_stuff", ExactSpelling = true, CallingConvention = CallingConv)]
-        public static extern void DoCoolStuff(ref CoolStruct stuff);
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct CoolStruct
-        {
-            public int ID;
-            [MarshalAs(UnmanagedType.LPUTF8Str)]
-            public string ThisIsAnInterestingThing;
-        }
-
         static void Main(string[] args)
         {
             Application.Init();
@@ -45,10 +23,13 @@ namespace LogikUI
             HPaned hPaned = new HPaned();
 
             Notebook nbook = new Notebook();
-            nbook.AppendPage(new Label("TODO: Circut editor"), new Label("Circut editor"));
+
+            var circutEditor = new CircutEditor();
+            nbook.AppendPage(circutEditor, new Label("Circut editor"));
             nbook.AppendPage(new Label("TODO: Package editor"), new Label("Package editor"));
 
             Notebook sideBar = new Notebook();
+
             var components = new Component.ComponentView(new List<ComponentFolder> { 
                 new ComponentFolder("Test folder 1", new List<Component.Component>()
                 {

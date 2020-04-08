@@ -7,43 +7,6 @@ using System.Text;
 
 namespace LogikUI.Interop
 {
-    struct Scene
-    {
-        public long Length;
-        public unsafe Component* Components;
-    }
-
-    struct Component
-    {
-        public int Type;
-        public int Length;
-        public unsafe Property* Properties;
-    }
-
-    enum PropertyType : int
-    {
-        Byte,
-        Short,
-        Int,
-        CString,
-        VoidPtr,
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    struct Property
-    {
-        public PropertyType Type;
-        public unsafe fixed byte Data[8];
-
-        public unsafe byte Byte => Type == PropertyType.Byte ? Data[0] : throw new InvalidOperationException();
-        public unsafe short Short => Type == PropertyType.Short ? Unsafe.As<byte, short>(ref Data[0]) : throw new InvalidOperationException();
-
-        public unsafe int Int => Type == PropertyType.Int ? Unsafe.As<byte, int>(ref Data[0]) : throw new InvalidOperationException();
-        public unsafe void* VoidPtr => Type == PropertyType.VoidPtr ? Unsafe.AsPointer(ref Data[0]) : throw new InvalidOperationException();
-        public unsafe IntPtr IntPtr => Type == PropertyType.VoidPtr ? (IntPtr)Unsafe.AsPointer(ref Data[0]) : throw new InvalidOperationException();
-        public unsafe string String => Type == PropertyType.CString ? Marshal.PtrToStringAuto(IntPtr) : throw new InvalidOperationException();
-    }
-
     static class Logic
     {
         const string Lib = "Native/logik_simulation";
@@ -54,5 +17,29 @@ namespace LogikUI.Interop
 
         [DllImport(Lib, EntryPoint = "exit", ExactSpelling = true, CallingConvention = CallingConv)]
         public static extern void Exit();
+
+        // --------------------------
+        // ---- Interop examples ----
+        // --------------------------
+
+        [DllImport(Lib, EntryPoint = "test", ExactSpelling = true, CallingConvention = CallingConv)]
+        public static extern void Test();
+
+        [DllImport(Lib, EntryPoint = "test2", ExactSpelling = true, CallingConvention = CallingConv)]
+        public static extern void Test2(int i);
+
+        [DllImport(Lib, EntryPoint = "add", ExactSpelling = true, CallingConvention = CallingConv)]
+        public static extern int Add(int a, int b);
+
+        [DllImport(Lib, EntryPoint = "do_cool_stuff", ExactSpelling = true, CallingConvention = CallingConv)]
+        public static extern void DoCoolStuff(ref CoolStruct stuff);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct CoolStruct
+        {
+            public int ID;
+            [MarshalAs(UnmanagedType.LPUTF8Str)]
+            public string ThisIsAnInterestingThing;
+        }
     }
 }
