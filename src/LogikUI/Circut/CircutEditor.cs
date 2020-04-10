@@ -1,4 +1,5 @@
 ﻿using Cairo;
+using Gdk;
 using Gtk;
 using System;
 using System.Collections.Generic;
@@ -9,10 +10,10 @@ namespace LogikUI.Circut
     class ComponentInstance
     {
         public PointD Position;
-        public Color Color;
+        public Cairo.Color Color;
         public float Width, Height;
 
-        public ComponentInstance(PointD position, Color color, float width, float height)
+        public ComponentInstance(PointD position, Cairo.Color color, float width, float height)
         {
             Position = position;
             Color = color;
@@ -23,25 +24,108 @@ namespace LogikUI.Circut
 
     class CircutEditor : DrawingArea
     {
+        public PointD Offset;
+        public PointD DisplayOffset;
+
+        public double Scale = 1;
+
+        public double ScaleStep = 0.1d;
+
+        const double DotSpacing = 10d;
+
         public List<ComponentInstance> Instances;
+
+        public GestureDrag DragGesture;
 
         public CircutEditor() : base()
         {
+            Offset = new PointD(0, 0);
+
             Drawn += CircutEditor_Drawn;
+
+            DragGesture = new GestureDrag(this);
+            
+            // Sets middle click as the pan button.
+            // This should be configurable later!
+            DragGesture.Button = 2;
+
+            AddEvents((int)EventMask.PointerMotionMask);
+            AddEvents((int)EventMask.ScrollMask);
+
+            DragGesture.DragBegin += DragGesture_DragBegin;
+            DragGesture.DragEnd += DragGesture_DragEnd;
+            DragGesture.DragUpdate += DragGesture_DragUpdate;
+
+            ScrollEvent += CircutEditor_ScrollEvent;
+
+            CanFocus = true;
+            CanDefault = true;
+
+            ButtonPressEvent += CircutEditor_ButtonPressEvent;
 
             Instances = new List<ComponentInstance>()
             {
-                new ComponentInstance(new PointD(10,10), new Color(0.5,0.5,0), 10, 10),
-                new ComponentInstance(new PointD(40,40), new Color(0.5,0,0.5), 20, 20),
+                new ComponentInstance(new PointD(10,10), new Cairo.Color(0.5,0.5,0), 10, 10),
+                new ComponentInstance(new PointD(40,40), new Cairo.Color(0.5,0,0.5), 20, 20),
             };
+        }
+
+        private void CircutEditor_ScrollEvent(object o, ScrollEventArgs args)
+        {
+            var @event = args.Event;
+            Console.WriteLine($"dir: {@event.Direction}, x: {@event.X}, y: {@event.Y}");
+            switch (@event.Direction)
+            {
+                case ScrollDirection.Up:
+                    Scale = Math.Min(10, Scale + ScaleStep * Scale);
+                    break;
+                case ScrollDirection.Down:
+                    Scale = Math.Max(0.1, Scale - ScaleStep * Scale);
+                    break;
+            }
+            QueueDraw();
+            Console.WriteLine($"Scale: {Scale}");
+        }
+
+        private void DragGesture_DragBegin(object o, DragBeginArgs args)
+        {
+            //DisplayOffset = Offset;
+            DragGesture.GetStartPoint(out double x, out double y);
+            Console.WriteLine($"Drag start ({x}, {y}), DispOffset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
+            QueueDraw();
+        }
+
+        private void DragGesture_DragUpdate(object o, DragUpdateArgs args)
+        {
+            DragGesture.GetOffset(out double ox, out double oy);
+            DisplayOffset = new PointD(Offset.X + ox, Offset.Y + oy);
+            QueueDraw();
+
+            Console.WriteLine($"Drag update ({ox}, {oy}), DispOffset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
+        }
+
+        private void DragGesture_DragEnd(object o, DragEndArgs args)
+        {
+            DragGesture.GetOffset(out double ox, out double oy);
+            DisplayOffset = new PointD(Offset.X + ox, Offset.Y + oy);
+            Offset = DisplayOffset;
+            QueueDraw();
+
+            DragGesture.GetOffset(out double x, out double y);
+            Console.WriteLine($"Drag end ({x}, {y}), Offset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
+        }
+
+        private void CircutEditor_ButtonPressEvent(object o, ButtonPressEventArgs args)
+        {
+            Console.WriteLine($"{args.Event.Button}");
         }
 
         private void CircutEditor_Drawn(object o, DrawnArgs args)
         {
-            Draw(args.Cr);
+            DoDraw(args.Cr);
         }
 
-        protected void Draw(Context cr)
+        protected void DoDraw(Context cr)
         {
             var context = StyleContext;
             var width = AllocatedWidth;
@@ -49,28 +133,38 @@ namespace LogikUI.Circut
 
             context.RenderBackground(cr, 0, 0, width, height);
 
-            float scale = 1;
+            cr.Translate(DisplayOffset.X, DisplayOffset.Y);
+            cr.Scale(Scale, Scale);
 
-            float x = 0;
-            while (x <= width)
+            // Draw the dots and compensate 
+            //if (Scale < 0.4f)
+            int dots = 0;
+
+            double dotScale = GetDotScaleMultiple(Scale);
+            double dotDist = DotSpacing * dotScale;
+
+            double x = 0;
+            while (x <= width / Scale)
             {
-                float y = 0;
-                while (y <= height)
+                double y = 0;
+                while (y <= height / Scale)
                 {
+                    // Here we want to use the inverse transform
+                    double posx = x - ((DisplayOffset.X / Scale)) + (DisplayOffset.X / Scale) % dotDist;
+                    double posy = y - ((DisplayOffset.Y / Scale)) + (DisplayOffset.Y / Scale) % dotDist;
 
-                    cr.Rectangle(x, y, scale, scale);
+                    cr.Rectangle(posx - 0.5, posy - 0.5, dotScale, dotScale);
 
-                    y += 10 * scale;
+                    dots++;
+                    y += dotDist;
                 }
-
-
-                x += 10 * scale;
+                x += dotDist;
             }
 
-            //cr.Arc(width / 2.0, height / 2.0, Math.Min(width, height) / 2.0, 0, 2 * Math.PI);
+            Console.WriteLine($"Rendered {dots} dots");
 
             var color = context.GetColor(context.State);
-            cr.SetSourceColor(new Color(color.Red, color.Green, color.Blue, color.Alpha));
+            cr.SetSourceColor(new Cairo.Color(color.Red, color.Green, color.Blue, color.Alpha));
 
             cr.Fill();
 
@@ -80,8 +174,15 @@ namespace LogikUI.Circut
                 cr.SetSourceColor(instance.Color);
                 cr.Fill();
             }
+        }
 
-            //return base.OnDrawn(cr);
+        private double GetDotScaleMultiple(double scale)
+        {
+            if (scale < 0.15) return 16;
+            else if (scale < 0.25) return 8;
+            else if (scale < 0.5) return 4;
+            else if (scale < 0.95) return 2;
+            else return 1;
         }
     }
 }
