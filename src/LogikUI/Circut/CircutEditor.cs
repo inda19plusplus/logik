@@ -4,6 +4,7 @@ using Gtk;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using LogikUI.Util;
 
 namespace LogikUI.Circut
 {
@@ -24,8 +25,8 @@ namespace LogikUI.Circut
 
     class CircutEditor : DrawingArea
     {
-        public PointD Offset;
-        public PointD DisplayOffset;
+        public Vector2D Offset;
+        public Vector2D DisplayOffset;
 
         public double Scale = 1;
 
@@ -39,7 +40,7 @@ namespace LogikUI.Circut
 
         public CircutEditor() : base()
         {
-            Offset = new PointD(0, 0);
+            Offset = DisplayOffset = new Vector2D(0, 0);
 
             Drawn += CircutEditor_Drawn;
 
@@ -70,11 +71,18 @@ namespace LogikUI.Circut
             };
         }
 
+        private Vector2D ToWorld(Vector2D ScreenPoint) => (ScreenPoint - DisplayOffset) / Scale;
+        private Vector2D ToWorldDist(Vector2D ScreenDist) => ScreenDist / Scale;
+        private Vector2D ToScreen(Vector2D WorldPoint) => (WorldPoint * Scale) + DisplayOffset;
+        private Vector2D ToScreenDist(Vector2D WorldDist) => WorldDist * Scale;
+
         private void CircutEditor_ScrollEvent(object o, ScrollEventArgs args)
         {
-            var @event = args.Event;
-            Console.WriteLine($"dir: {@event.Direction}, x: {@event.X}, y: {@event.Y}");
-            switch (@event.Direction)
+            var mousePos = new Vector2D(args.Event.X, args.Event.Y);
+
+            var prevPos = ToWorld(mousePos);
+
+            switch (args.Event.Direction)
             {
                 case ScrollDirection.Up:
                     Scale = Math.Min(10, Scale + ScaleStep * Scale);
@@ -83,15 +91,29 @@ namespace LogikUI.Circut
                     Scale = Math.Max(0.1, Scale - ScaleStep * Scale);
                     break;
             }
+
+            // The applied scale is centered around (0, 0) so the 
+            // world position the mouse is hovering over will have changed after the scale.
+            var newPos = ToWorld(mousePos);
+
+            // Calculate how much the world position changed due to the scale            
+            var diff = prevPos - newPos;
+
+            // This is the amount of pixels the 'prevPos' world position moved.
+            var sdiff = ToScreenDist(diff);
+
+            // Compensate so that the 'prevPos' world position is a the same screen position after the zoom.
+            Offset -= sdiff;
+            DisplayOffset -= sdiff;
+
             QueueDraw();
-            Console.WriteLine($"Scale: {Scale}");
         }
 
         private void DragGesture_DragBegin(object o, DragBeginArgs args)
         {
-            //DisplayOffset = Offset;
-            DragGesture.GetStartPoint(out double x, out double y);
-            Console.WriteLine($"Drag start ({x}, {y}), DispOffset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
+            DisplayOffset = Offset;
+            //DragGesture.GetStartPoint(out double x, out double y);
+            //Console.WriteLine($"Drag start ({x}, {y}), DispOffset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
             QueueDraw();
         }
 
@@ -101,7 +123,7 @@ namespace LogikUI.Circut
             DisplayOffset = new PointD(Offset.X + ox, Offset.Y + oy);
             QueueDraw();
 
-            Console.WriteLine($"Drag update ({ox}, {oy}), DispOffset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
+            //Console.WriteLine($"Drag update ({ox}, {oy}), DispOffset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
         }
 
         private void DragGesture_DragEnd(object o, DragEndArgs args)
@@ -112,12 +134,12 @@ namespace LogikUI.Circut
             QueueDraw();
 
             DragGesture.GetOffset(out double x, out double y);
-            Console.WriteLine($"Drag end ({x}, {y}), Offset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
+            //Console.WriteLine($"Drag end ({x}, {y}), Offset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
         }
 
         private void CircutEditor_ButtonPressEvent(object o, ButtonPressEventArgs args)
         {
-            Console.WriteLine($"{args.Event.Button}");
+            //Console.WriteLine($"{args.Event.Button}");
         }
 
         private void CircutEditor_Drawn(object o, DrawnArgs args)
@@ -136,9 +158,7 @@ namespace LogikUI.Circut
             cr.Translate(DisplayOffset.X, DisplayOffset.Y);
             cr.Scale(Scale, Scale);
 
-            // Draw the dots and compensate 
-            //if (Scale < 0.4f)
-            int dots = 0;
+            //int dots = 0;
 
             double dotScale = GetDotScaleMultiple(Scale);
             double dotDist = DotSpacing * dotScale;
@@ -155,13 +175,13 @@ namespace LogikUI.Circut
 
                     cr.Rectangle(posx - 0.5, posy - 0.5, dotScale, dotScale);
 
-                    dots++;
+                    //dots++;
                     y += dotDist;
                 }
                 x += dotDist;
             }
 
-            Console.WriteLine($"Rendered {dots} dots");
+            //Console.WriteLine($"Rendered {dots} dots");
 
             var color = context.GetColor(context.State);
             cr.SetSourceColor(new Cairo.Color(color.Red, color.Green, color.Blue, color.Alpha));

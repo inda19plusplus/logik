@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using LogikUI.Component;
 using LogikUI.Hierarchy;
 using LogikUI.Circut;
+using System.Globalization;
 
 #nullable enable
 
@@ -15,6 +16,8 @@ namespace LogikUI
     {
         static void Main(string[] args)
         {
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
             Application.Init();
 
             Window wnd = new Window("Logik");
