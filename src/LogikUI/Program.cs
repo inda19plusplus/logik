@@ -22,18 +22,26 @@ namespace LogikUI
 
             Window wnd = new Window("Logik");
             wnd.Resize(1600, 800);
+
+            // FIXME: Move this somewhere else and hook up callbacks
+            MenuBar bar = new MenuBar();
             
-            HPaned hPaned = new HPaned();
+            // FIXME: On windows there should be no delay on the ability to close the menu when you've opened it.
+            // Atm there is a delay after opening the menu and when you can close it...
+            MenuItem file = new MenuItem("File");
+            file.AddEvents((int)Gdk.EventMask.AllEventsMask);
+            bar.Append(file);
+            Menu fileMenu = new Menu();
+            file.Submenu = fileMenu;
+            fileMenu.Append(new MenuItem("Open..."));
 
             Notebook nbook = new Notebook();
-
             var circutEditor = new CircutEditor();
             nbook.AppendPage(circutEditor, new Label("Circut editor"));
             nbook.AppendPage(new Label("TODO: Package editor"), new Label("Package editor"));
 
             Notebook sideBar = new Notebook();
-
-            var components = new Component.ComponentView(new List<ComponentFolder> { 
+            var components = new ComponentView(new List<ComponentFolder> { 
                 new ComponentFolder("Test folder 1", new List<Component.Component>()
                 {
                     new Component.Component("Test comp 1", "x-office-document"),
@@ -48,7 +56,6 @@ namespace LogikUI
                 }),
             });
             sideBar.AppendPage(components.TreeView, new Label("Components"));
-
             var hierarchy = new HierarchyView(new HierarchyComponent("Top comp", "x-office-document", new List<HierarchyComponent>()
             {
                 new HierarchyComponent("Test Comp 1", "x-office-document", new List<HierarchyComponent>(){
@@ -62,11 +69,16 @@ namespace LogikUI
             }));
             sideBar.AppendPage(hierarchy.TreeView, new Label("Hierarchy"));
 
+            HPaned hPaned = new HPaned();
             hPaned.Pack1(sideBar, false, false);
             hPaned.Pack2(nbook, true, false);
 
             //Add the label to the form
-            wnd.Add(hPaned);
+            VBox box = new VBox(false, 0);
+            box.PackStart(bar, false, false, 0);
+            box.PackEnd(hPaned, true, true, 0);
+            box.Expand = true;
+            wnd.Add(box);
 
             wnd.Destroyed += Wnd_Destroyed;
 

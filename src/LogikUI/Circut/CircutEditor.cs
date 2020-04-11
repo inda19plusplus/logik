@@ -59,6 +59,11 @@ namespace LogikUI.Circut
 
             ScrollEvent += CircutEditor_ScrollEvent;
 
+            QueryTooltip += CircutEditor_QueryTooltip;
+
+            HasTooltip = true;
+            //TooltipText = "This is some tooltip";
+
             CanFocus = true;
             CanDefault = true;
 
@@ -71,10 +76,32 @@ namespace LogikUI.Circut
             };
         }
 
+        private void CircutEditor_QueryTooltip(object o, QueryTooltipArgs args)
+        {
+            var mouse = ToWorld(new Vector2D(args.X, args.Y));
+
+            foreach (var instance in Instances)
+            {
+                var bounds = new Rect(instance.Position, new Vector2D(instance.Width, instance.Height));
+                if (bounds.Contains(mouse))
+                {
+                    args.Tooltip.Text = $"{(Vector2D)instance.Position}";
+                    args.Tooltip.TipArea = ToScreen(bounds);
+                    args.RetVal = true;
+                    return;
+                }
+            }
+
+            args.RetVal = false;
+        }
+
         private Vector2D ToWorld(Vector2D ScreenPoint) => (ScreenPoint - DisplayOffset) / Scale;
         private Vector2D ToWorldDist(Vector2D ScreenDist) => ScreenDist / Scale;
+        private Rect ToWorld(Rect ScreenRect) => new Rect(ToWorld(ScreenRect.Position), ToWorldDist(ScreenRect.Size));
+
         private Vector2D ToScreen(Vector2D WorldPoint) => (WorldPoint * Scale) + DisplayOffset;
         private Vector2D ToScreenDist(Vector2D WorldDist) => WorldDist * Scale;
+        private Rect ToScreen(Rect WorldRect) => new Rect(ToScreen(WorldRect.Position), ToScreenDist(WorldRect.Size));
 
         private void CircutEditor_ScrollEvent(object o, ScrollEventArgs args)
         {
