@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace LogikUI.Circut
+namespace LogikUI.Circuit
 {
     struct TextLabel
     {
@@ -49,7 +49,7 @@ namespace LogikUI.Circut
                 layout.FontDescription = fd;
                 layout.SetText(label.Text);
 
-                cr.MoveTo(label.Position * CircutEditor.DotSpacing);
+                cr.MoveTo(label.Position * CircuitEditor.DotSpacing);
                 cr.SetSourceRGB(0.0, 0.0, 0.0);
                 Pango.CairoHelper.ShowLayout(cr, layout);
             }

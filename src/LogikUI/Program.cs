@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using LogikUI.Component;
 using LogikUI.Hierarchy;
-using LogikUI.Circut;
+using LogikUI.Circuit;
 using System.Globalization;
 
 namespace LogikUI
@@ -34,8 +34,8 @@ namespace LogikUI
             fileMenu.Append(new MenuItem("Open..."));
 
             Notebook nbook = new Notebook();
-            var circutEditor = new CircutEditor();
-            nbook.AppendPage(circutEditor, new Label("Circut editor"));
+            var circuitEditor = new CircuitEditor();
+            nbook.AppendPage(circuitEditor, new Label("Circuit editor"));
             nbook.AppendPage(new Label("TODO: Package editor"), new Label("Package editor"));
 
             Notebook sideBar = new Notebook();

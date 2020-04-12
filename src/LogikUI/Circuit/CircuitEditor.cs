@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using LogikUI.Util;
 
-namespace LogikUI.Circut
+namespace LogikUI.Circuit
 {
     class ComponentInstance
     {
@@ -23,7 +23,7 @@ namespace LogikUI.Circut
         }
     }
 
-    class CircutEditor : DrawingArea
+    class CircuitEditor : DrawingArea
     {
         public Vector2d Offset;
         public Vector2d DisplayOffset;
@@ -41,11 +41,11 @@ namespace LogikUI.Circut
 
         public GestureDrag DragGesture;
 
-        public CircutEditor() : base()
+        public CircuitEditor() : base()
         {
             Offset = DisplayOffset = new Vector2d(0, 0);
 
-            Drawn += CircutEditor_Drawn;
+            Drawn += CircuitEditor_Drawn;
 
             DragGesture = new GestureDrag(this);
             
@@ -60,9 +60,9 @@ namespace LogikUI.Circut
             DragGesture.DragEnd += DragGesture_DragEnd;
             DragGesture.DragUpdate += DragGesture_DragUpdate;
 
-            ScrollEvent += CircutEditor_ScrollEvent;
+            ScrollEvent += CircuitEditor_ScrollEvent;
 
-            QueryTooltip += CircutEditor_QueryTooltip;
+            QueryTooltip += CircuitEditor_QueryTooltip;
 
             HasTooltip = true;
             //TooltipText = "This is some tooltip";
@@ -70,7 +70,7 @@ namespace LogikUI.Circut
             CanFocus = true;
             CanDefault = true;
 
-            ButtonPressEvent += CircutEditor_ButtonPressEvent;
+            ButtonPressEvent += CircuitEditor_ButtonPressEvent;
 
             /*
             Instances = new List<ComponentInstance>()
@@ -85,24 +85,24 @@ namespace LogikUI.Circut
             var a = new Wire[n];
             for (int i = 0; i < n; i++)
             {
-                a[i] = new Wire(new Vector2i(rand.Next(100), rand.Next(100)), rand.Next(1, 21), rand.Next(2) == 0 ? Circut.Direction.Horizontal : Circut.Direction.Vertical);
+                a[i] = new Wire(new Vector2i(rand.Next(100), rand.Next(100)), rand.Next(1, 21), rand.Next(2) == 0 ? Circuit.Direction.Horizontal : Circuit.Direction.Vertical);
             }
             var b = new Wire[n];
             for (int i = 0; i < n; i++)
             {
-                b[i] = new Wire(new Vector2i(rand.Next(100), rand.Next(100)), rand.Next(1, 21), rand.Next(2) == 0 ? Circut.Direction.Horizontal : Circut.Direction.Vertical);
+                b[i] = new Wire(new Vector2i(rand.Next(100), rand.Next(100)), rand.Next(1, 21), rand.Next(2) == 0 ? Circuit.Direction.Horizontal : Circuit.Direction.Vertical);
             }
 
             Wires = new Wires(
                 new Wire[]
                 {
-                    new Wire(new Vector2i(3, 3), 10, Circut.Direction.Vertical),
-                    new Wire(new Vector2i(3, 13), 10, Circut.Direction.Horizontal),
+                    new Wire(new Vector2i(3, 3), 10, Circuit.Direction.Vertical),
+                    new Wire(new Vector2i(3, 13), 10, Circuit.Direction.Horizontal),
                 },
                 new Wire[]
                 {
-                    new Wire(new Vector2i(13, 12), -9, Circut.Direction.Vertical),
-                    new Wire(new Vector2i(4, 3), 9, Circut.Direction.Horizontal),
+                    new Wire(new Vector2i(13, 12), -9, Circuit.Direction.Vertical),
+                    new Wire(new Vector2i(4, 3), 9, Circuit.Direction.Horizontal),
                 },
                 /*a, b,*/ new Vector2i[] { new Vector2i(3, 3), new Vector2i(10, 5) },
                 new Vector2i[] { new Vector2i(5, 2), new Vector2i(2, 8), new Vector2i(10, 7), new Vector2i(0, 0) });
@@ -122,7 +122,7 @@ namespace LogikUI.Circut
             });
         }
 
-        private void CircutEditor_QueryTooltip(object o, QueryTooltipArgs args)
+        private void CircuitEditor_QueryTooltip(object o, QueryTooltipArgs args)
         {
             var mouse = ToWorld(new Vector2d(args.X, args.Y));
 
@@ -152,7 +152,7 @@ namespace LogikUI.Circut
         private Vector2d ToScreenDist(Vector2d WorldDist) => WorldDist * Scale;
         private Rect ToScreen(Rect WorldRect) => new Rect(ToScreen(WorldRect.Position), ToScreenDist(WorldRect.Size));
 
-        private void CircutEditor_ScrollEvent(object o, ScrollEventArgs args)
+        private void CircuitEditor_ScrollEvent(object o, ScrollEventArgs args)
         {
             var mousePos = new Vector2d(args.Event.X, args.Event.Y);
 
@@ -213,12 +213,12 @@ namespace LogikUI.Circut
             //Console.WriteLine($"Drag end ({x}, {y}), Offset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
         }
 
-        private void CircutEditor_ButtonPressEvent(object o, ButtonPressEventArgs args)
+        private void CircuitEditor_ButtonPressEvent(object o, ButtonPressEventArgs args)
         {
             //Console.WriteLine($"{args.Event.Button}");
         }
 
-        private void CircutEditor_Drawn(object o, DrawnArgs args)
+        private void CircuitEditor_Drawn(object o, DrawnArgs args)
         {
             DoDraw(args.Cr);
         }

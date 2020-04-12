@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace LogikUI.Circut
+namespace LogikUI.Circuit
 {
     enum Direction
     {
@@ -67,8 +67,8 @@ namespace LogikUI.Circut
 
             foreach (var connection in PoweredConnections)
             {
-                double x = connection.X * CircutEditor.DotSpacing;
-                double y = connection.Y * CircutEditor.DotSpacing;
+                double x = connection.X * CircuitEditor.DotSpacing;
+                double y = connection.Y * CircuitEditor.DotSpacing;
                 cr.Arc(x, y, ConnectionRadius, 0, Math.PI * 2);
                 cr.ClosePath();
             }
@@ -77,8 +77,8 @@ namespace LogikUI.Circut
 
             foreach (var connection in UnPoweredConnections)
             {
-                double x = connection.X * CircutEditor.DotSpacing;
-                double y = connection.Y * CircutEditor.DotSpacing;
+                double x = connection.X * CircuitEditor.DotSpacing;
+                double y = connection.Y * CircuitEditor.DotSpacing;
                 cr.Arc(x, y, ConnectionRadius, 0, Math.PI * 2);
                 cr.ClosePath();
             }
@@ -93,10 +93,10 @@ namespace LogikUI.Circut
                 int vertical = wire.Direction == Direction.Vertical ? 1 : 0;
                 int horizontal = 1 - vertical;
 
-                double x = wire.Pos.X * CircutEditor.DotSpacing - HalfWireWidth;
-                double y = wire.Pos.Y * CircutEditor.DotSpacing - HalfWireWidth;
+                double x = wire.Pos.X * CircuitEditor.DotSpacing - HalfWireWidth;
+                double y = wire.Pos.Y * CircuitEditor.DotSpacing - HalfWireWidth;
 
-                double length = CircutEditor.DotSpacing * wire.Length;
+                double length = CircuitEditor.DotSpacing * wire.Length;
                 // If we are drawing a horizontal line the width is length, othervise it's WireWidth.
                 double width = (horizontal * (length + WireWidth)) + (vertical * WireWidth);
                 // The opposite of the above.
@@ -108,10 +108,10 @@ namespace LogikUI.Circut
                 // To note is that this code needs to be modified to draw the line
                 // to actually cover the grid dots. Rn it just touches them.
                 /*
-                double x = wire.Pos.X * CircutEditor.DotSpacing;
-                double y = wire.Pos.Y * CircutEditor.DotSpacing;
+                double x = wire.Pos.X * CircuitEditor.DotSpacing;
+                double y = wire.Pos.Y * CircuitEditor.DotSpacing;
 
-                double length = CircutEditor.DotSpacing * wire.Length;
+                double length = CircuitEditor.DotSpacing * wire.Length;
                 // If we are drawing a horizontal line the width is length, othervise it's WireWidth.
                 double width = (horizontal * (length + WireWidth)) + (vertical * WireWidth);
                 // The opposite of the above.

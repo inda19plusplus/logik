@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
 
-namespace LogikUI.Circut
+namespace LogikUI.Circuit
 {
     enum Orientation
     {
@@ -44,10 +44,10 @@ namespace LogikUI.Circut
         {
             foreach (var gate in gates)
             {
-                double x = gate.Pos.X * CircutEditor.DotSpacing;
-                double y = gate.Pos.Y * CircutEditor.DotSpacing - Wires.WireWidth * 1.5;
+                double x = gate.Pos.X * CircuitEditor.DotSpacing;
+                double y = gate.Pos.Y * CircuitEditor.DotSpacing - Wires.WireWidth * 1.5;
 
-                double size = CircutEditor.DotSpacing * 2;
+                double size = CircuitEditor.DotSpacing * 2;
 
                 cr.Rectangle(x, y, size, size + Wires.WireWidth * 3);
             }
@@ -60,9 +60,9 @@ namespace LogikUI.Circut
             // Connection points
             foreach (var gate in gates)
             {
-                var in1 = (gate.Pos + new Vector2i(0, 0)) * CircutEditor.DotSpacing;
-                var in2 = (gate.Pos + new Vector2i(0, 2)) * CircutEditor.DotSpacing;
-                var out1 = (gate.Pos + new Vector2i(2, 1)) * CircutEditor.DotSpacing;
+                var in1 = (gate.Pos + new Vector2i(0, 0)) * CircuitEditor.DotSpacing;
+                var in2 = (gate.Pos + new Vector2i(0, 2)) * CircuitEditor.DotSpacing;
+                var out1 = (gate.Pos + new Vector2i(2, 1)) * CircuitEditor.DotSpacing;
 
                 // FIXME: Magic number radius...
                 cr.Arc(in1.X, in1.Y, 2, 0, Math.PI * 2);
