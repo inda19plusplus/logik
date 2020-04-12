@@ -9,7 +9,6 @@ namespace LogikUI.Component
     {
         public TreeView TreeView;
         public TreeViewColumn Column;
-
         // FIXME: We might want to change some names in this folder...
         // Component, ComponentFolder and ComponentView should maybe reflect 
         // that they are actually not the actual "components" but only a

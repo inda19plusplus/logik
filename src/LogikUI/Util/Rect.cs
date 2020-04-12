@@ -7,21 +7,21 @@ namespace LogikUI.Util
 {
     internal struct Rect : IEquatable<Rect>
     {
-        public Vector2D Position;
-        public Vector2D Size;
+        public Vector2d Position;
+        public Vector2d Size;
 
         public double X => Position.X;
         public double Y => Position.Y;
         public double Width => Size.X;
         public double Height => Size.Y;
 
-        public Rect(Vector2D position, Vector2D size)
+        public Rect(Vector2d position, Vector2d size)
         {
             Position = position;
             Size = size;
         }
 
-        public bool Contains(Vector2D Point)
+        public bool Contains(Vector2d Point)
         {
             return Point.X >= Position.X && Point.X <= Position.X + Size.X &&
                 Point.Y >= Position.Y && Point.Y <= Position.Y + Size.Y;

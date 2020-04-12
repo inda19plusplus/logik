@@ -5,14 +5,14 @@ using System.Text;
 
 namespace LogikUI.Util
 {
-    internal struct Vector2D : IEquatable<Vector2D>
+    internal struct Vector2d : IEquatable<Vector2d>
     {
-        public static readonly Vector2D Zero = new Vector2D(0, 0);
+        public static readonly Vector2d Zero = new Vector2d(0, 0);
 
         public double X;
         public double Y;
 
-        public Vector2D(double x, double y)
+        public Vector2d(double x, double y)
         {
             X = x;
             Y = y;
@@ -20,10 +20,10 @@ namespace LogikUI.Util
 
         public override bool Equals(object? obj)
         {
-            return obj is Vector2D d && Equals(d);
+            return obj is Vector2d d && Equals(d);
         }
 
-        public bool Equals([AllowNull] Vector2D other)
+        public bool Equals([AllowNull] Vector2d other)
         {
             return X == other.X &&
                    Y == other.Y;
@@ -39,23 +39,23 @@ namespace LogikUI.Util
             return $"{X:0.000}, {Y:0.000}";
         }
 
-        public static Vector2D operator +(Vector2D a, Vector2D b) => new Vector2D(a.X + b.X, a.Y + b.Y);
-        public static Vector2D operator -(Vector2D a, Vector2D b) => new Vector2D(a.X - b.X, a.Y - b.Y);
-        public static Vector2D operator *(Vector2D a, double scalar) => new Vector2D(a.X * scalar, a.Y * scalar);
-        public static Vector2D operator /(Vector2D a, double scalar) => new Vector2D(a.X / scalar, a.Y / scalar);
+        public static Vector2d operator +(Vector2d a, Vector2d b) => new Vector2d(a.X + b.X, a.Y + b.Y);
+        public static Vector2d operator -(Vector2d a, Vector2d b) => new Vector2d(a.X - b.X, a.Y - b.Y);
+        public static Vector2d operator *(Vector2d a, double scalar) => new Vector2d(a.X * scalar, a.Y * scalar);
+        public static Vector2d operator /(Vector2d a, double scalar) => new Vector2d(a.X / scalar, a.Y / scalar);
 
-        public static bool operator ==(Vector2D left, Vector2D right)
+        public static bool operator ==(Vector2d left, Vector2d right)
         {
             return left.Equals(right);
         }
 
-        public static bool operator !=(Vector2D left, Vector2D right)
+        public static bool operator !=(Vector2d left, Vector2d right)
         {
             return !(left == right);
         }
 
-        public static implicit operator Vector2D(Cairo.PointD point) => new Vector2D(point.X, point.Y);
-        public static implicit operator Cairo.PointD(Vector2D vec) => new Cairo.PointD(vec.X, vec.Y);
+        public static implicit operator Vector2d(Cairo.PointD point) => new Vector2d(point.X, point.Y);
+        public static implicit operator Cairo.PointD(Vector2d vec) => new Cairo.PointD(vec.X, vec.Y);
 
         
     }
