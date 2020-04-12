@@ -8,8 +8,6 @@ using LogikUI.Hierarchy;
 using LogikUI.Circut;
 using System.Globalization;
 
-#nullable enable
-
 namespace LogikUI
 {
     class Program
