@@ -71,25 +71,29 @@ namespace LogikUI.Hierarchy
 
         private void GetTextCellData(TreeViewColumn column, CellRenderer cell, ITreeModel model, TreeIter iter)
         {
-            CellRendererText cellText = cell as CellRendererText;
-            IHierarchyViewItem val = GetItem(iter);
+            CellRendererText? cellText = cell as CellRendererText;
+            IHierarchyViewItem? val = GetItem(iter);
             if (val != null)
             {
-                cellText.Text = val.ItemText;
+                // cell should never be null here.
+                // If cell is we want the exception because that's a probrammer error.
+                cellText!.Text = val.ItemText;
             }
         }
 
         private void GetIconCellData(TreeViewColumn column, CellRenderer cell, ITreeModel model, TreeIter iter)
         {
-            CellRendererPixbuf cellText = cell as CellRendererPixbuf;
-            IHierarchyViewItem val = GetItem(iter);
+            CellRendererPixbuf? cellText = cell as CellRendererPixbuf;
+            IHierarchyViewItem? val = GetItem(iter);
             if (val != null)
             {
-                cellText.IconName = val.IconName;
+                // cell should never be null here.
+                // If cell is we want the exception because that's a probrammer error.
+                cellText!.IconName = val.IconName;
             }
         }
 
-        private IHierarchyViewItem GetItem(TreeIter iter)
+        private IHierarchyViewItem? GetItem(TreeIter iter)
         {
             return TreeView.Model is TreeStore store ? store.GetValue(iter, 0) as IHierarchyViewItem : null;
         }

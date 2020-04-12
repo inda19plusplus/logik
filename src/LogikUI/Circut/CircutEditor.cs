@@ -37,6 +37,7 @@ namespace LogikUI.Circut
         //public List<ComponentInstance> Instances;
         public Wires Wires;
         public Gates Gates;
+        public TextLabels Labels;
 
         public GestureDrag DragGesture;
 
@@ -93,25 +94,31 @@ namespace LogikUI.Circut
             }
 
             Wires = new Wires(
-                /*new Wire[]
+                new Wire[]
                 {
-                    new Wire(new Vector2i(3, 3), 10, Circut.Orientation.Vertical),
-                    new Wire(new Vector2i(3, 13), 10, Circut.Orientation.Horizontal),
+                    new Wire(new Vector2i(3, 3), 10, Circut.Direction.Vertical),
+                    new Wire(new Vector2i(3, 13), 10, Circut.Direction.Horizontal),
                 },
                 new Wire[]
                 {
-                    new Wire(new Vector2i(13, 12), -9, Orientation.Vertical),
-                    new Wire(new Vector2i(4, 3), 9, Orientation.Horizontal),
-                },*/
-                a, b, new Vector2i[] { new Vector2i(3, 3), new Vector2i(10, 5) },
-                new Vector2i[] { new Vector2i(5, 2), new Vector2i(2, 8), new Vector2i(10, 7) });
+                    new Wire(new Vector2i(13, 12), -9, Circut.Direction.Vertical),
+                    new Wire(new Vector2i(4, 3), 9, Circut.Direction.Horizontal),
+                },
+                /*a, b,*/ new Vector2i[] { new Vector2i(3, 3), new Vector2i(10, 5) },
+                new Vector2i[] { new Vector2i(5, 2), new Vector2i(2, 8), new Vector2i(10, 7), new Vector2i(0, 0) });
 
             Gates = new Gates(new AndGate[]
             {
                 new AndGate(new Vector2i(2, 2), Orientation.North),
-
                 new AndGate(new Vector2i(3, 7), Orientation.North),
                 new AndGate(new Vector2i(3, 10), Orientation.North),
+            });
+
+            Labels = new TextLabels(new TextLabel[]
+            {
+                new TextLabel(new Vector2d(0, 0), "This is some cool text.", 14),
+                new TextLabel(new Vector2d(40, 10), "Even more cool text :O", 24),
+                new TextLabel(new Vector2d(40, 40), "Woahhh :OOOoooO", 72),
             });
         }
 
@@ -191,7 +198,7 @@ namespace LogikUI.Circut
             DragGesture.GetOffset(out double ox, out double oy);
             DisplayOffset = new PointD(Offset.X + ox, Offset.Y + oy);
             QueueDraw();
-
+            
             //Console.WriteLine($"Drag update ({ox}, {oy}), DispOffset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
         }
 
@@ -259,6 +266,7 @@ namespace LogikUI.Circut
 
             Wires.Draw(cr);
             Gates.Draw(cr);
+            Labels.Draw(cr);
 
             /*
             foreach (var instance in Instances)

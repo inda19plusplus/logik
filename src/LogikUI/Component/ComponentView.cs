@@ -60,25 +60,29 @@ namespace LogikUI.Component
 
         private void GetTextCellData(TreeViewColumn column, CellRenderer cell, ITreeModel model, TreeIter iter)
         {
-            CellRendererText cellText = cell as CellRendererText;
-            IComponentViewItem val = GetItem(iter);
+            CellRendererText? cellText = cell as CellRendererText;
+            IComponentViewItem? val = GetItem(iter);
             if (val != null)
             {
-                cellText.Text = val.ItemText;
+                // cell should never be null here.
+                // If cell is we want the exception because that's a probrammer error.
+                cellText!.Text = val.ItemText;
             }
         }
 
         private void GetIconCellData(TreeViewColumn column, CellRenderer cell, ITreeModel model, TreeIter iter)
         {
-            CellRendererPixbuf cellText = cell as CellRendererPixbuf;
-            IComponentViewItem val = GetItem(iter);
+            CellRendererPixbuf? cellIcon = cell as CellRendererPixbuf;
+            IComponentViewItem? val = GetItem(iter);
             if (val != null)
             {
-                cellText.IconName = val.IconName;
+                // cell should never be null here.
+                // If cell is we want the exception because that's a probrammer error.
+                cellIcon!.IconName = val.IconName;
             }
         }
 
-        private IComponentViewItem GetItem(TreeIter iter)
+        private IComponentViewItem? GetItem(TreeIter iter)
         {
             return TreeView.Model is TreeStore store ? store.GetValue(iter, 0) as IComponentViewItem : null;
         }
