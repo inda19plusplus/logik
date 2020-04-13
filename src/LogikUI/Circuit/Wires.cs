@@ -103,23 +103,6 @@ namespace LogikUI.Circuit
                 double height = (vertical * (length + WireWidth)) + (horizontal * WireWidth);
 
                 cr.Rectangle(x, y, width, height);
-
-                // FIXME: Figure out if drawing lines is faster than filling rectangles
-                // To note is that this code needs to be modified to draw the line
-                // to actually cover the grid dots. Rn it just touches them.
-                /*
-                double x = wire.Pos.X * CircuitEditor.DotSpacing;
-                double y = wire.Pos.Y * CircuitEditor.DotSpacing;
-
-                double length = CircuitEditor.DotSpacing * wire.Length;
-                // If we are drawing a horizontal line the width is length, othervise it's WireWidth.
-                double width = (horizontal * (length + WireWidth)) + (vertical * WireWidth);
-                // The opposite of the above.
-                double height = (vertical * (length + WireWidth)) + (horizontal * WireWidth);
-
-                cr.MoveTo(x, y);
-                cr.RelLineTo(horizontal * (length + WireWidth), vertical * (length + WireWidth));
-                */
             }
         }
     }
