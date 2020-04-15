@@ -41,7 +41,9 @@ namespace LogikUI.Util
 
         public static Vector2i operator +(Vector2i a, Vector2i b) => new Vector2i(a.X + b.X, a.Y + b.Y);
         public static Vector2i operator -(Vector2i a, Vector2i b) => new Vector2i(a.X - b.X, a.Y - b.Y);
+        public static Vector2i operator *(int scalar, Vector2i a) => new Vector2i(a.X * scalar, a.Y * scalar);
         public static Vector2i operator *(Vector2i a, int scalar) => new Vector2i(a.X * scalar, a.Y * scalar);
+        public static Vector2d operator *(double scalar, Vector2i a) => new Vector2d(a.X * scalar, a.Y * scalar);
         public static Vector2d operator *(Vector2i a, double scalar) => new Vector2d(a.X * scalar, a.Y * scalar);
         public static Vector2i operator /(Vector2i a, int scalar) => new Vector2i(a.X / scalar, a.Y / scalar);
         public static Vector2d operator /(Vector2i a, double scalar) => new Vector2d(a.X / scalar, a.Y / scalar);

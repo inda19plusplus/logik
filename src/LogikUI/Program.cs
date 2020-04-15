@@ -12,12 +12,17 @@ namespace LogikUI
 {
     class Program
     {
+        // VERY IMPORTANT!!!!!!!!!!!!
+        // After the call to Application.Init() NullReferenceExceptions
+        // will no longer be thrown. This is an active bug in GtkSharp
+        // and can be tracked here https://github.com/GtkSharp/GtkSharp/issues/155
+        // Hopefully this can be fixed sooner rather than later...
         static void Main(string[] args)
         {
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             Application.Init();
-
+            
             Window wnd = new Window("Logik");
             wnd.Resize(1600, 800);
 
@@ -35,7 +40,7 @@ namespace LogikUI
 
             Notebook nbook = new Notebook();
             var circuitEditor = new CircuitEditor();
-            nbook.AppendPage(circuitEditor, new Label("Circuit editor"));
+            nbook.AppendPage(circuitEditor.DrawingArea, new Label("Circuit editor"));
             nbook.AppendPage(new Label("TODO: Package editor"), new Label("Package editor"));
 
             Notebook sideBar = new Notebook();

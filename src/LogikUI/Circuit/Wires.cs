@@ -1,6 +1,8 @@
-﻿using LogikUI.Util;
+﻿using Gtk;
+using LogikUI.Util;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace LogikUI.Circuit
@@ -33,7 +35,6 @@ namespace LogikUI.Circuit
             }
         }
     }
-
 
     class Wires
     {
@@ -104,6 +105,39 @@ namespace LogikUI.Circuit
 
                 cr.Rectangle(x, y, width, height);
             }
+        }
+
+        public static List<Vector2i> FindConnectionPoints(Wire[] wires)
+        {
+            // Calculate all points
+            Vector2i[] points = new Vector2i[wires.Length * 2];
+            for (int i = 0; i < wires.Length; i++)
+            {
+                points[i * 2] = wires[i].Pos;
+                
+                int vert = wires[i].Direction == Direction.Vertical ? 1 : 0;
+                int horiz = 1 - vert;
+                points[i * 2 + 1] = wires[i].Pos + new Vector2i(horiz, vert) * wires[i].Length;
+            }
+
+            Array.Sort(points, (p1, p2) => p1.X == p2.X ? p1.Y - p2.Y : p1.X - p2.X);
+
+            List<Vector2i> connections = new List<Vector2i>();
+
+            Vector2i last = points[0];
+            int count = 0;
+            for (int i = 1; i < points.Length; i++)
+            {
+                if (last == points[i]) count++;
+                else
+                {
+                    if (count > 1) connections.Add(last);
+                    count = 0;
+                }
+                last = points[i];
+            }
+
+            return connections;
         }
     }
 }

@@ -23,8 +23,9 @@ namespace LogikUI.Circuit
         }
     }
 
-    class CircuitEditor : DrawingArea
+    class CircuitEditor
     {
+        public DrawingArea DrawingArea;
         public Vector2d Offset;
         public Vector2d DisplayOffset;
 
@@ -34,51 +35,43 @@ namespace LogikUI.Circuit
 
         public const double DotSpacing = 10d;
 
-        //public List<ComponentInstance> Instances;
         public Wires Wires;
         public Gates Gates;
         public TextLabels Labels;
 
         public GestureDrag DragGesture;
 
-        public CircuitEditor() : base()
+        public CircuitEditor()
         {
+            DrawingArea = new DrawingArea();
+
             Offset = DisplayOffset = new Vector2d(0, 0);
 
-            Drawn += CircuitEditor_Drawn;
+            DrawingArea.Drawn += CircuitEditor_Drawn;
 
-            DragGesture = new GestureDrag(this);
+            DragGesture = new GestureDrag(DrawingArea);
             
             // Sets middle click as the pan button.
             // This should be configurable later!
             DragGesture.Button = 2;
 
-            AddEvents((int)EventMask.PointerMotionMask);
-            AddEvents((int)EventMask.ScrollMask);
+            DrawingArea.AddEvents((int)EventMask.PointerMotionMask);
+            DrawingArea.AddEvents((int)EventMask.ScrollMask);
 
             DragGesture.DragBegin += DragGesture_DragBegin;
             DragGesture.DragEnd += DragGesture_DragEnd;
             DragGesture.DragUpdate += DragGesture_DragUpdate;
 
-            ScrollEvent += CircuitEditor_ScrollEvent;
+            DrawingArea.ScrollEvent += CircuitEditor_ScrollEvent;
 
-            QueryTooltip += CircuitEditor_QueryTooltip;
+            DrawingArea.QueryTooltip += CircuitEditor_QueryTooltip;
 
-            HasTooltip = true;
-            //TooltipText = "This is some tooltip";
+            DrawingArea.HasTooltip = true;
 
-            CanFocus = true;
-            CanDefault = true;
+            DrawingArea.CanFocus = true;
+            DrawingArea.CanDefault = true;
 
-            ButtonPressEvent += CircuitEditor_ButtonPressEvent;
-
-            /*
-            Instances = new List<ComponentInstance>()
-            {
-                new ComponentInstance(new PointD(10,10), new Cairo.Color(0.5,0.5,0), 10, 10),
-                new ComponentInstance(new PointD(40,40), new Cairo.Color(0.5,0,0.5), 20, 20),
-            };
-            */
+            DrawingArea.ButtonPressEvent += CircuitEditor_ButtonPressEvent;
 
             Random rand = new Random();
             int n = 1000;
@@ -93,25 +86,36 @@ namespace LogikUI.Circuit
                 b[i] = new Wire(new Vector2i(rand.Next(100), rand.Next(100)), rand.Next(1, 21), rand.Next(2) == 0 ? Circuit.Direction.Horizontal : Circuit.Direction.Vertical);
             }
 
+            var powered = new Wire[]
+            {
+                new Wire(new Vector2i(3, 3), 10, Direction.Vertical),
+                new Wire(new Vector2i(3, 13), 10, Direction.Horizontal),
+                new Wire(new Vector2i(0, 3), 3, Direction.Horizontal),
+                new Wire(new Vector2i(3, 0), 3, Direction.Vertical),
+                new Wire(new Vector2i(0, 13), 3, Direction.Horizontal),
+            };
+            var unpowered = new Wire[]
+            {
+                new Wire(new Vector2i(13, 12), -9, Direction.Vertical),
+                new Wire(new Vector2i(4, 3), 9, Direction.Horizontal),
+                new Wire(new Vector2i(13, 3), 4, Direction.Horizontal),
+            };
+
             Wires = new Wires(
-                new Wire[]
-                {
-                    new Wire(new Vector2i(3, 3), 10, Circuit.Direction.Vertical),
-                    new Wire(new Vector2i(3, 13), 10, Circuit.Direction.Horizontal),
-                },
-                new Wire[]
-                {
-                    new Wire(new Vector2i(13, 12), -9, Circuit.Direction.Vertical),
-                    new Wire(new Vector2i(4, 3), 9, Circuit.Direction.Horizontal),
-                },
-                /*a, b,*/ new Vector2i[] { new Vector2i(3, 3), new Vector2i(10, 5) },
-                new Vector2i[] { new Vector2i(5, 2), new Vector2i(2, 8), new Vector2i(10, 7), new Vector2i(0, 0) });
+                powered, 
+                unpowered, 
+                // For wires to connect their start/end point must be at the same location
+                // A wire that start/ends in the middle of another wires doesn't connect
+                // (We might want to change that but it becomes more complicated then...)
+                Wires.FindConnectionPoints(powered).ToArray(),
+                Wires.FindConnectionPoints(unpowered).ToArray());
 
             Gates = new Gates(new AndGate[]
             {
-                new AndGate(new Vector2i(2, 2), Orientation.North),
-                new AndGate(new Vector2i(3, 7), Orientation.North),
-                new AndGate(new Vector2i(3, 10), Orientation.North),
+                new AndGate(new Vector2i(2, 2), Orientation.South),
+                new AndGate(new Vector2i(3, 7), Orientation.East),
+                new AndGate(new Vector2i(3, 10), Orientation.West),
+                new AndGate(new Vector2i(5, 3), Orientation.North),
             });
 
             Labels = new TextLabels(new TextLabel[]
@@ -125,6 +129,22 @@ namespace LogikUI.Circuit
         private void CircuitEditor_QueryTooltip(object o, QueryTooltipArgs args)
         {
             var mouse = ToWorld(new Vector2d(args.X, args.Y));
+
+            // FIXME: Better tooltips. This is a placeholder.
+            foreach (var andGate in Gates.AndGates)
+            {
+                var pos = andGate.GetTopLeft() * DotSpacing;
+                var size = new Vector2d(3 * DotSpacing, 3 * DotSpacing);
+
+                var bounds = new Rect(pos, size);
+                if (bounds.Contains(mouse))
+                {
+                    args.Tooltip.Text = "And Gate";
+                    args.Tooltip.TipArea = ToScreen(bounds);
+                    args.RetVal = true;
+                    return;
+                }
+            }
 
             // FIXME: This is something to consider with out current data design!
             /*
@@ -182,7 +202,7 @@ namespace LogikUI.Circuit
             Offset -= sdiff;
             DisplayOffset -= sdiff;
 
-            QueueDraw();
+            DrawingArea.QueueDraw();
         }
 
         private void DragGesture_DragBegin(object o, DragBeginArgs args)
@@ -190,14 +210,14 @@ namespace LogikUI.Circuit
             DisplayOffset = Offset;
             //DragGesture.GetStartPoint(out double x, out double y);
             //Console.WriteLine($"Drag start ({x}, {y}), DispOffset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
-            QueueDraw();
+            DrawingArea.QueueDraw();
         }
 
         private void DragGesture_DragUpdate(object o, DragUpdateArgs args)
         {
             DragGesture.GetOffset(out double ox, out double oy);
             DisplayOffset = new PointD(Offset.X + ox, Offset.Y + oy);
-            QueueDraw();
+            DrawingArea.QueueDraw();
             
             //Console.WriteLine($"Drag update ({ox}, {oy}), DispOffset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
         }
@@ -207,9 +227,9 @@ namespace LogikUI.Circuit
             DragGesture.GetOffset(out double ox, out double oy);
             DisplayOffset = new PointD(Offset.X + ox, Offset.Y + oy);
             Offset = DisplayOffset;
-            QueueDraw();
+            DrawingArea.QueueDraw();
 
-            DragGesture.GetOffset(out double x, out double y);
+            //DragGesture.GetOffset(out double x, out double y);
             //Console.WriteLine($"Drag end ({x}, {y}), Offset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
         }
 
@@ -225,9 +245,9 @@ namespace LogikUI.Circuit
 
         protected void DoDraw(Context cr)
         {
-            var context = StyleContext;
-            var width = AllocatedWidth;
-            var height = AllocatedHeight;
+            var context = DrawingArea.StyleContext;
+            var width = DrawingArea.AllocatedWidth;
+            var height = DrawingArea.AllocatedHeight;
 
             context.RenderBackground(cr, 0, 0, width, height);
 
@@ -267,15 +287,6 @@ namespace LogikUI.Circuit
             Wires.Draw(cr);
             Gates.Draw(cr);
             Labels.Draw(cr);
-
-            /*
-            foreach (var instance in Instances)
-            {
-                cr.Rectangle(instance.Position, instance.Width, instance.Height);
-                cr.SetSourceColor(instance.Color);
-                cr.Fill();
-            }
-            */
 
             if (cr.Status != Cairo.Status.Success)
             {
