@@ -12,6 +12,8 @@ namespace LogikUI.Util
         public int X;
         public int Y;
 
+        public int ManhattanDistance => X + Y;
+
         public Vector2i(int x, int y)
         {
             X = x;

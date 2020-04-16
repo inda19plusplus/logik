@@ -109,6 +109,9 @@ namespace LogikUI.Circuit
                 // (We might want to change that but it becomes more complicated then...)
                 Wires.FindConnectionPoints(powered).ToArray(),
                 Wires.FindConnectionPoints(unpowered).ToArray());
+            Wires.AddWire(new Wire(new Vector2i(3, 5), 2, Direction.Horizontal));
+            //Wires.AddWire(new Wire(new Vector2i(2, 0), 2, Direction.Vertical));
+            Wires.AddWire(new Wire(new Vector2i(0, 0), 3, Direction.Horizontal));
 
             Gates = new Gates(new AndGate[]
             {
@@ -145,21 +148,6 @@ namespace LogikUI.Circuit
                     return;
                 }
             }
-
-            // FIXME: This is something to consider with out current data design!
-            /*
-            foreach (var instance in Instances)
-            {
-                var bounds = new Rect(instance.Position, new Vector2d(instance.Width, instance.Height));
-                if (bounds.Contains(mouse))
-                {
-                    args.Tooltip.Text = $"{(Vector2d)instance.Position}";
-                    args.Tooltip.TipArea = ToScreen(bounds);
-                    args.RetVal = true;
-                    return;
-                }
-            }
-            */
 
             args.RetVal = false;
         }
