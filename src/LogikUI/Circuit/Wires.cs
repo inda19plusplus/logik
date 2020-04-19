@@ -1,7 +1,9 @@
-﻿using LogikUI.Transaction;
+﻿using LogikUI.Simulation;
+using LogikUI.Transaction;
 using LogikUI.Util;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace LogikUI.Circuit
@@ -84,10 +86,32 @@ namespace LogikUI.Circuit
 
         public const double ConnectionRadius = 2.5;
 
+        public static Cairo.Color GetValueColor(Value value)
+        {
+            if (value.Width == 1)
+            {
+                switch ((ValueState)value.Values)
+                {
+                    case ValueState.Floating:
+                        return new Cairo.Color(0.2, 0.2, 0.9);
+                    case ValueState.Zero:
+                        return new Cairo.Color(0.1, 0.4, 0.1);
+                    case ValueState.One:
+                        return new Cairo.Color(0.2, 0.9, 0.2);
+                    case ValueState.Error:
+                        return new Cairo.Color(0.9, 0.2, 0.2);
+                    default:
+                        throw new InvalidEnumArgumentException(nameof(value), (int)value.Values, typeof(ValueState));
+                }
+            }
+            else return new Cairo.Color(0.3, 0.3, 0.3);
+        }
+
         public void Draw(Cairo.Context cr)
         {
             WireArray(cr, WiresList);
             cr.SetSourceRGB(0.2, 0.9, 0.2);
+            cr.SetSourceColor(GetValueColor(Value.Error));
             cr.Fill();
 
             //WireArray(cr, Powered);
@@ -357,6 +381,13 @@ namespace LogikUI.Circuit
 
             // FIXME: If the added wire is entierly contained within another wire
             // we shouldn't add anything!
+
+            // FIXME: If we have to wires crossing each other and we draw
+            // a wire from the end of one of the wires to the cross we split
+            // the crossing wire without splitting the wire we started drawing from.
+            // This will be solved when we implement the feature to shorten wires.
+            // Because in this case we will just shorten the wire instead of drawing
+            // a wire all the ...
 
             // Lastly we split the merged wire on all of the remaining points.
             // We do this by first sorting the points in the wires direction 

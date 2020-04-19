@@ -239,10 +239,14 @@ namespace LogikUI.Circuit
 
         private void DragGestureCreate_DragEnd(object o, DragEndArgs args)
         {
+            // FIXME: Do l-shaped wire addition
             DragGestureCreate.GetOffset(out double x, out double y);
             var diff = RoundDistToGrid(new Vector2d(x, y));
             if (Math.Abs(diff.X) > Math.Abs(diff.Y))
             {
+                // FIXME: We shouldn't rely on the constructor to flip negative diffs
+                // because we are going to remove that so we should do it ourselves here.
+
                 // Here we are drawing a horizontal line
                 CurrentWire = new Wire(DragStartPos, diff.X, Direction.Horizontal);
             }
@@ -252,17 +256,89 @@ namespace LogikUI.Circuit
                 CurrentWire = new Wire(DragStartPos, diff.Y, Direction.Vertical);
             }
 
-            // FIXME
             DraggingWire = false;
-            WireTransaction? transaction = null;
+             
             if (CurrentWire.Length != 0)
             {
-                transaction = Wires.CreateAddWireTransaction(CurrentWire);
-                Wires.ApplyTransaction(transaction);
-                Transactions.PushTransaction(transaction);
-            }
+                // Here we should figure out if we are modifying an existing wire
+                // or if we are creating a new one.
+                Wire? modifying = null;
+                bool movingEnd = false;
+                foreach (var bWire in Wires.WiresList)
+                {
+                    if (CurrentWire.Direction != bWire.Direction)
+                        continue;
 
-            Console.WriteLine($"End wire!\n{transaction}\n");
+                    if (CurrentWire.Pos == bWire.Pos && bWire.IsPointOnWire(CurrentWire.EndPos))
+                    {
+                        modifying = bWire;
+                        movingEnd = false;
+                        break;
+                    }
+                    else if (CurrentWire.EndPos == bWire.EndPos && bWire.IsPointOnWire(CurrentWire.Pos))
+                    {
+                        modifying = bWire;
+                        movingEnd = true;
+                        break;
+                    }
+                }
+
+                if (modifying is Wire modify)
+                {
+                    // Here we are modifying an existing wire.
+                    // So we should figure out how the wire should be modified.
+                    // If the wire is deleted we need to check for places where we should merge
+                    // other connecting wires. The creation of the remove transaction should
+                    // probably be created in a Wires.CreateRemoveWireTransaction(...).
+
+                    Wire modifiedWire = modify;
+                    if (movingEnd == false)
+                    {
+                        // Here we are moving the start poistion of the wire.
+                        diff = CurrentWire.EndPos - modify.Pos;
+                        modifiedWire.Pos = CurrentWire.EndPos;
+                        modifiedWire.Length -= diff.ManhattanDistance;
+                    }
+                    else
+                    {
+                        // Here we only need to change the length of the wire.
+                        diff = modify.EndPos - CurrentWire.Pos;
+                        modifiedWire.Length -= diff.ManhattanDistance;
+                    }
+
+                    if (modifiedWire.Length > 0)
+                    {
+                        // FIMXE: Figure out if there are any edge-cases when modifying wires like this.
+                        // One of the cases is where the modified wire should split another already
+                        // existing wire.
+
+                        // Here we are just modifying the wires length so it's fine
+                        List<Wire> created = new List<Wire>() { modifiedWire };
+                        List<Wire> deleted = new List<Wire>() { modify };
+                        WireTransaction modifyTransaction = new WireTransaction(default, deleted, created);
+                        Wires.ApplyTransaction(modifyTransaction);
+                        Transactions.PushTransaction(modifyTransaction);
+                        Console.WriteLine($"Modified existing wire! {modify} -> {modifiedWire}\n{modifyTransaction}\n");
+                    }
+                    else
+                    {
+                        // Here we should remove the wire completely
+                        // FIXME: 
+                        throw new NotImplementedException("Removing wires!");
+                    }
+                }
+                else
+                {
+                    WireTransaction transaction = Wires.CreateAddWireTransaction(CurrentWire);
+                    Wires.ApplyTransaction(transaction);
+                    Transactions.PushTransaction(transaction);
+                    Console.WriteLine($"End wire!\n{transaction}\n");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"End wire!\n\n");
+            }
 
             DrawingArea.QueueDraw();
         }
