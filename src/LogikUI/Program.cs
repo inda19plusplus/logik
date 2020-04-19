@@ -7,6 +7,7 @@ using LogikUI.Component;
 using LogikUI.Hierarchy;
 using LogikUI.Circuit;
 using System.Globalization;
+using System.Reflection;
 
 namespace LogikUI
 {
@@ -17,11 +18,13 @@ namespace LogikUI
         // will no longer be thrown. This is an active bug in GtkSharp
         // and can be tracked here https://github.com/GtkSharp/GtkSharp/issues/155
         // Hopefully this can be fixed sooner rather than later...
-        static void Main(string[] args)
+        static void Main()
         {
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             Application.Init();
+
+            GLib.ExceptionManager.UnhandledException += ExceptionManager_UnhandledException;
             
             Window wnd = new Window("Logik");
             wnd.Resize(1600, 800);
@@ -87,6 +90,14 @@ namespace LogikUI
 
             wnd.ShowAll();
             Application.Run();
+        }
+
+        private static void ExceptionManager_UnhandledException(GLib.UnhandledExceptionArgs args)
+        {
+            if (args.ExceptionObject is Exception e)
+                if (e is TargetInvocationException tie && tie.InnerException != null) throw tie.InnerException;
+                else throw e;
+            else throw new Exception($"We got a weird exception! {args.ExceptionObject}");
         }
 
         private static void Wnd_Destroyed(object? sender, EventArgs e)

@@ -18,6 +18,8 @@ namespace LogikUI.Util
             Y = y;
         }
 
+        public Vector2i Round() => new Vector2i((int)Math.Round(X), (int)Math.Round(Y));
+
         public override bool Equals(object? obj)
         {
             return obj is Vector2d d && Equals(d);

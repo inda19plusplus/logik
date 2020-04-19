@@ -1,11 +1,8 @@
-﻿using Gtk;
-using LogikUI.Transaction;
+﻿using LogikUI.Transaction;
 using LogikUI.Util;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Text;
+using System.Diagnostics;
 
 namespace LogikUI.Circuit
 {
@@ -54,7 +51,7 @@ namespace LogikUI.Circuit
             else if (Direction == Direction.Vertical && diff.X == 0)
                 return diff.Y >= 0 && diff.Y <= Length;
             else if (Direction == Direction.Horizontal && diff.Y == 0)
-                return diff.X >= 0 && diff.Y <= Length;
+                return diff.X >= 0 && diff.X <= Length;
             else return false;
         }
 
@@ -132,6 +129,23 @@ namespace LogikUI.Circuit
             cr.SetSourceRGB(0.1, 0.4, 0.1);
             cr.Fill();
             */
+        }
+
+        public void Wire(Cairo.Context cr, Wire wire)
+        {
+            int vertical = wire.Direction == Direction.Vertical ? 1 : 0;
+            int horizontal = 1 - vertical;
+
+            double x = wire.Pos.X * CircuitEditor.DotSpacing - HalfWireWidth;
+            double y = wire.Pos.Y * CircuitEditor.DotSpacing - HalfWireWidth;
+
+            double length = CircuitEditor.DotSpacing * wire.Length;
+            // If we are drawing a horizontal line the width is length, othervise it's WireWidth.
+            double width = (horizontal * (length + WireWidth)) + (vertical * WireWidth);
+            // The opposite of the above.
+            double height = (vertical * (length + WireWidth)) + (horizontal * WireWidth);
+
+            cr.Rectangle(x, y, width, height);
         }
 
         public void WireArray(Cairo.Context cr, Wire[] wires)
@@ -240,31 +254,46 @@ namespace LogikUI.Circuit
             return connections;
         }
         
-        public WireTransaction AddWire(Wire wire)
+        public WireTransaction CreateAddWireTransaction(Wire wire)
         {
             var wireEnd = wire.GetEndPosition();
 
             List<Wire> Deleted = new List<Wire>();
             List<Wire> Added = new List<Wire>();
+
+            // This dictionary maps wires to the point where they intersect this wire
+            // If there exists a mapping but the value is null, that means both ends
+            // of the wire are contained inside of the addeed wire.
+            Dictionary<Wire, Vector2i?> SplitPoints = new Dictionary<Wire, Vector2i?>();
+
+            // First we get all of the points where we need to split the current wire
             foreach (var bWire in WiresList)
             {
-                bool connected = false;
+                bool start = wire.IsPointOnWire(bWire.Pos);
+                bool end = wire.IsPointOnWire(bWire.EndPos);
+                if (start && end)
+                    // Null indicates that both ends are contained in this wire
+                    SplitPoints[bWire] = null;
+                else if (start)
+                    SplitPoints[bWire] = bWire.Pos;
+                else if (end)
+                    SplitPoints[bWire] = bWire.EndPos;
+            }
 
-                // Check if any of the endpoins lands on any of the existing wires.
+            // FIXME: Add other split points like component connection points!
+
+            // After we've found all of the intersection points we can check
+            // if the ends of the added wire will split some other wire.
+            foreach (var bWire in WiresList)
+            {
                 if (bWire.IsPointOnWire(wire.Pos))
                 {
-                    connected = true;
-
-                    // We need to connect the start of the wire with the existing wire
-                    if (wire.Direction == bWire.Direction)
+                    // We only care if the wires are going in different direction
+                    // as that means we should split the wire.
+                    // The case where they are going the same direction
+                    // will be handled in the next step.
+                    if (wire.Direction != bWire.Direction)
                     {
-                        // Here we need to check the ends and stuff...
-                        throw new NotImplementedException("Merging wires that go in the same direction");
-                    }
-                    else
-                    {
-                        // Here we do a clean connect with by dividing the line in half
-
                         // The diff will be in non-zero in only one direction so this will work fine.
                         var diff = wire.Pos - bWire.Pos;
                         Deleted.Add(bWire);
@@ -272,64 +301,140 @@ namespace LogikUI.Circuit
                         Added.Add(new Wire(bWire.Pos + diff, bWire.Length - diff.ManhattanDistance, bWire.Direction));
                     }
                 }
-                
-                if (bWire.IsPointOnWire(wireEnd))
+
+                if (bWire.IsPointOnWire(wire.EndPos))
                 {
-                    connected = true;
-
-                    if (wire.Direction == bWire.Direction)
+                    if (wire.Direction != bWire.Direction)
                     {
-                        // Here we need to check the ends and stuff...
-                        throw new NotImplementedException("Merging wires that go in the same direction");
-                    }
-                    else
-                    {
-                        // Here we do a clean connect with by dividing the line in half
-
                         // The diff will be in non-zero in only one direction so this will work fine.
-                        var diff = wireEnd - bWire.Pos;
+                        var diff = wire.EndPos - bWire.Pos;
                         Deleted.Add(bWire);
                         Added.Add(new Wire(bWire.Pos, diff.ManhattanDistance, bWire.Direction));
                         Added.Add(new Wire(bWire.Pos + diff, bWire.Length - diff.ManhattanDistance, bWire.Direction));
                     }
                 }
+            }
 
-                // If the wire we wanted to add didn't have end point on this wire
-                // we need to check in this wire has endpoints that touch this wire.
-                if (connected == false)
+            List<Vector2i> Points = new List<Vector2i>();
+
+            // Now we should merge or remove wires that are going in the same direction as us.
+            Wire mergedWire = wire;
+            foreach (var (splitWire, location) in SplitPoints)
+            {
+                if (location == null)
                 {
-                    // FIXME: If one of the bWires ends is inside of this wire we need to
-                    // split this wire.
-                    if (wire.IsPointOnWire(bWire.Pos) || wire.IsPointOnWire(bWire.EndPos))
-                        throw new NotImplementedException("Splitting the currently added wire...");
+                    // Both ends are contained. 
+                    // So to merge we can just delete the contained wire.
+                    Console.WriteLine($"Wire ({splitWire}) was completely contained in ({wire}), so it was removed.");
+                    Deleted.Add(splitWire);
+                    continue;
+                }
+                else if (wire.Direction == splitWire.Direction)
+                {
+                    // This means that we should merge the two wires.
+                    // We can do that by deleting the existing wire and
+                    // extending the wire we are adding to include that wire.
+                    var minPos = Vector2i.ComponentWiseMin(mergedWire.Pos, splitWire.Pos);
+                    var maxPos = Vector2i.ComponentWiseMax(mergedWire.EndPos, splitWire.EndPos);
+                    var diff = maxPos - minPos;
+
+                    Wire newMerged;
+                    newMerged.Direction = wire.Direction;
+                    newMerged.Pos = minPos;
+                    newMerged.Length = diff.ManhattanDistance;
+                    Console.WriteLine($"Merged ({splitWire}) with ({mergedWire}). Result: ({newMerged})");
+                    mergedWire = newMerged;
+
+                    Deleted.Add(splitWire);
+                }
+                else
+                {
+                    // This will not fail due to the null check above.
+                    Console.WriteLine($"The wire ({splitWire}) should split the current wire at ({location}).");
+                    if (Points.Contains(location.Value) == false) Points.Add(location.Value);
                 }
             }
 
-            foreach (var dwire in Deleted)
-            {
-                WiresList.Remove(dwire);
-                Console.WriteLine($"Removed: {dwire}");
-            }
+            // FIXME: If the added wire is entierly contained within another wire
+            // we shouldn't add anything!
 
-            Console.WriteLine($"Replaced by:");
-            foreach (var awire in Added)
+            // Lastly we split the merged wire on all of the remaining points.
+            // We do this by first sorting the points in the wires direction 
+            // and then go through linearly and add the parts of the wire.
+
+            // We do the comparison outside of the lambda to avoid a capture.
+            // (this is a premature optimization)
+            Points.Sort(
+                wire.Direction == Direction.Vertical ?
+                (Comparison<Vector2i>)((v1, v2) => v1.Y - v2.Y) :
+                ((v1, v2) => v1.X - v2.X));
+
+            Vector2i pos = mergedWire.Pos;
+            foreach (var split in Points)
             {
-                if (awire.Length != 0)
+                Wire newWire;
+                newWire.Direction = mergedWire.Direction;
+                newWire.Pos = pos;
+                newWire.Length = (split - pos).ManhattanDistance;
+                if (newWire.Length < 0) Debugger.Break();
+                pos = newWire.EndPos;
+                Added.Add(newWire);
+                Console.WriteLine($"Split wire at {split}. Result: ({newWire})");
+            }
+            // Here we need to add the last part of the wire
+            Wire w = new Wire(pos, (mergedWire.EndPos - pos).ManhattanDistance, mergedWire.Direction);
+            Added.Add(w);
+            Console.WriteLine($"End part of split: {w}");
+
+            // Remove all wires with zero length
+            Added.RemoveAll(w =>
+            {
+                if (w.Length == 0)
                 {
-                    WiresList.Add(awire);
-                    Console.WriteLine($"- {awire}");
+                    Console.WriteLine($"Warn: Trying to add a wire with zero length! {w}");
+                    return true;
                 }
+                else return false;
+            });
+
+            // Now we just return the transaction.
+            // To apply this transaction ApplyTransaction(...) must be called.
+
+            return new WireTransaction(wire, Deleted, Added);
+        }
+
+        public void ApplyTransaction(WireTransaction transaction)
+        {
+            // Now we have figured out all of the additions and deletions.
+            // So now we can actually add and remove the appropriate wires.
+            foreach (var dwire in transaction.Deleted)
+            {
+                if (WiresList.Remove(dwire) == false)
+                    Console.WriteLine($"Warn: Tried to remove a wire that didn't exist! {dwire}");
             }
 
-            WiresList.Add(wire);
-            Console.WriteLine($"Added: {wire}");
-
-            return new WireTransaction(Deleted, Added);
+            foreach (var awire in transaction.Created)
+            {
+                WiresList.Add(awire);
+            }
         }
 
         public void RevertTransaction(WireTransaction transaction)
         {
-            
+            // FIXME: We want to know if this is the last transaction created for the wires.
+
+            // We want to delete the wires that where created and recreate the ones removed
+
+            foreach (var wire in transaction.Created)
+            {
+                if (WiresList.Remove(wire) == false)
+                    Console.WriteLine($"Warn: Removing non-existent wire when reverting transaction! ({wire})");
+            }
+
+            foreach (var wire in transaction.Deleted)
+            {
+                WiresList.Add(wire);
+            }
         }
     }
 }

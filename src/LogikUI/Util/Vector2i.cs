@@ -12,13 +12,19 @@ namespace LogikUI.Util
         public int X;
         public int Y;
 
-        public int ManhattanDistance => X + Y;
+        public int ManhattanDistance => Math.Abs(X + Y);
 
         public Vector2i(int x, int y)
         {
             X = x;
             Y = y;
         }
+
+        public static Vector2i ComponentWiseMin(Vector2i a, Vector2i b) => 
+            new Vector2i(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y));
+
+        public static Vector2i ComponentWiseMax(Vector2i a, Vector2i b) =>
+            new Vector2i(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));
 
         public override bool Equals(object? obj)
         {

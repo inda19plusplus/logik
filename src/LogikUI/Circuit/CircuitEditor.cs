@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using LogikUI.Util;
+using LogikUI.Transaction;
 
 namespace LogikUI.Circuit
 {
@@ -40,6 +41,14 @@ namespace LogikUI.Circuit
         public TextLabels Labels;
 
         public GestureDrag DragGesture;
+        public GestureDrag DragGestureCreate;
+
+        public bool DraggingWire;
+        public Vector2i DragStartPos;
+        public Wire CurrentWire;
+
+        //public Stack<WireTransaction> Transactions = new Stack<WireTransaction>();
+        public TransactionStack Transactions = new TransactionStack();
 
         public CircuitEditor()
         {
@@ -49,18 +58,27 @@ namespace LogikUI.Circuit
 
             DrawingArea.Drawn += CircuitEditor_Drawn;
 
+            DrawingArea.AddEvents((int)EventMask.PointerMotionMask);
+            DrawingArea.AddEvents((int)EventMask.ScrollMask);
+
             DragGesture = new GestureDrag(DrawingArea);
             
             // Sets middle click as the pan button.
             // This should be configurable later!
             DragGesture.Button = 2;
 
-            DrawingArea.AddEvents((int)EventMask.PointerMotionMask);
-            DrawingArea.AddEvents((int)EventMask.ScrollMask);
-
             DragGesture.DragBegin += DragGesture_DragBegin;
             DragGesture.DragEnd += DragGesture_DragEnd;
             DragGesture.DragUpdate += DragGesture_DragUpdate;
+
+            DragGestureCreate = new GestureDrag(DrawingArea);
+            // Sets middle click as the wire creation button.
+            // This should be configurable later!
+            DragGestureCreate.Button = 1;
+            DragGestureCreate.DragBegin += DragGestureCreate_DragBegin;
+            DragGestureCreate.DragUpdate += DragGestureCreate_DragUpdate;
+            DragGestureCreate.DragEnd += DragGestureCreate_DragEnd;
+
 
             DrawingArea.ScrollEvent += CircuitEditor_ScrollEvent;
 
@@ -69,22 +87,16 @@ namespace LogikUI.Circuit
             DrawingArea.HasTooltip = true;
 
             DrawingArea.CanFocus = true;
-            DrawingArea.CanDefault = true;
+            DrawingArea.FocusOnClick = true;
 
-            DrawingArea.ButtonPressEvent += CircuitEditor_ButtonPressEvent;
+            DrawingArea.AddEvents((int)EventMask.KeyPressMask);
+            DrawingArea.KeyPressEvent += DrawingArea_KeyPressEvent;
 
-            Random rand = new Random();
-            int n = 1000;
-            var a = new Wire[n];
-            for (int i = 0; i < n; i++)
-            {
-                a[i] = new Wire(new Vector2i(rand.Next(100), rand.Next(100)), rand.Next(1, 21), rand.Next(2) == 0 ? Circuit.Direction.Horizontal : Circuit.Direction.Vertical);
-            }
-            var b = new Wire[n];
-            for (int i = 0; i < n; i++)
-            {
-                b[i] = new Wire(new Vector2i(rand.Next(100), rand.Next(100)), rand.Next(1, 21), rand.Next(2) == 0 ? Circuit.Direction.Horizontal : Circuit.Direction.Vertical);
-            }
+            // So that we can grab focus. Without focus we won't get any KeyPressEvents...
+            // FIXME: We want to figure out how to do this in a good way where the user doesn't really
+            // need to know where the current focus is for stuff like ctrl+z to work.
+            DrawingArea.ParentSet += DrawingArea_ParentSet;
+            DrawingArea.ButtonPressEvent += DrawingArea_ButtonPressEvent;
 
             var powered = new Wire[]
             {
@@ -109,9 +121,16 @@ namespace LogikUI.Circuit
                 // (We might want to change that but it becomes more complicated then...)
                 Wires.FindConnectionPoints(powered).ToArray(),
                 Wires.FindConnectionPoints(unpowered).ToArray());
-            Wires.AddWire(new Wire(new Vector2i(3, 5), 2, Direction.Horizontal));
+            var transaction = Wires.CreateAddWireTransaction(new Wire(new Vector2i(3, 5), 2, Direction.Horizontal));
+            Wires.ApplyTransaction(transaction);
+            Console.WriteLine(transaction);
+            Console.WriteLine("-----");
             //Wires.AddWire(new Wire(new Vector2i(2, 0), 2, Direction.Vertical));
-            Wires.AddWire(new Wire(new Vector2i(0, 0), 3, Direction.Horizontal));
+            transaction = Wires.CreateAddWireTransaction(new Wire(new Vector2i(0, 0), 3, Direction.Horizontal));
+            Wires.ApplyTransaction(transaction);
+            Console.WriteLine(transaction);
+
+            Wires.RevertTransaction(transaction);
 
             Gates = new Gates(new AndGate[]
             {
@@ -127,6 +146,125 @@ namespace LogikUI.Circuit
                 new TextLabel(new Vector2d(40, 10), "Even more cool text :O", 24),
                 new TextLabel(new Vector2d(40, 40), "Woahhh :OOOoooO", 72),
             });
+        }
+
+        private void DrawingArea_ButtonPressEvent(object o, ButtonPressEventArgs args)
+        {
+            DrawingArea.GrabFocus();
+        }
+
+        private void DrawingArea_ParentSet(object o, ParentSetArgs args)
+        {
+            DrawingArea.GrabFocus();
+        }
+
+        private void DrawingArea_KeyPressEvent(object o, KeyPressEventArgs args)
+        {
+            var @event = args.Event;
+
+            // Check that control is the only modifier pressed.
+            if ((@event.State ^ ModifierType.ControlMask) == 0)
+            {
+                if (@event.Key == Gdk.Key.z)
+                {
+                    // This is ctrl-z, i.e. undo
+                    if (Transactions.TryUndo(out var transaction))
+                    {
+                        var wtrans = transaction as WireTransaction;
+                        Wires.RevertTransaction(wtrans!);
+                        Console.WriteLine($"Undid transaction: {transaction}");
+                        DrawingArea.QueueDraw();
+                    }
+                }
+                else if (@event.Key == Gdk.Key.y)
+                {
+                    // This is ctrl-y, i.e. redo
+                    if (Transactions.TryRedo(out var transaction))
+                    {
+                        var wtrans = transaction as WireTransaction;
+                        Wires.ApplyTransaction(wtrans!);
+                        Console.WriteLine($"Redid transaction: {transaction}");
+                        DrawingArea.QueueDraw();
+                    }
+                }
+            }
+
+            if ((@event.State ^ (ModifierType.ControlMask | ModifierType.ShiftMask)) == 0)
+            {
+                if (@event.Key == Gdk.Key.Z)
+                {
+                    // This is ctrl-shift-z, i.e. redo
+                    if (Transactions.TryRedo(out var transaction))
+                    {
+                        var wtrans = transaction as WireTransaction;
+                        Wires.ApplyTransaction(wtrans!);
+                        Console.WriteLine($"Redid transaction: {transaction}");
+                        DrawingArea.QueueDraw();
+                    }
+                }
+            }
+        }
+
+        private void DragGestureCreate_DragBegin(object o, DragBeginArgs args)
+        {
+            DraggingWire = true;
+            DragGestureCreate.GetStartPoint(out double x, out double y);
+            DragStartPos = RoundToGrid(new Vector2d(x, y));
+            CurrentWire = new Wire(DragStartPos, 0, Direction.Horizontal);
+            DrawingArea.QueueDraw();
+
+            //Console.WriteLine($"Started wire! {DragStartPos}");
+        }
+
+        private void DragGestureCreate_DragUpdate(object o, DragUpdateArgs args)
+        {
+            DragGestureCreate.GetOffset(out double x, out double y);
+            var diff = RoundDistToGrid(new Vector2d(x, y));
+
+            if (Math.Abs(diff.X) > Math.Abs(diff.Y))
+            {
+                // Here we are drawing a horizontal line
+                CurrentWire = new Wire(DragStartPos, diff.X, Direction.Horizontal);
+            }
+            else
+            {
+                //This should be a vertical line 
+                CurrentWire = new Wire(DragStartPos, diff.Y, Direction.Vertical);
+            }
+
+            DrawingArea.QueueDraw();
+
+            //Console.WriteLine($"Updated wire! {CurrentWire}");
+        }
+
+        private void DragGestureCreate_DragEnd(object o, DragEndArgs args)
+        {
+            DragGestureCreate.GetOffset(out double x, out double y);
+            var diff = RoundDistToGrid(new Vector2d(x, y));
+            if (Math.Abs(diff.X) > Math.Abs(diff.Y))
+            {
+                // Here we are drawing a horizontal line
+                CurrentWire = new Wire(DragStartPos, diff.X, Direction.Horizontal);
+            }
+            else
+            {
+                //This should be a vertical line 
+                CurrentWire = new Wire(DragStartPos, diff.Y, Direction.Vertical);
+            }
+
+            // FIXME
+            DraggingWire = false;
+            WireTransaction? transaction = null;
+            if (CurrentWire.Length != 0)
+            {
+                transaction = Wires.CreateAddWireTransaction(CurrentWire);
+                Wires.ApplyTransaction(transaction);
+                Transactions.PushTransaction(transaction);
+            }
+
+            Console.WriteLine($"End wire!\n{transaction}\n");
+
+            DrawingArea.QueueDraw();
         }
 
         private void CircuitEditor_QueryTooltip(object o, QueryTooltipArgs args)
@@ -155,6 +293,9 @@ namespace LogikUI.Circuit
         private Vector2d ToWorld(Vector2d ScreenPoint) => (ScreenPoint - DisplayOffset) / Scale;
         private Vector2d ToWorldDist(Vector2d ScreenDist) => ScreenDist / Scale;
         private Rect ToWorld(Rect ScreenRect) => new Rect(ToWorld(ScreenRect.Position), ToWorldDist(ScreenRect.Size));
+
+        private Vector2i RoundToGrid(Vector2d ScreenPoint) => (ToWorld(ScreenPoint) / DotSpacing).Round();
+        private Vector2i RoundDistToGrid(Vector2d ScreenDist) => (ToWorldDist(ScreenDist) / DotSpacing).Round();
 
         private Vector2d ToScreen(Vector2d WorldPoint) => (WorldPoint * Scale) + DisplayOffset;
         private Vector2d ToScreenDist(Vector2d WorldDist) => WorldDist * Scale;
@@ -221,11 +362,6 @@ namespace LogikUI.Circuit
             //Console.WriteLine($"Drag end ({x}, {y}), Offset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
         }
 
-        private void CircuitEditor_ButtonPressEvent(object o, ButtonPressEventArgs args)
-        {
-            //Console.WriteLine($"{args.Event.Button}");
-        }
-
         private void CircuitEditor_Drawn(object o, DrawnArgs args)
         {
             DoDraw(args.Cr);
@@ -276,6 +412,13 @@ namespace LogikUI.Circuit
             Gates.Draw(cr);
             Labels.Draw(cr);
 
+            if (DraggingWire)
+            {
+                Wires.Wire(cr, CurrentWire);
+                cr.SetSourceRGB(0.3, 0.4, 0.3);
+                cr.Fill();
+            }
+            
             if (cr.Status != Cairo.Status.Success)
             {
                 // FIXME: Figure out how to call 'cairo_status_to_string()'

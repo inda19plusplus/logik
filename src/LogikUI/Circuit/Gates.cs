@@ -112,7 +112,8 @@ namespace LogikUI.Circuit
                 cr.Arc(out1.X, out1.Y, 2, 0, Math.PI * 2);
                 cr.ClosePath();
             }
-            cr.SetSourceRGB(0.3, 0.3, 0.3);
+            //cr.SetSourceRGB(0.3, 0.3, 0.3);
+            cr.SetSourceRGB(0.2, 0.9, 0.2);
             cr.Fill();
         }
 
