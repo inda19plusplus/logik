@@ -121,17 +121,7 @@ namespace LogikUI.Circuit
                 // (We might want to change that but it becomes more complicated then...)
                 Wires.FindConnectionPoints(powered).ToArray(),
                 Wires.FindConnectionPoints(unpowered).ToArray());
-            var transaction = Wires.CreateAddWireTransaction(new Wire(new Vector2i(3, 5), 2, Direction.Horizontal));
-            Wires.ApplyTransaction(transaction);
-            Console.WriteLine(transaction);
-            Console.WriteLine("-----");
-            //Wires.AddWire(new Wire(new Vector2i(2, 0), 2, Direction.Vertical));
-            transaction = Wires.CreateAddWireTransaction(new Wire(new Vector2i(0, 0), 3, Direction.Horizontal));
-            Wires.ApplyTransaction(transaction);
-            Console.WriteLine(transaction);
-
-            Wires.RevertTransaction(transaction);
-
+            
             Gates = new Gates(new AndGate[]
             {
                 new AndGate(new Vector2i(2, 2), Orientation.South),
@@ -260,8 +250,12 @@ namespace LogikUI.Circuit
              
             if (CurrentWire.Length != 0)
             {
-                // Here we should figure out if we are modifying an existing wire
-                // or if we are creating a new one.
+                // Here we should figure out if we are modifying an existing wire.
+                // Because adding wires handles merging wires that go in the same
+                // direction, we only want to detect the case where we are shrinking
+                // a wire. This is easy, because we only need to check that we grabbed
+                // one end of the wire and the the other end is inside the wire we want
+                // to shrink.
                 Wire? modifying = null;
                 bool movingEnd = false;
                 foreach (var bWire in Wires.WiresList)
@@ -269,20 +263,32 @@ namespace LogikUI.Circuit
                     if (CurrentWire.Direction != bWire.Direction)
                         continue;
 
-                    if (CurrentWire.Pos == bWire.Pos && bWire.IsPointOnWire(CurrentWire.EndPos))
+                    // We do 'IsPointInsideWire' because we don't want to detect the case
+                    // where we are dragging a wire left from a junction to create a new wire.
+                    // What would happen if we used 'IsPointOnWire' is that the start pos would
+                    // be equal and at the same time 'CurrentWire.Pos' would be on the wire,
+                    // making us think that we want to edit the wire while we don't want to.
+                    if (DragStartPos == bWire.Pos && bWire.IsPointInsideWire(CurrentWire.EndPos))
                     {
                         modifying = bWire;
                         movingEnd = false;
-                        break;
                     }
-                    else if (CurrentWire.EndPos == bWire.EndPos && bWire.IsPointOnWire(CurrentWire.Pos))
+                    else if (DragStartPos == bWire.EndPos && bWire.IsPointInsideWire(CurrentWire.Pos))
                     {
                         modifying = bWire;
                         movingEnd = true;
-                        break;
+                    }
+                    else if (CurrentWire == bWire)
+                    {
+                        // If they are the same wire we want to remove the bWire
+                        modifying = bWire;
                     }
                 }
 
+                // If there there more than one endpoint at the start position
+                // We don't want to modify a wire, we want to create a new one
+                // If there was only one point we check that we actually want to
+                // modify that wire (ie modifying is not null).
                 if (modifying is Wire modify)
                 {
                     // Here we are modifying an existing wire.
@@ -312,32 +318,41 @@ namespace LogikUI.Circuit
                         // One of the cases is where the modified wire should split another already
                         // existing wire.
 
-                        // Here we are just modifying the wires length so it's fine
-                        List<Wire> created = new List<Wire>() { modifiedWire };
-                        List<Wire> deleted = new List<Wire>() { modify };
-                        WireTransaction modifyTransaction = new WireTransaction(default, deleted, created);
-                        Wires.ApplyTransaction(modifyTransaction);
-                        Transactions.PushTransaction(modifyTransaction);
-                        Console.WriteLine($"Modified existing wire! {modify} -> {modifiedWire}\n{modifyTransaction}\n");
+                        WireTransaction? modifyTransaction = Wires.CreateModifyWireTransaction(modify, modifiedWire);
+                        if (modifyTransaction != null)
+                        {
+                            Wires.ApplyTransaction(modifyTransaction);
+                            Transactions.PushTransaction(modifyTransaction);
+                            Console.WriteLine($"Modified existing wire! ({modify}) -> ({modifiedWire})\n{modifyTransaction}\n");
+                        }
                     }
                     else
                     {
                         // Here we should remove the wire completely
-                        // FIXME: 
-                        throw new NotImplementedException("Removing wires!");
+                        var deleteTransaction = Wires.CreateRemoveWireTransaction(modify);
+                        Wires.ApplyTransaction(deleteTransaction);
+                        Transactions.PushTransaction(deleteTransaction);
+                        Console.WriteLine($"Deleted wire! ({modify})\n{deleteTransaction}\n");
                     }
                 }
                 else
                 {
-                    WireTransaction transaction = Wires.CreateAddWireTransaction(CurrentWire);
-                    Wires.ApplyTransaction(transaction);
-                    Transactions.PushTransaction(transaction);
-                    Console.WriteLine($"End wire!\n{transaction}\n");
+                    var transaction = Wires.CreateAddWireTransaction(CurrentWire);
+                    if (transaction != null)
+                    {
+                        Wires.ApplyTransaction(transaction);
+                        Transactions.PushTransaction(transaction);
+                        Console.WriteLine($"End wire!\n{transaction}\n");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"No wire created!\n");
+                    }
                 }
             }
             else
             {
-                Console.WriteLine($"End wire!\n\n");
+                Console.WriteLine($"Zero length wire!\n\n");
             }
 
             DrawingArea.QueueDraw();

@@ -7,6 +7,10 @@ namespace LogikUI.Transaction
 {
     class WireTransaction : Transaction
     {
+        // FIXME: We want to be able to include a human readable summary 
+        // of what this action was.
+        // The 'Added' variable was this summary when this was used only for additions.
+        // It can be implemented using an enum and some wire value i think.
         public Wire Added;
         public List<Wire> Deleted;
         public List<Wire> Created;
