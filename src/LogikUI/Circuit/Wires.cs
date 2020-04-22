@@ -120,7 +120,9 @@ namespace LogikUI.Circuit
 
     class Wires
     {
+
         public List<Wire> WiresList;
+        public List<WireBundle> Bundles;
         public Wire[] Powered;
         public Wire[] UnPowered;
         public Vector2i[] PoweredConnections;
@@ -134,6 +136,8 @@ namespace LogikUI.Circuit
             UnPowered = unPowered;
             PoweredConnections = poweredConnections;
             UnPoweredConnections = unPoweredConnections;
+
+            Bundles = CreateBundlesFromWires(WiresList);
         }
 
         public const double WireWidth = 2;
@@ -164,11 +168,28 @@ namespace LogikUI.Circuit
 
         public void Draw(Cairo.Context cr)
         {
-            WireArray(cr, WiresList);
-            cr.SetSourceRGB(0.2, 0.9, 0.2);
-            cr.SetSourceColor(GetValueColor(Value.Error));
-            cr.Fill();
+            //WireArray(cr, WiresList);
+            //cr.SetSourceRGB(0.2, 0.9, 0.2);
+            //cr.SetSourceColor(GetValueColor(Value.Error));
+            //cr.Fill();
 
+            foreach (var bundle in Bundles)
+            {
+                WireArray(cr, bundle.Wires);
+
+                foreach (var connection in FindConnectionPoints(bundle.Wires))
+                {
+                    double x = connection.X * CircuitEditor.DotSpacing;
+                    double y = connection.Y * CircuitEditor.DotSpacing;
+                    cr.Arc(x, y, ConnectionRadius, 0, Math.PI * 2);
+                    cr.ClosePath();
+                }
+
+                cr.SetSourceRGB(0.2, 0.9, 0.2);
+                cr.SetSourceColor(GetValueColor(bundle.Subnet?.Value ?? Value.Floating));
+                cr.Fill();
+            }
+            
             //WireArray(cr, Powered);
             //cr.SetSourceRGB(0.2, 0.9, 0.2);
             //cr.Fill();
@@ -177,6 +198,7 @@ namespace LogikUI.Circuit
             //cr.SetSourceRGB(0.1, 0.4, 0.1);
             //cr.Fill();
 
+            /*
             foreach (var connection in FindConnectionPoints(WiresList))
             {
                 double x = connection.X * CircuitEditor.DotSpacing;
@@ -185,7 +207,7 @@ namespace LogikUI.Circuit
                 cr.ClosePath();
             }
             cr.SetSourceRGB(0.2, 0.9, 0.2);
-            cr.Fill();
+            cr.Fill();*/
 
             /*
             foreach (var connection in PoweredConnections)
@@ -727,6 +749,10 @@ namespace LogikUI.Circuit
             {
                 WiresList.Add(awire);
             }
+
+            // Re-calculate the bundles
+            // FIXME: We want to make this more efficient!
+            Bundles = CreateBundlesFromWires(WiresList);
         }
 
         public void RevertTransaction(WireTransaction transaction)
@@ -745,6 +771,51 @@ namespace LogikUI.Circuit
             {
                 WiresList.Add(wire);
             }
+
+            // Re-calculate the bundles
+            // FIXME: We want to make this more efficient!
+            Bundles = CreateBundlesFromWires(WiresList);
+        }
+
+        // FIXME: We want to make this more efficient!
+        public static List<WireBundle> CreateBundlesFromWires(List<Wire> wires)
+        {
+            HashSet<Vector2i> positions = new HashSet<Vector2i>();
+            foreach (var w in wires)
+            {
+                positions.Add(w.Pos);
+                positions.Add(w.EndPos);
+            }
+
+            UnionFind<Vector2i> nets = new UnionFind<Vector2i>(positions);
+
+            foreach (var w in wires)
+            {
+                nets.Union(w.Pos, w.EndPos);
+            }
+
+            Dictionary<int, WireBundle> bundlesDict = new Dictionary<int, WireBundle>();
+            foreach (var w in wires)
+            {
+                int root = nets.Find(w.Pos).Index;
+                if (bundlesDict.TryGetValue(root, out var bundle) == false)
+                {
+                    bundle = new WireBundle();
+                    bundlesDict[root] = bundle;
+                }
+
+                // Because C# doesn't detect that bundle != null here we do the '!'
+                bundle!.AddWire(w);
+            }
+
+            var bundles = bundlesDict.Values.ToList();
+            Console.WriteLine($"Created bundles:");
+            foreach (var bundle in bundles)
+            {
+                Console.WriteLine($"  Bundle:\n    {string.Join("\n    ", bundle.Wires)}\n\n");
+            }
+
+            return bundles;
         }
     }
 }

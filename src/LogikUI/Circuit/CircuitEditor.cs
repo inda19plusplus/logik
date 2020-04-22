@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Text;
 using LogikUI.Util;
 using LogikUI.Transaction;
+using System.Linq;
 
 namespace LogikUI.Circuit
 {
@@ -121,7 +122,7 @@ namespace LogikUI.Circuit
                 // (We might want to change that but it becomes more complicated then...)
                 Wires.FindConnectionPoints(powered).ToArray(),
                 Wires.FindConnectionPoints(unpowered).ToArray());
-            
+
             Gates = new Gates(new AndGate[]
             {
                 new AndGate(new Vector2i(2, 2), Orientation.South),

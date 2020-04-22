@@ -17,6 +17,7 @@ namespace LogikUI.Simulation
         Error = 0b11,
     }
 
+    // FIXME: Figure out what we want to do for alignment
     public struct Value : IEquatable<Value>
     {
         public static readonly Value Null = new Value(0, 0);
@@ -26,8 +27,11 @@ namespace LogikUI.Simulation
         public static readonly Value One = new Value(ValueState.One);
         public static readonly Value Error = new Value(ValueState.Error);
 
+        public const ulong LOWER_MASK = 0x5555_5555_5555_5555;
+        public const ulong UPPER_MASK = 0xAAAA_AAAA_AAAA_AAAA;
+
         // FIXME: Figure out what we want to do for alignment
-        public long Values;
+        public ulong Values;
         public byte Width;
 
         public Value(ValueState state)
@@ -36,13 +40,13 @@ namespace LogikUI.Simulation
             Width = 1;
         }
 
-        public Value(long values, byte length)
+        public Value(ulong values, byte width)
         {
-            if (length > 32)
-                throw new ArgumentException($"A value cannot contain more than 32 values! (Got {length})", nameof(length));
+            if (width > 32)
+                throw new ArgumentException($"A value cannot contain more than 32 values! (Got {width})", nameof(width));
 
             Values = values;
-            Width = length;
+            Width = width;
         }
 
         public ValueState GetValue(int i)
@@ -58,10 +62,10 @@ namespace LogikUI.Simulation
             if (i >= Width)
                 throw new ArgumentOutOfRangeException(nameof(i), $"The index {i} exceeded the length of this value ({Width})!");
             // Clear the bits we want to set
-            long clearMask = 0b11 << (i * 2);
+            ulong clearMask = 0b11ul << (i * 2);
             Values &= ~clearMask;
             // Shift up and or the value we want to set
-            Values |= ((long)state) << (i * 2);
+            Values |= ((ulong)state) << (i * 2);
         }
 
         public ValueState this[int i]
@@ -96,16 +100,39 @@ namespace LogikUI.Simulation
             return a | b;
         }
 
-        public static Value Resolve(Value a, Value b)
+        public static ValueState And(ValueState a, ValueState b)
         {
             // Resolution table
             //  a | 
             // b  | F 0 1 X 
             // ---+----------
+            //  F | X X X X
+            //  0 | X 0 0 X
+            //  1 | X 0 1 X
+            //  X | X X X X
+
+            var p1 = ~((int)a ^ ((int)a << 1));
+            var p2 = (~((int)a << 1) & (int)b);
+            var p3 = ~((int)b ^ ((int)b << 1));
+            var r1 = (p1 | p2 | p3) & 0b10;
+
+            var r2 = (~(((int)a) >> 1) | (int)a | ~(((int)b) >> 1) | (int)b) & 0b01;
+
+            return (ValueState)((r1 | r2) & 0b11);
+        }
+
+        public static Value Resolve(Value a, Value b)
+        {
+            // IEEE 1364 Where?
+            // Resolution table
+            //  a | 
+            // b  | F 0 1 X 
+            // ---+---------
             //  F | F 0 1 X
             //  0 | 0 0 X X
             //  1 | 1 X 1 X
             //  X | X X X X
+
             if (a.Width != b.Width) 
                 throw new WidthMissmatchException(a.Width, b.Width, $"The two values had different widths! ({a.Width} != {b.Width})");
 
@@ -115,6 +142,73 @@ namespace LogikUI.Simulation
             // We can or the entire thing to get the right values.
             c.Values = a.Values | b.Values;
             return c;
+        }
+
+        public static Value And(Value a, Value b)
+        {
+            // IEEE 1364-2005 chapter 5.1.10
+            // And table
+            //  a | 
+            // b  | F 0 1 X 
+            // ---+----------
+            //  F | X X X X
+            //  0 | X 0 0 X
+            //  1 | X 0 1 X
+            //  X | X X X X
+
+            if (a.Width != b.Width)
+                throw new WidthMissmatchException(a.Width, b.Width, $"The two values had different widths! ({a.Width} != {b.Width})");
+
+            // FIXME: Document the logic expressions used to derive these
+
+            ulong r1 = ((a.Values | ~(a.Values << 1)) & (b.Values | ~(b.Values << 1))) & UPPER_MASK;
+            ulong r2 = (~(a.Values >> 1) | a.Values | ~(b.Values >> 1) | b.Values) & LOWER_MASK;
+
+            ulong mask = 0xFFFF_FFFF_FFFF_FFFF >> (64 - (a.Width * 2));
+
+            return new Value((r1 | r2) & mask, a.Width);
+        }
+
+        public static Value Or(Value a, Value b)
+        {
+            // IEEE 1364-2005 chapter 5.1.10
+            // Or table
+            //  a | 
+            // b  | F 0 1 X 
+            // ---+---------
+            //  F | X X 1 X
+            //  0 | X 0 1 X
+            //  1 | 1 1 1 1
+            //  X | X X 1 X
+
+            if (a.Width != b.Width)
+                throw new WidthMissmatchException(a.Width, b.Width, $"The two values had different widths! ({a.Width} != {b.Width})");
+
+            // FIXME: Document the logic expressions used to derive these
+
+            ulong r1 = (a.Values | ~(a.Values << 1) | b.Values | ~(b.Values << 1)) & UPPER_MASK;
+            ulong r2 = ((~(a.Values >> 1) | a.Values) & (~(b.Values >> 1) | b.Values)) & LOWER_MASK;
+
+            ulong mask = 0xFFFF_FFFF_FFFF_FFFF >> (64 - (a.Width * 2));
+
+            return new Value((r1 | r2) & mask, a.Width);
+        }
+
+        public static Value Not(Value a)
+        {
+            // IEEE 1364-2005 chapter 5.1.10
+            // Not table
+            //    | 
+            // ---+---
+            //  F | F
+            //  0 | 1
+            //  1 | 0
+            //  X | X
+
+            ulong r1 = (a.Values << 1) & UPPER_MASK;
+            ulong r2 = (a.Values >> 1) & LOWER_MASK;
+
+            return new Value(r1 | r2, a.Width);
         }
 
         public override bool Equals(object? obj)

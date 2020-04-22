@@ -23,6 +23,13 @@ namespace LogikUI
         {
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
+            Value a = new Value(0b00_00_00_00_01_01_01_01_10_10_10_10_11_11_11_11, 16);
+            Value b = new Value(0b00_01_10_11_00_01_10_11_00_01_10_11_00_01_10_11, 16);
+            Console.WriteLine($"Resolve: {Value.Resolve(a, b)}");
+            Console.WriteLine($"And: {Value.And(a, b)}");
+            Console.WriteLine($"Or: {Value.Or(a, b)}");
+            Console.WriteLine($"Not: {Value.Not(a)}");
+
             Application.Init();
 
             GLib.ExceptionManager.UnhandledException += ExceptionManager_UnhandledException;
