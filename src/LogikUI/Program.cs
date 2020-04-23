@@ -18,6 +18,9 @@ namespace LogikUI
             ToolButton tb_selector = new ToolButton(
                 Util.Icon.Selector(), "Selector"
             );
+            ToolButton tb_wire = new ToolButton(
+                Util.Icon.Wire(), "Wire"
+            );
             ToolButton tb_and = new ToolButton(
                 Util.Icon.AndGate(), "And Gate"
             );
@@ -31,10 +34,11 @@ namespace LogikUI
             SeparatorToolItem sep = new SeparatorToolItem();
 
             toolbar.Insert(tb_selector, 0);
-            toolbar.Insert(sep, 1);
-            toolbar.Insert(tb_and, 2);
-            toolbar.Insert(tb_or, 3);
-            toolbar.Insert(tb_xor, 4);
+            toolbar.Insert(tb_wire, 1);
+            toolbar.Insert(sep, 2);
+            toolbar.Insert(tb_and, 3);
+            toolbar.Insert(tb_or, 4);
+            toolbar.Insert(tb_xor, 5);
 
             return toolbar;
         }
