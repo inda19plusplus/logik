@@ -6,12 +6,44 @@ using System.Runtime.InteropServices;
 using LogikUI.Component;
 using LogikUI.Hierarchy;
 using LogikUI.Circuit;
+using LogikUI.Util;
 using System.Globalization;
+using System.Reflection;
 
 namespace LogikUI
 {
     class Program
     {
+        static Toolbar createToolbar() {
+            Toolbar toolbar = new Toolbar();
+            ToolButton tb_selector = new ToolButton(
+                Util.Icon.Selector(), "Selector"
+            );
+            ToolButton tb_wire = new ToolButton(
+                Util.Icon.Wire(), "Wire"
+            );
+            ToolButton tb_and = new ToolButton(
+                Util.Icon.AndGate(), "And Gate"
+            );
+            ToolButton tb_or = new ToolButton(
+                Util.Icon.OrGate(), "Or Gate"
+            );
+            ToolButton tb_xor = new ToolButton(
+                Util.Icon.XorGate(), "Xor Gate"
+            );
+
+            SeparatorToolItem sep = new SeparatorToolItem();
+
+            toolbar.Insert(tb_selector, 0);
+            toolbar.Insert(tb_wire, 1);
+            toolbar.Insert(sep, 2);
+            toolbar.Insert(tb_and, 3);
+            toolbar.Insert(tb_or, 4);
+            toolbar.Insert(tb_xor, 5);
+
+            return toolbar;
+        }
+
         static void Main(string[] args)
         {
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
@@ -74,6 +106,7 @@ namespace LogikUI
             //Add the label to the form
             VBox box = new VBox(false, 0);
             box.PackStart(bar, false, false, 0);
+            box.PackStart(createToolbar(), false, false, 0);
             box.PackEnd(hPaned, true, true, 0);
             box.Expand = true;
             wnd.Add(box);
