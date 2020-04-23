@@ -10,19 +10,20 @@ using LogikUI.Util;
 using System.Globalization;
 using System.Reflection;
 using LogikUI.Simulation;
+using LogikUI.Toolbar;
 
 namespace LogikUI
 {
     class Program
     {
-        static Toolbar createToolbar() {
-            Toolbar toolbar = new Toolbar();
+        static Gtk.Toolbar CreateToolbar(CircuitEditor editor) {
+            Gtk.Toolbar toolbar = new Gtk.Toolbar();
             ToolButton tb_selector = new ToolButton(
                 Util.Icon.Selector(), "Selector"
             );
-            ToolButton tb_wire = new ToolButton(
-                Util.Icon.Wire(), "Wire"
-            );
+            ToolButton tb_wire = new WireTool();
+            // FIXME: Make this be selected with a callback or something
+            editor.CurrentTool = (ITool)(WireTool)tb_wire;
             ToolButton tb_and = new ToolButton(
                 Util.Icon.AndGate(), "And Gate"
             );
@@ -121,7 +122,7 @@ namespace LogikUI
             //Add the label to the form
             VBox box = new VBox(false, 0);
             box.PackStart(bar, false, false, 0);
-            box.PackStart(createToolbar(), false, false, 0);
+            box.PackStart(CreateToolbar(circuitEditor), false, false, 0);
             box.PackEnd(hPaned, true, true, 0);
             box.Expand = true;
             wnd.Add(box);
