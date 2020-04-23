@@ -8,6 +8,7 @@ using LogikUI.Hierarchy;
 using LogikUI.Circuit;
 using LogikUI.Util;
 using System.Globalization;
+using System.Reflection;
 
 namespace LogikUI
 {
