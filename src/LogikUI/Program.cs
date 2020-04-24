@@ -44,6 +44,26 @@ namespace LogikUI
             return toolbar;
         }
 
+        public static MenuBar createMenuBar() {
+            MenuBar bar = new MenuBar();
+
+            MenuItem file = new MenuItem("File");
+            file.AddEvents((int)Gdk.EventMask.AllEventsMask);
+            bar.Append(file);
+            Menu fileMenu = new Menu();
+            file.Submenu = fileMenu;
+            fileMenu.Append(new MenuItem("Open..."));
+
+            // FIXME: Hook up callbacks
+
+            // FIXME: On windows (and Mac) there should be no delay
+            // on the ability to close the menu when you've opened it.
+            // Atm there is a delay after opening the menu and when
+            // you can close it...
+
+            return bar;
+        }
+
         static void Main(string[] args)
         {
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
@@ -52,18 +72,6 @@ namespace LogikUI
 
             Window wnd = new Window("Logik");
             wnd.Resize(1600, 800);
-
-            // FIXME: Move this somewhere else and hook up callbacks
-            MenuBar bar = new MenuBar();
-            
-            // FIXME: On windows there should be no delay on the ability to close the menu when you've opened it.
-            // Atm there is a delay after opening the menu and when you can close it...
-            MenuItem file = new MenuItem("File");
-            file.AddEvents((int)Gdk.EventMask.AllEventsMask);
-            bar.Append(file);
-            Menu fileMenu = new Menu();
-            file.Submenu = fileMenu;
-            fileMenu.Append(new MenuItem("Open..."));
 
             Notebook nbook = new Notebook();
             var circuitEditor = new CircuitEditor();
@@ -105,7 +113,7 @@ namespace LogikUI
 
             //Add the label to the form
             VBox box = new VBox(false, 0);
-            box.PackStart(bar, false, false, 0);
+            box.PackStart(createMenuBar(), false, false, 0);
             box.PackStart(createToolbar(), false, false, 0);
             box.PackEnd(hPaned, true, true, 0);
             box.Expand = true;
