@@ -1,9 +1,10 @@
-
-pub trait Component {
+/// A trait to define common behaviour between the components
+pub(crate) trait Component {
 
 }
 
-pub struct Input {
+/// Placeholder for now
+pub(crate) struct Input {
 
 }
 
@@ -11,7 +12,8 @@ impl Component for Input {
 
 }
 
-pub struct AND {
+/// Placeholder for now
+pub(crate) struct AND {
 
 }
 

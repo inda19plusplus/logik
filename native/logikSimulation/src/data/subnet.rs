@@ -1,9 +1,10 @@
-
-pub struct Subnet {
+/// Representing a subnet with a certain state
+pub(super) struct Subnet {
     state: SubnetState,
 }
 
-pub enum SubnetState {
+/// An enum to represent the different states that a subnet can have
+pub(super) enum SubnetState {
     Off,
     On,
     Floating,
