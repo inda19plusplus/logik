@@ -14,7 +14,7 @@ namespace LogikUI
 {
     class Program
     {
-        static Toolbar createToolbar() {
+        static Toolbar CreateToolbar() {
             Toolbar toolbar = new Toolbar();
             ToolButton tb_selector = new ToolButton(
                 Util.Icon.Selector(), "Selector"
@@ -44,7 +44,7 @@ namespace LogikUI
             return toolbar;
         }
 
-        public static MenuBar createMenuBar() {
+        static MenuBar CreateMenuBar() {
             MenuBar bar = new MenuBar();
 
             MenuItem file = new MenuItem("File");
