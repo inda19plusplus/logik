@@ -12,11 +12,19 @@ namespace LogikUI.Util
         public int X;
         public int Y;
 
+        public int ManhattanDistance => Math.Abs(X + Y);
+
         public Vector2i(int x, int y)
         {
             X = x;
             Y = y;
         }
+
+        public static Vector2i ComponentWiseMin(Vector2i a, Vector2i b) => 
+            new Vector2i(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y));
+
+        public static Vector2i ComponentWiseMax(Vector2i a, Vector2i b) =>
+            new Vector2i(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));
 
         public override bool Equals(object? obj)
         {
@@ -41,7 +49,9 @@ namespace LogikUI.Util
 
         public static Vector2i operator +(Vector2i a, Vector2i b) => new Vector2i(a.X + b.X, a.Y + b.Y);
         public static Vector2i operator -(Vector2i a, Vector2i b) => new Vector2i(a.X - b.X, a.Y - b.Y);
+        public static Vector2i operator *(int scalar, Vector2i a) => new Vector2i(a.X * scalar, a.Y * scalar);
         public static Vector2i operator *(Vector2i a, int scalar) => new Vector2i(a.X * scalar, a.Y * scalar);
+        public static Vector2d operator *(double scalar, Vector2i a) => new Vector2d(a.X * scalar, a.Y * scalar);
         public static Vector2d operator *(Vector2i a, double scalar) => new Vector2d(a.X * scalar, a.Y * scalar);
         public static Vector2i operator /(Vector2i a, int scalar) => new Vector2i(a.X / scalar, a.Y / scalar);
         public static Vector2d operator /(Vector2i a, double scalar) => new Vector2d(a.X / scalar, a.Y / scalar);

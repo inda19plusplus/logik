@@ -5,6 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using LogikUI.Util;
+using LogikUI.Transaction;
+using System.Linq;
+using LogikUI.Toolbar;
 
 namespace LogikUI.Circuit
 {
@@ -23,8 +26,9 @@ namespace LogikUI.Circuit
         }
     }
 
-    class CircuitEditor : DrawingArea
+    class CircuitEditor
     {
+        public DrawingArea DrawingArea;
         public Vector2d Offset;
         public Vector2d DisplayOffset;
 
@@ -34,85 +38,97 @@ namespace LogikUI.Circuit
 
         public const double DotSpacing = 10d;
 
-        //public List<ComponentInstance> Instances;
         public Wires Wires;
         public Gates Gates;
         public TextLabels Labels;
 
         public GestureDrag DragGesture;
+        public GestureDrag DragGestureCreate;
 
-        public CircuitEditor() : base()
+        public ITool? CurrentTool;
+
+        //public Stack<WireTransaction> Transactions = new Stack<WireTransaction>();
+        public TransactionStack Transactions = new TransactionStack();
+
+        public CircuitEditor()
         {
+            DrawingArea = new DrawingArea();
+
             Offset = DisplayOffset = new Vector2d(0, 0);
 
-            Drawn += CircuitEditor_Drawn;
+            DrawingArea.Drawn += CircuitEditor_Drawn;
 
-            DragGesture = new GestureDrag(this);
+            DrawingArea.AddEvents((int)EventMask.PointerMotionMask);
+            DrawingArea.AddEvents((int)EventMask.ScrollMask);
+
+            DragGesture = new GestureDrag(DrawingArea);
             
             // Sets middle click as the pan button.
             // This should be configurable later!
             DragGesture.Button = 2;
 
-            AddEvents((int)EventMask.PointerMotionMask);
-            AddEvents((int)EventMask.ScrollMask);
-
             DragGesture.DragBegin += DragGesture_DragBegin;
             DragGesture.DragEnd += DragGesture_DragEnd;
             DragGesture.DragUpdate += DragGesture_DragUpdate;
 
-            ScrollEvent += CircuitEditor_ScrollEvent;
+            DragGestureCreate = new GestureDrag(DrawingArea);
+            // Sets middle click as the wire creation button.
+            // This should be configurable later!
+            DragGestureCreate.Button = 1;
+            DragGestureCreate.DragBegin += DragGestureCreate_DragBegin;
+            DragGestureCreate.DragUpdate += DragGestureCreate_DragUpdate;
+            DragGestureCreate.DragEnd += DragGestureCreate_DragEnd;
 
-            QueryTooltip += CircuitEditor_QueryTooltip;
 
-            HasTooltip = true;
-            //TooltipText = "This is some tooltip";
+            DrawingArea.ScrollEvent += CircuitEditor_ScrollEvent;
 
-            CanFocus = true;
-            CanDefault = true;
+            DrawingArea.QueryTooltip += CircuitEditor_QueryTooltip;
 
-            ButtonPressEvent += CircuitEditor_ButtonPressEvent;
+            DrawingArea.HasTooltip = true;
 
-            /*
-            Instances = new List<ComponentInstance>()
+            DrawingArea.CanFocus = true;
+            DrawingArea.FocusOnClick = true;
+
+            DrawingArea.AddEvents((int)EventMask.KeyPressMask);
+            DrawingArea.KeyPressEvent += DrawingArea_KeyPressEvent;
+
+            // So that we can grab focus. Without focus we won't get any KeyPressEvents...
+            // FIXME: We want to figure out how to do this in a good way where the user doesn't really
+            // need to know where the current focus is for stuff like ctrl+z to work.
+            DrawingArea.ParentSet += DrawingArea_ParentSet;
+            DrawingArea.ButtonPressEvent += DrawingArea_ButtonPressEvent;
+
+            var powered = new Wire[]
             {
-                new ComponentInstance(new PointD(10,10), new Cairo.Color(0.5,0.5,0), 10, 10),
-                new ComponentInstance(new PointD(40,40), new Cairo.Color(0.5,0,0.5), 20, 20),
+                new Wire(new Vector2i(3, 3), 10, Direction.Vertical),
+                new Wire(new Vector2i(3, 13), 10, Direction.Horizontal),
+                new Wire(new Vector2i(0, 3), 3, Direction.Horizontal),
+                new Wire(new Vector2i(3, 0), 3, Direction.Vertical),
+                new Wire(new Vector2i(0, 13), 3, Direction.Horizontal),
             };
-            */
-
-            Random rand = new Random();
-            int n = 1000;
-            var a = new Wire[n];
-            for (int i = 0; i < n; i++)
+            var unpowered = new Wire[]
             {
-                a[i] = new Wire(new Vector2i(rand.Next(100), rand.Next(100)), rand.Next(1, 21), rand.Next(2) == 0 ? Circuit.Direction.Horizontal : Circuit.Direction.Vertical);
-            }
-            var b = new Wire[n];
-            for (int i = 0; i < n; i++)
-            {
-                b[i] = new Wire(new Vector2i(rand.Next(100), rand.Next(100)), rand.Next(1, 21), rand.Next(2) == 0 ? Circuit.Direction.Horizontal : Circuit.Direction.Vertical);
-            }
+                new Wire(new Vector2i(13, 12), -9, Direction.Vertical),
+                new Wire(new Vector2i(4, 3), 9, Direction.Horizontal),
+                new Wire(new Vector2i(13, 3), 4, Direction.Horizontal),
+            };
 
             Wires = new Wires(
-                new Wire[]
-                {
-                    new Wire(new Vector2i(3, 3), 10, Circuit.Direction.Vertical),
-                    new Wire(new Vector2i(3, 13), 10, Circuit.Direction.Horizontal),
-                },
-                new Wire[]
-                {
-                    new Wire(new Vector2i(13, 12), -9, Circuit.Direction.Vertical),
-                    new Wire(new Vector2i(4, 3), 9, Circuit.Direction.Horizontal),
-                },
-                /*a, b,*/ new Vector2i[] { new Vector2i(3, 3), new Vector2i(10, 5) },
-                new Vector2i[] { new Vector2i(5, 2), new Vector2i(2, 8), new Vector2i(10, 7), new Vector2i(0, 0) });
+                powered, 
+                unpowered, 
+                // For wires to connect their start/end point must be at the same location
+                // A wire that start/ends in the middle of another wires doesn't connect
+                // (We might want to change that but it becomes more complicated then...)
+                Wires.FindConnectionPoints(powered).ToArray(),
+                Wires.FindConnectionPoints(unpowered).ToArray());
 
-            Gates = new Gates(new AndGate[]
+            Gates = new Gates(/*new AndGate[]
             {
-                new AndGate(new Vector2i(2, 2), Orientation.North),
-                new AndGate(new Vector2i(3, 7), Orientation.North),
-                new AndGate(new Vector2i(3, 10), Orientation.North),
-            });
+                new AndGate(new Vector2i(2, 2), Orientation.South),
+                new AndGate(new Vector2i(3, 7), Orientation.East),
+                new AndGate(new Vector2i(3, 10), Orientation.West),
+                new AndGate(new Vector2i(5, 3), Orientation.North),
+            }*/);
 
             Labels = new TextLabels(new TextLabel[]
             {
@@ -122,35 +138,156 @@ namespace LogikUI.Circuit
             });
         }
 
+        public void SetTool(ITool tool)
+        {
+            CurrentTool?.DeSelect(this);
+            CurrentTool = tool;
+            CurrentTool.Select(this);
+        }
+
+        private void DrawingArea_ButtonPressEvent(object o, ButtonPressEventArgs args)
+        {
+            DrawingArea.GrabFocus();
+        }
+
+        private void DrawingArea_ParentSet(object o, ParentSetArgs args)
+        {
+            DrawingArea.GrabFocus();
+        }
+
+        private void DrawingArea_KeyPressEvent(object o, KeyPressEventArgs args)
+        {
+            var @event = args.Event;
+
+            // Check that control is the only modifier pressed.
+            if ((@event.State ^ ModifierType.ControlMask) == 0)
+            {
+                if (@event.Key == Gdk.Key.z)
+                {
+                    // This is ctrl-z, i.e. undo
+                    if (Transactions.TryUndo(out var transaction))
+                    {
+                        switch (transaction)
+                        {
+                            case WireTransaction wt:
+                                Wires.RevertTransaction(wt);
+                                break;
+                            case GateTransaction gt:
+                                Gates.RevertGateTransaction(gt);
+                                break;
+                            default:
+                                throw new Exception($"Unknown transaction type! {transaction.GetType()}");
+                        }
+                        Console.WriteLine($"Undid transaction: {transaction}");
+                        DrawingArea.QueueDraw();
+                    }
+                }
+                else if (@event.Key == Gdk.Key.y)
+                {
+                    // This is ctrl-y, i.e. redo
+                    if (Transactions.TryRedo(out var transaction))
+                    {
+                        switch (transaction)
+                        {
+                            case WireTransaction wt:
+                                Wires.ApplyTransaction(wt);
+                                break;
+                            case GateTransaction gt:
+                                Gates.ApplyTransaction(gt);
+                                break;
+                            default:
+                                throw new Exception($"Unknown transaction type! {transaction.GetType()}");
+                        }
+                        Console.WriteLine($"Redid transaction: {transaction}");
+                        DrawingArea.QueueDraw();
+                    }
+                }
+            }
+
+            if ((@event.State ^ (ModifierType.ControlMask | ModifierType.ShiftMask)) == 0)
+            {
+                if (@event.Key == Gdk.Key.Z)
+                {
+                    // This is ctrl-shift-z, i.e. redo
+                    if (Transactions.TryRedo(out var transaction))
+                    {
+                        switch (transaction)
+                        {
+                            case WireTransaction wt:
+                                Wires.ApplyTransaction(wt);
+                                break;
+                            case GateTransaction gt:
+                                Gates.ApplyTransaction(gt);
+                                break;
+                            default:
+                                throw new Exception($"Unknown transaction type! {transaction.GetType()}");
+                        }
+                        Console.WriteLine($"Redid transaction: {transaction}");
+                        DrawingArea.QueueDraw();
+                    }
+                }
+            }
+        }
+
+        private void DragGestureCreate_DragBegin(object o, DragBeginArgs args)
+        {
+            DragGestureCreate.GetStartPoint(out double x, out double y);
+            CurrentTool?.GestureStart(this, new Vector2d(x, y));
+        }
+
+        private void DragGestureCreate_DragUpdate(object o, DragUpdateArgs args)
+        {
+            DragGestureCreate.GetOffset(out double x, out double y);
+            CurrentTool?.GestureUpdate(this, new Vector2d(x, y));
+        }
+
+        private void DragGestureCreate_DragEnd(object o, DragEndArgs args)
+        {
+            // FIXME: Do l-shaped wire addition
+            DragGestureCreate.GetOffset(out double x, out double y);
+            CurrentTool?.GestureEnd(this, new Vector2d(x, y));
+        }
+
         private void CircuitEditor_QueryTooltip(object o, QueryTooltipArgs args)
         {
             var mouse = ToWorld(new Vector2d(args.X, args.Y));
 
-            // FIXME: This is something to consider with out current data design!
-            /*
-            foreach (var instance in Instances)
+            // FIXME: Better tooltips. This is a placeholder.
+            /* FIXME!!
+            foreach (var andGate in Gates.AndGates)
             {
-                var bounds = new Rect(instance.Position, new Vector2d(instance.Width, instance.Height));
+                var pos = andGate.GetTopLeft() * DotSpacing;
+                var size = new Vector2d(3 * DotSpacing, 3 * DotSpacing);
+
+                var bounds = new Rect(pos, size);
                 if (bounds.Contains(mouse))
                 {
-                    args.Tooltip.Text = $"{(Vector2d)instance.Position}";
+                    args.Tooltip.Text = "And Gate";
                     args.Tooltip.TipArea = ToScreen(bounds);
                     args.RetVal = true;
                     return;
                 }
-            }
-            */
+            }*/
 
             args.RetVal = false;
         }
 
-        private Vector2d ToWorld(Vector2d ScreenPoint) => (ScreenPoint - DisplayOffset) / Scale;
-        private Vector2d ToWorldDist(Vector2d ScreenDist) => ScreenDist / Scale;
-        private Rect ToWorld(Rect ScreenRect) => new Rect(ToWorld(ScreenRect.Position), ToWorldDist(ScreenRect.Size));
+        public double ToWorldDist(double ScreenDist) => ScreenDist / Scale;
+        public double ToScreenDist(double WorldDist) => WorldDist * Scale;
 
-        private Vector2d ToScreen(Vector2d WorldPoint) => (WorldPoint * Scale) + DisplayOffset;
-        private Vector2d ToScreenDist(Vector2d WorldDist) => WorldDist * Scale;
-        private Rect ToScreen(Rect WorldRect) => new Rect(ToScreen(WorldRect.Position), ToScreenDist(WorldRect.Size));
+        public Vector2d ToWorld(Vector2d ScreenPoint) => (ScreenPoint - DisplayOffset) / Scale;
+        public Vector2d ToWorldDist(Vector2d ScreenDist) => ScreenDist / Scale;
+        public Rect ToWorld(Rect ScreenRect) => new Rect(ToWorld(ScreenRect.Position), ToWorldDist(ScreenRect.Size));
+
+        public Vector2i RoundToGrid(Vector2d ScreenPoint) => (ToWorld(ScreenPoint) / DotSpacing).Round();
+        public Vector2i RoundDistToGrid(Vector2d ScreenDist) => (ToWorldDist(ScreenDist) / DotSpacing).Round();
+        
+        public Vector2d FromGridToWorld(Vector2i GridPoint) => GridPoint * DotSpacing;
+        public Vector2d FromGridDistToWorld(Vector2i GridDist) => GridDist * DotSpacing;
+
+        public Vector2d ToScreen(Vector2d WorldPoint) => (WorldPoint * Scale) + DisplayOffset;
+        public Vector2d ToScreenDist(Vector2d WorldDist) => WorldDist * Scale;
+        public Rect ToScreen(Rect WorldRect) => new Rect(ToScreen(WorldRect.Position), ToScreenDist(WorldRect.Size));
 
         private void CircuitEditor_ScrollEvent(object o, ScrollEventArgs args)
         {
@@ -182,7 +319,7 @@ namespace LogikUI.Circuit
             Offset -= sdiff;
             DisplayOffset -= sdiff;
 
-            QueueDraw();
+            DrawingArea.QueueDraw();
         }
 
         private void DragGesture_DragBegin(object o, DragBeginArgs args)
@@ -190,14 +327,14 @@ namespace LogikUI.Circuit
             DisplayOffset = Offset;
             //DragGesture.GetStartPoint(out double x, out double y);
             //Console.WriteLine($"Drag start ({x}, {y}), DispOffset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
-            QueueDraw();
+            DrawingArea.QueueDraw();
         }
 
         private void DragGesture_DragUpdate(object o, DragUpdateArgs args)
         {
             DragGesture.GetOffset(out double ox, out double oy);
             DisplayOffset = new PointD(Offset.X + ox, Offset.Y + oy);
-            QueueDraw();
+            DrawingArea.QueueDraw();
             
             //Console.WriteLine($"Drag update ({ox}, {oy}), DispOffset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
         }
@@ -207,15 +344,10 @@ namespace LogikUI.Circuit
             DragGesture.GetOffset(out double ox, out double oy);
             DisplayOffset = new PointD(Offset.X + ox, Offset.Y + oy);
             Offset = DisplayOffset;
-            QueueDraw();
+            DrawingArea.QueueDraw();
 
-            DragGesture.GetOffset(out double x, out double y);
+            //DragGesture.GetOffset(out double x, out double y);
             //Console.WriteLine($"Drag end ({x}, {y}), Offset: ({DisplayOffset.X}, {DisplayOffset.Y}), Offset: ({Offset.X}, {Offset.Y})");
-        }
-
-        private void CircuitEditor_ButtonPressEvent(object o, ButtonPressEventArgs args)
-        {
-            //Console.WriteLine($"{args.Event.Button}");
         }
 
         private void CircuitEditor_Drawn(object o, DrawnArgs args)
@@ -223,60 +355,54 @@ namespace LogikUI.Circuit
             DoDraw(args.Cr);
         }
 
-        protected void DoDraw(Context cr)
+        private void DoDraw(Context cr)
         {
-            var context = StyleContext;
-            var width = AllocatedWidth;
-            var height = AllocatedHeight;
+            var context = DrawingArea.StyleContext;
+            var width = DrawingArea.AllocatedWidth;
+            var height = DrawingArea.AllocatedHeight;
 
             context.RenderBackground(cr, 0, 0, width, height);
 
             cr.Translate(DisplayOffset.X, DisplayOffset.Y);
             cr.Scale(Scale, Scale);
 
-            //int dots = 0;
-
-            double dotScale = GetDotScaleMultiple(Scale);
-            double dotDist = DotSpacing * dotScale;
-
-            double x = 0;
-            while (x <= width / Scale)
+            // FIXME
+            // Because C# % is remainder I needed this.
+            // But this should probably be moved somewhere else.
+            static double Mod(double x, double m)
             {
-                double y = 0;
-                while (y <= height / Scale)
-                {
-                    // Here we want to use the inverse transform
-                    double posx = x - ((DisplayOffset.X / Scale)) + (DisplayOffset.X / Scale) % dotDist;
-                    double posy = y - ((DisplayOffset.Y / Scale)) + (DisplayOffset.Y / Scale) % dotDist;
-
-                    cr.Rectangle(posx - 0.5, posy - 0.5, dotScale, dotScale);
-
-                    //dots++;
-
-                    y += dotDist;
-                }
-                x += dotDist;
+                double r = x % m;
+                return r < 0 ? r + m : r;
             }
 
-            //Console.WriteLine($"Rendered {dots} dots");
+            double dotScale = GetDotScaleMultiple(Scale);
+            double hDotScale = dotScale / 2;
+            double dotDist = DotSpacing * dotScale;
+
+            int dotNumbersWidth = (int)((ToWorldDist(width) + dotDist) / dotDist);
+            int dotNumbersHeight = (int)((ToWorldDist(height) + dotDist) / dotDist);
+
+            var worldOffset = ToWorldDist(-DisplayOffset);
+            for (int ix = -1; ix < dotNumbersWidth; ix++)
+            {
+                for (int iy = -1; iy < dotNumbersHeight; iy++)
+                {
+                    double x = worldOffset.X + (ix * dotDist) + Mod(-worldOffset.X, dotDist);
+                    double y = worldOffset.Y + (iy * dotDist) + Mod(-worldOffset.Y, dotDist);
+
+                    cr.Rectangle(x - hDotScale, y - hDotScale, dotScale, dotScale);
+                }
+            }
             var color = context.GetColor(context.State);
             cr.SetSourceRGB(color.Red, color.Green, color.Blue);
-
             cr.Fill();
 
             Wires.Draw(cr);
             Gates.Draw(cr);
             Labels.Draw(cr);
 
-            /*
-            foreach (var instance in Instances)
-            {
-                cr.Rectangle(instance.Position, instance.Width, instance.Height);
-                cr.SetSourceColor(instance.Color);
-                cr.Fill();
-            }
-            */
-
+            CurrentTool?.Draw(this, cr);
+            
             if (cr.Status != Cairo.Status.Success)
             {
                 // FIXME: Figure out how to call 'cairo_status_to_string()'
