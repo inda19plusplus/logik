@@ -41,11 +41,13 @@ namespace LogikUI.Util
             return $"{X:0.000}, {Y:0.000}";
         }
 
+        public static Vector2d operator -(Vector2d a) => new Vector2d(-a.X, -a.Y);
         public static Vector2d operator +(Vector2d a, Vector2d b) => new Vector2d(a.X + b.X, a.Y + b.Y);
         public static Vector2d operator -(Vector2d a, Vector2d b) => new Vector2d(a.X - b.X, a.Y - b.Y);
         public static Vector2d operator *(double scalar, Vector2d a) => new Vector2d(a.X * scalar, a.Y * scalar);
         public static Vector2d operator *(Vector2d a, double scalar) => new Vector2d(a.X * scalar, a.Y * scalar);
         public static Vector2d operator /(Vector2d a, double scalar) => new Vector2d(a.X / scalar, a.Y / scalar);
+        public static Vector2d operator %(Vector2d a, double scalar) => new Vector2d(a.X % scalar, a.Y % scalar);
 
         public static bool operator ==(Vector2d left, Vector2d right)
         {

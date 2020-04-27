@@ -272,6 +272,9 @@ namespace LogikUI.Circuit
             args.RetVal = false;
         }
 
+        public double ToWorldDist(double ScreenDist) => ScreenDist / Scale;
+        public double ToScreenDist(double WorldDist) => WorldDist * Scale;
+
         public Vector2d ToWorld(Vector2d ScreenPoint) => (ScreenPoint - DisplayOffset) / Scale;
         public Vector2d ToWorldDist(Vector2d ScreenDist) => ScreenDist / Scale;
         public Rect ToWorld(Rect ScreenRect) => new Rect(ToWorld(ScreenRect.Position), ToWorldDist(ScreenRect.Size));
@@ -363,34 +366,35 @@ namespace LogikUI.Circuit
             cr.Translate(DisplayOffset.X, DisplayOffset.Y);
             cr.Scale(Scale, Scale);
 
-            //int dots = 0;
-
-            double dotScale = GetDotScaleMultiple(Scale);
-            double dotDist = DotSpacing * dotScale;
-
-            double x = 0;
-            while (x <= width / Scale)
+            // FIXME
+            // Because C# % is remainder I needed this.
+            // But this should probably be moved somewhere else.
+            static double Mod(double x, double m)
             {
-                double y = 0;
-                while (y <= height / Scale)
-                {
-                    // Here we want to use the inverse transform
-                    double posx = x - ((DisplayOffset.X / Scale)) + (DisplayOffset.X / Scale) % dotDist;
-                    double posy = y - ((DisplayOffset.Y / Scale)) + (DisplayOffset.Y / Scale) % dotDist;
-
-                    cr.Rectangle(posx - 0.5, posy - 0.5, dotScale, dotScale);
-
-                    //dots++;
-
-                    y += dotDist;
-                }
-                x += dotDist;
+                double r = x % m;
+                return r < 0 ? r + m : r;
             }
 
-            //Console.WriteLine($"Rendered {dots} dots");
+            double dotScale = GetDotScaleMultiple(Scale);
+            double hDotScale = dotScale / 2;
+            double dotDist = DotSpacing * dotScale;
+
+            int dotNumbersWidth = (int)((ToWorldDist(width) + dotDist) / dotDist);
+            int dotNumbersHeight = (int)((ToWorldDist(height) + dotDist) / dotDist);
+
+            var worldOffset = ToWorldDist(-DisplayOffset);
+            for (int ix = -1; ix < dotNumbersWidth; ix++)
+            {
+                for (int iy = -1; iy < dotNumbersHeight; iy++)
+                {
+                    double x = worldOffset.X + (ix * dotDist) + Mod(-worldOffset.X, dotDist);
+                    double y = worldOffset.Y + (iy * dotDist) + Mod(-worldOffset.Y, dotDist);
+
+                    cr.Rectangle(x - hDotScale, y - hDotScale, dotScale, dotScale);
+                }
+            }
             var color = context.GetColor(context.State);
             cr.SetSourceRGB(color.Red, color.Green, color.Blue);
-
             cr.Fill();
 
             Wires.Draw(cr);
@@ -398,7 +402,6 @@ namespace LogikUI.Circuit
             Labels.Draw(cr);
 
             CurrentTool?.Draw(this, cr);
-            
             
             if (cr.Status != Cairo.Status.Success)
             {
