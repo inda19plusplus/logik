@@ -122,13 +122,13 @@ namespace LogikUI.Circuit
                 Wires.FindConnectionPoints(powered).ToArray(),
                 Wires.FindConnectionPoints(unpowered).ToArray());
 
-            Gates = new Gates(new AndGate[]
+            Gates = new Gates(/*new AndGate[]
             {
                 new AndGate(new Vector2i(2, 2), Orientation.South),
                 new AndGate(new Vector2i(3, 7), Orientation.East),
                 new AndGate(new Vector2i(3, 10), Orientation.West),
                 new AndGate(new Vector2i(5, 3), Orientation.North),
-            });
+            }*/);
 
             Labels = new TextLabels(new TextLabel[]
             {
@@ -136,6 +136,13 @@ namespace LogikUI.Circuit
                 new TextLabel(new Vector2d(40, 10), "Even more cool text :O", 24),
                 new TextLabel(new Vector2d(40, 40), "Woahhh :OOOoooO", 72),
             });
+        }
+
+        public void SetTool(ITool tool)
+        {
+            CurrentTool?.DeSelect(this);
+            CurrentTool = tool;
+            CurrentTool.Select(this);
         }
 
         private void DrawingArea_ButtonPressEvent(object o, ButtonPressEventArgs args)
@@ -160,8 +167,17 @@ namespace LogikUI.Circuit
                     // This is ctrl-z, i.e. undo
                     if (Transactions.TryUndo(out var transaction))
                     {
-                        var wtrans = transaction as WireTransaction;
-                        Wires.RevertTransaction(wtrans!);
+                        switch (transaction)
+                        {
+                            case WireTransaction wt:
+                                Wires.RevertTransaction(wt);
+                                break;
+                            case GateTransaction gt:
+                                Gates.RevertGateTransaction(gt);
+                                break;
+                            default:
+                                throw new Exception($"Unknown transaction type! {transaction.GetType()}");
+                        }
                         Console.WriteLine($"Undid transaction: {transaction}");
                         DrawingArea.QueueDraw();
                     }
@@ -171,8 +187,17 @@ namespace LogikUI.Circuit
                     // This is ctrl-y, i.e. redo
                     if (Transactions.TryRedo(out var transaction))
                     {
-                        var wtrans = transaction as WireTransaction;
-                        Wires.ApplyTransaction(wtrans!);
+                        switch (transaction)
+                        {
+                            case WireTransaction wt:
+                                Wires.ApplyTransaction(wt);
+                                break;
+                            case GateTransaction gt:
+                                Gates.ApplyTransaction(gt);
+                                break;
+                            default:
+                                throw new Exception($"Unknown transaction type! {transaction.GetType()}");
+                        }
                         Console.WriteLine($"Redid transaction: {transaction}");
                         DrawingArea.QueueDraw();
                     }
@@ -186,8 +211,17 @@ namespace LogikUI.Circuit
                     // This is ctrl-shift-z, i.e. redo
                     if (Transactions.TryRedo(out var transaction))
                     {
-                        var wtrans = transaction as WireTransaction;
-                        Wires.ApplyTransaction(wtrans!);
+                        switch (transaction)
+                        {
+                            case WireTransaction wt:
+                                Wires.ApplyTransaction(wt);
+                                break;
+                            case GateTransaction gt:
+                                Gates.ApplyTransaction(gt);
+                                break;
+                            default:
+                                throw new Exception($"Unknown transaction type! {transaction.GetType()}");
+                        }
                         Console.WriteLine($"Redid transaction: {transaction}");
                         DrawingArea.QueueDraw();
                     }
@@ -198,20 +232,20 @@ namespace LogikUI.Circuit
         private void DragGestureCreate_DragBegin(object o, DragBeginArgs args)
         {
             DragGestureCreate.GetStartPoint(out double x, out double y);
-            CurrentTool?.DragStart(this, new Vector2d(x, y));
+            CurrentTool?.GestureStart(this, new Vector2d(x, y));
         }
 
         private void DragGestureCreate_DragUpdate(object o, DragUpdateArgs args)
         {
             DragGestureCreate.GetOffset(out double x, out double y);
-            CurrentTool?.DragUpdate(this, new Vector2d(x, y));
+            CurrentTool?.GestureUpdate(this, new Vector2d(x, y));
         }
 
         private void DragGestureCreate_DragEnd(object o, DragEndArgs args)
         {
             // FIXME: Do l-shaped wire addition
             DragGestureCreate.GetOffset(out double x, out double y);
-            CurrentTool?.DragEnd(this, new Vector2d(x, y));
+            CurrentTool?.GestureEnd(this, new Vector2d(x, y));
         }
 
         private void CircuitEditor_QueryTooltip(object o, QueryTooltipArgs args)
@@ -219,6 +253,7 @@ namespace LogikUI.Circuit
             var mouse = ToWorld(new Vector2d(args.X, args.Y));
 
             // FIXME: Better tooltips. This is a placeholder.
+            /* FIXME!!
             foreach (var andGate in Gates.AndGates)
             {
                 var pos = andGate.GetTopLeft() * DotSpacing;
@@ -232,7 +267,7 @@ namespace LogikUI.Circuit
                     args.RetVal = true;
                     return;
                 }
-            }
+            }*/
 
             args.RetVal = false;
         }
@@ -243,6 +278,9 @@ namespace LogikUI.Circuit
 
         public Vector2i RoundToGrid(Vector2d ScreenPoint) => (ToWorld(ScreenPoint) / DotSpacing).Round();
         public Vector2i RoundDistToGrid(Vector2d ScreenDist) => (ToWorldDist(ScreenDist) / DotSpacing).Round();
+        
+        public Vector2d FromGridToWorld(Vector2i GridPoint) => GridPoint * DotSpacing;
+        public Vector2d FromGridDistToWorld(Vector2i GridDist) => GridDist * DotSpacing;
 
         public Vector2d ToScreen(Vector2d WorldPoint) => (WorldPoint * Scale) + DisplayOffset;
         public Vector2d ToScreenDist(Vector2d WorldDist) => WorldDist * Scale;
@@ -314,7 +352,7 @@ namespace LogikUI.Circuit
             DoDraw(args.Cr);
         }
 
-        protected void DoDraw(Context cr)
+        private void DoDraw(Context cr)
         {
             var context = DrawingArea.StyleContext;
             var width = DrawingArea.AllocatedWidth;

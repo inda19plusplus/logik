@@ -35,6 +35,9 @@ namespace LogikUI.Simulation
 
         public Value Get(Node port)
         {
+            // We should find the subnet this node is contained in
+            // After we've found that index we can get the value
+            // of the subnet
             return Value.Floating;
         }
 

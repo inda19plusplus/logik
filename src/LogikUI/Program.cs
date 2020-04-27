@@ -11,6 +11,7 @@ using System.Globalization;
 using System.Reflection;
 using LogikUI.Simulation;
 using LogikUI.Toolbar;
+using LogikUI.Simulation.Gates;
 
 namespace LogikUI
 {
@@ -18,30 +19,33 @@ namespace LogikUI
     {
         static Gtk.Toolbar CreateToolbar(CircuitEditor editor) {
             Gtk.Toolbar toolbar = new Gtk.Toolbar();
-            ToolButton tb_selector = new ToolButton(
-                Util.Icon.Selector(), "Selector"
-            );
-            ToolButton tb_wire = new WireTool();
+
+            SelectTool selectTool = new SelectTool(editor);
+            WireTool wireTool = new WireTool(editor);
             // FIXME: Make this be selected with a callback or something
-            editor.CurrentTool = (ITool)(WireTool)tb_wire;
-            ToolButton tb_and = new ToolButton(
-                Util.Icon.AndGate(), "And Gate"
-            );
-            ToolButton tb_or = new ToolButton(
+            //editor.CurrentTool = selectTool;
+
+            // FIXME: We want something better for this...
+            ComponentTool<AndGateInstance> andTool = new ComponentTool<AndGateInstance>(default, editor);
+
+            ComponentTool<NotGateInstance> notTool = new ComponentTool<NotGateInstance>(default, editor);
+
+            ToolButton orTool = new ToolButton(
                 Util.Icon.OrGate(), "Or Gate"
             );
-            ToolButton tb_xor = new ToolButton(
+            ToolButton xorTool = new ToolButton(
                 Util.Icon.XorGate(), "Xor Gate"
             );
 
             SeparatorToolItem sep = new SeparatorToolItem();
 
-            toolbar.Insert(tb_selector, 0);
-            toolbar.Insert(tb_wire, 1);
+            toolbar.Insert(selectTool, 0);
+            toolbar.Insert(wireTool, 1);
             toolbar.Insert(sep, 2);
-            toolbar.Insert(tb_and, 3);
-            toolbar.Insert(tb_or, 4);
-            toolbar.Insert(tb_xor, 5);
+            toolbar.Insert(andTool, 3);
+            toolbar.Insert(notTool, 4);
+            toolbar.Insert(orTool, 5);
+            toolbar.Insert(xorTool, 6);
 
             return toolbar;
         }

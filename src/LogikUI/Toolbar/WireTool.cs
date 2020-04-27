@@ -13,8 +13,9 @@ namespace LogikUI.Toolbar
         public Vector2i DragStartPos = default;
         public Wire CurrentWire = default;
 
-        public WireTool() : base(Icon.Wire(), "Wire")
+        public WireTool(CircuitEditor circuitEditor) : base(Icon.Wire(), "Wire", circuitEditor)
         {
+
         }
 
         public override void Select(CircuitEditor editor)
@@ -25,7 +26,7 @@ namespace LogikUI.Toolbar
         {
         }
 
-        public override void DragStart(CircuitEditor editor, Vector2d dragStartPos)
+        public override void GestureStart(CircuitEditor editor, Vector2d dragStartPos)
         {
             DraggingWire = true;
             DragStartPos = editor.RoundToGrid(dragStartPos);
@@ -33,7 +34,7 @@ namespace LogikUI.Toolbar
             editor.DrawingArea.QueueDraw();
         }
 
-        public override void DragUpdate(CircuitEditor editor, Vector2d offset)
+        public override void GestureUpdate(CircuitEditor editor, Vector2d offset)
         {
             var diff = editor.RoundDistToGrid(offset);
 
@@ -51,7 +52,7 @@ namespace LogikUI.Toolbar
             editor.DrawingArea.QueueDraw();
         }
 
-        public override void DragEnd(CircuitEditor editor, Vector2d endOffset)
+        public override void GestureEnd(CircuitEditor editor, Vector2d endOffset)
         {
             // FIXME: Do l-shaped wire addition
             var diff = editor.RoundDistToGrid(endOffset);
