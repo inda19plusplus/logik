@@ -13,6 +13,7 @@ namespace LogikUI.Toolbar
         // We want to 
         public void Select(CircuitEditor editor);
         public void DeSelect(CircuitEditor editor);
+        public void MouseMoved(CircuitEditor editor, Vector2d mousePos);
         public void GestureStart(CircuitEditor editor, Vector2d dragStartPos);
         public void GestureUpdate(CircuitEditor editor, Vector2d offset);
         public void GestureEnd(CircuitEditor editor, Vector2d endOffset);
@@ -63,10 +64,10 @@ namespace LogikUI.Toolbar
 
         public abstract void Select(CircuitEditor editor);
         public abstract void DeSelect(CircuitEditor editor);
+        public abstract void MouseMoved(CircuitEditor editor, Vector2d mousePos);
         public abstract void GestureStart(CircuitEditor editor, Vector2d dragStartPos);
         public abstract void GestureUpdate(CircuitEditor editor, Vector2d offset);
-        // Apparently ToolButton has a DragEnd, we create out own with 'new' here.
-        public abstract new void GestureEnd(CircuitEditor editor, Vector2d endOffset);
+        public abstract void GestureEnd(CircuitEditor editor, Vector2d endOffset);
         public abstract void Draw(CircuitEditor editor, Cairo.Context cr);
     }
 }

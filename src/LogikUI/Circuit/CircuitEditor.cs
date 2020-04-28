@@ -79,6 +79,7 @@ namespace LogikUI.Circuit
             DragGestureCreate.DragUpdate += DragGestureCreate_DragUpdate;
             DragGestureCreate.DragEnd += DragGestureCreate_DragEnd;
 
+            DrawingArea.MotionNotifyEvent += DrawingArea_MotionNotifyEvent;
 
             DrawingArea.ScrollEvent += CircuitEditor_ScrollEvent;
 
@@ -98,30 +99,21 @@ namespace LogikUI.Circuit
             DrawingArea.ParentSet += DrawingArea_ParentSet;
             DrawingArea.ButtonPressEvent += DrawingArea_ButtonPressEvent;
 
-            var powered = new Wire[]
+            var wires = new Wire[]
             {
                 new Wire(new Vector2i(3, 3), 10, Direction.Vertical),
                 new Wire(new Vector2i(3, 13), 10, Direction.Horizontal),
                 new Wire(new Vector2i(0, 3), 3, Direction.Horizontal),
                 new Wire(new Vector2i(3, 0), 3, Direction.Vertical),
                 new Wire(new Vector2i(0, 13), 3, Direction.Horizontal),
-            };
-            var unpowered = new Wire[]
-            {
                 new Wire(new Vector2i(13, 12), -9, Direction.Vertical),
                 new Wire(new Vector2i(4, 3), 9, Direction.Horizontal),
                 new Wire(new Vector2i(13, 3), 4, Direction.Horizontal),
             };
 
-            Wires = new Wires(powered.Concat(unpowered).ToArray());
+            Wires = new Wires(wires);
 
-            Gates = new Gates(/*new AndGate[]
-            {
-                new AndGate(new Vector2i(2, 2), Orientation.South),
-                new AndGate(new Vector2i(3, 7), Orientation.East),
-                new AndGate(new Vector2i(3, 10), Orientation.West),
-                new AndGate(new Vector2i(5, 3), Orientation.North),
-            }*/);
+            Gates = new Gates();
 
             Labels = new TextLabels(new TextLabel[]
             {
@@ -136,6 +128,11 @@ namespace LogikUI.Circuit
             CurrentTool?.DeSelect(this);
             CurrentTool = tool;
             CurrentTool.Select(this);
+        }
+
+        private void DrawingArea_MotionNotifyEvent(object o, MotionNotifyEventArgs args)
+        {
+            CurrentTool?.MouseMoved(this, new Vector2d(args.Event.X, args.Event.Y));
         }
 
         private void DrawingArea_ButtonPressEvent(object o, ButtonPressEventArgs args)

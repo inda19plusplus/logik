@@ -239,26 +239,6 @@ namespace LogikUI.Circuit
             cr.Rectangle(x, y, width, height);
         }
 
-        public void WireArray(Cairo.Context cr, Wire[] wires)
-        {
-            foreach (var wire in wires)
-            {
-                int vertical = wire.Direction == Direction.Vertical ? 1 : 0;
-                int horizontal = 1 - vertical;
-
-                double x = wire.Pos.X * CircuitEditor.DotSpacing - HalfWireWidth;
-                double y = wire.Pos.Y * CircuitEditor.DotSpacing - HalfWireWidth;
-
-                double length = CircuitEditor.DotSpacing * wire.Length;
-                // If we are drawing a horizontal line the width is length, othervise it's WireWidth.
-                double width = (horizontal * (length + WireWidth)) + (vertical * WireWidth);
-                // The opposite of the above.
-                double height = (vertical * (length + WireWidth)) + (horizontal * WireWidth);
-
-                cr.Rectangle(x, y, width, height);
-            }
-        }
-
         public void WireArray(Cairo.Context cr, List<Wire> wires)
         {
             foreach (var wire in wires)

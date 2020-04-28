@@ -14,6 +14,7 @@ namespace LogikUI.Toolbar
     {
         public T BaseComponent;
         public bool PlacingComponent = false;
+        public bool DraggingComponent = false;
         public Vector2i StartPosition;
         public Vector2i VisualPosition;
         public Circuit.Orientation CompOrientation;
@@ -36,11 +37,24 @@ namespace LogikUI.Toolbar
 
         // FIXME: Keyboard and general mouse movement events!!
 
+        public override void MouseMoved(CircuitEditor editor, Vector2d mousePos)
+        {
+            if (PlacingComponent && DraggingComponent == false)
+            {
+                StartPosition = editor.RoundToGrid(mousePos);
+                VisualPosition = StartPosition;
+                CompOrientation = Circuit.Orientation.East;
+            }
+            
+            editor.DrawingArea.QueueDraw();
+        }
+
         public override void GestureStart(CircuitEditor editor, Vector2d dragStartPos)
         {
             StartPosition = editor.RoundToGrid(dragStartPos);
             VisualPosition = StartPosition;
             CompOrientation = Circuit.Orientation.East;
+            DraggingComponent = true;
 
             editor.DrawingArea.QueueDraw();
         }
@@ -66,6 +80,7 @@ namespace LogikUI.Toolbar
             editor.Transactions.PushTransaction(transaction);
 
             VisualPosition = StartPosition = Vector2i.Zero;
+            DraggingComponent = false;
 
             editor.DrawingArea.QueueDraw();
             // FIXME: Add the component!

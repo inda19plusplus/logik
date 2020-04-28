@@ -29,6 +29,10 @@ namespace LogikUI.Toolbar
         {
         }
 
+        public override void MouseMoved(CircuitEditor editor, Vector2d mousePos)
+        {
+        }
+
         public override void GestureStart(CircuitEditor editor, Vector2d dragStartPos)
         {
             DraggingWire = true;
