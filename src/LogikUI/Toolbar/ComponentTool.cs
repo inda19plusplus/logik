@@ -18,14 +18,8 @@ namespace LogikUI.Toolbar
         public Vector2i VisualPosition;
         public Circuit.Orientation CompOrientation;
 
-        public ComponentTool(
-            T exampleInstance, CircuitEditor circuitEditor, Gtk.Toolbar toolbar
-        ) : base(
-            Util.Icon.AndGate(),
-            exampleInstance.Name,
-            circuitEditor,
-            toolbar
-        )
+        public ComponentTool(Gtk.Image image, T exampleInstance, CircuitEditor circuitEditor, Gtk.Toolbar toolbar) 
+            : base(image, exampleInstance.Name, circuitEditor, toolbar)
         {
             BaseComponent = exampleInstance;
         }
@@ -81,8 +75,7 @@ namespace LogikUI.Toolbar
         {
             if (PlacingComponent)
             {
-                // FIXME: Render this will a bit of transaprency
-                Gates.AndGate(cr, new Circuit.AndGate(VisualPosition, CompOrientation));
+                editor.Gates.Components.Draw(cr, BaseComponent.Create(VisualPosition, CompOrientation));
             }
         }
     }

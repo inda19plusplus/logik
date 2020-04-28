@@ -30,6 +30,7 @@ namespace LogikUI.Circuit
             // FIXME: Register this somewhere else?
             Components.RegisterComponentType<AndGateInstance>(AndGateInstance.Draw);
             Components.RegisterComponentType<NotGateInstance>(NotGateInstance.Draw);
+            Components.RegisterComponentType<OrGateInstance>(OrGateInstance.Draw);
         }
 
         public void Draw(Cairo.Context cr)

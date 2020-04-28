@@ -103,16 +103,18 @@ namespace LogikUI.Simulation.Gates
     class Components
     {
         public delegate void DrawComponentsFuncInternal(Cairo.Context cr, Components components);
+        public delegate void DrawSingleComponentsFuncInternal(Cairo.Context cr, IInstance component);
         public delegate void AddComponentFuncInternal(InstanceList list, IInstance instance);
         public delegate bool RemoveComponentFuncInternal(InstanceList list, IInstance instance);
 
         public Dictionary<Type, InstanceList> ComponentsDict = new Dictionary<Type, InstanceList>();
         public List<DrawComponentsFuncInternal> DrawFuncs = new List<DrawComponentsFuncInternal>();
+        public Dictionary<Type, DrawSingleComponentsFuncInternal> DrawSingleFuncs = new Dictionary<Type, DrawSingleComponentsFuncInternal>();
         public Dictionary<Type, AddComponentFuncInternal> AddFuncDict = new Dictionary<Type, AddComponentFuncInternal>();
         public Dictionary<Type, RemoveComponentFuncInternal> RemoveFuncDict = new Dictionary<Type, RemoveComponentFuncInternal>();
 
         public void RegisterComponentType<TInst>(DrawComponentsFunc<TInst> drawFunc)
-            where TInst : struct, IInstance, IEquatable<TInst>
+            where TInst : unmanaged, IInstance, IEquatable<TInst>
         {
             // FIXME: Better error
             if (ComponentsDict.ContainsKey(typeof(TInst)))
@@ -121,6 +123,7 @@ namespace LogikUI.Simulation.Gates
             InstanceList list = InstanceList.Create<TInst>(16);
             ComponentsDict.Add(typeof(TInst), list);
             DrawFuncs.Add((cr, comps) => drawFunc(cr, comps.GetInstances<TInst>()));
+            DrawSingleFuncs.Add(typeof(TInst), (cr, instance) => drawFunc(cr, stackalloc TInst[1] { (TInst)instance }));
             AddFuncDict.Add(typeof(TInst), (list, inst) => list.Add((TInst)inst));
             RemoveFuncDict.Add(typeof(TInst), (list, inst) => list.Remove((TInst)inst));
         }
@@ -175,6 +178,21 @@ namespace LogikUI.Simulation.Gates
             {
                 drawFunc(cr, this);
             }
+        }
+
+        public void Draw(Context cr, IInstance instace)
+        {
+            if (DrawSingleFuncs.TryGetValue(instace.GetType(), out var drawSingleFunc) == false)
+                throw new KeyNotFoundException($"{instace.GetType()} isn't a registered instance type!");
+            drawSingleFunc!(cr, instace);
+        }
+
+        public void Draw<TInst>(Context cr, TInst instace)
+            where TInst : struct, IInstance
+        {
+            if (DrawSingleFuncs.TryGetValue(instace.GetType(), out var drawSingleFunc) == false)
+                throw new KeyNotFoundException($"{instace.GetType()} isn't a registered instance type!");
+            drawSingleFunc!(cr, instace);
         }
     }
 }

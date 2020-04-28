@@ -113,14 +113,7 @@ namespace LogikUI.Circuit
                 new Wire(new Vector2i(13, 3), 4, Direction.Horizontal),
             };
 
-            Wires = new Wires(
-                powered, 
-                unpowered, 
-                // For wires to connect their start/end point must be at the same location
-                // A wire that start/ends in the middle of another wires doesn't connect
-                // (We might want to change that but it becomes more complicated then...)
-                Wires.FindConnectionPoints(powered).ToArray(),
-                Wires.FindConnectionPoints(unpowered).ToArray());
+            Wires = new Wires(powered.Concat(unpowered).ToArray());
 
             Gates = new Gates(/*new AndGate[]
             {
