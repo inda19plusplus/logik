@@ -36,10 +36,6 @@ namespace LogikUI.Simulation.Gates
         public static void Draw(Context cr, Span<OrGateInstance> instances)
         {
             // FIXME: We want an easy way to apply the rotation of an instance
-
-            double height = CircuitEditor.DotSpacing * 3;
-            double width = CircuitEditor.DotSpacing * 3;
-
             foreach (var gate in instances)
             {
                 // FIXME: Consider orientation!

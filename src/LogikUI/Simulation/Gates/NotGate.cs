@@ -28,15 +28,15 @@ namespace LogikUI.Simulation.Gates
         public void GetPorts(Span<Vector2i> ports)
         {
             ports[0] = new Vector2i(0, 0);
-            ports[0] = new Vector2i(-2, 0);
+            ports[0] = new Vector2i(-3, 0);
         }
 
         public static void Draw(Context cr, Span<NotGateInstance> instances)
         {
             if (instances.Length == 0) return;
 
-            double height = CircuitEditor.DotSpacing * 1;
-            double width = CircuitEditor.DotSpacing * 2;
+            double height = CircuitEditor.DotSpacing * 1.5;
+            double width = CircuitEditor.DotSpacing * 3;
 
             cr.LineJoin = LineJoin.Bevel;
             foreach (var gate in instances)
@@ -59,7 +59,7 @@ namespace LogikUI.Simulation.Gates
                 cr.LineTo(p3);
                 cr.ClosePath();
 
-                const float r = 3;
+                const float r = 5;
                 cr.MoveTo(p4 + new Vector2d(r, 0));
                 cr.Arc(p4.X, p4.Y, r, 0, Math.PI * 2);
                 cr.ClosePath();
@@ -80,7 +80,7 @@ namespace LogikUI.Simulation.Gates
                     -1 : gate.Orientation == Orientation.North ?
                     1 : 0;
 
-                var p1 = horiz * new Vector2i(2, 0) + vert * new Vector2i(0, 2);
+                var p1 = horiz * new Vector2i(3, 0) + vert * new Vector2i(0, 3);
 
                 var in1 = (gate.Position + p1) * CircuitEditor.DotSpacing;
                 var out1 = gate.Position * CircuitEditor.DotSpacing;
@@ -121,19 +121,6 @@ namespace LogikUI.Simulation.Gates
         public static bool operator !=(NotGateInstance left, NotGateInstance right)
         {
             return !(left == right);
-        }
-    }
-
-    class NotGate
-    {
-        public string Name => "Not Gate";
-
-        // FIXME: What should this do? Is this even needed?
-        public void InitDefault(ref NotGateInstance instance) { }
-
-        public void Propagate(Engine engine, Span<NotGateInstance> instances)
-        {
-            throw new InvalidOperationException();
         }
     }
 }
