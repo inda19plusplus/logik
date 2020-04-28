@@ -17,7 +17,7 @@ namespace LogikUI.Simulation.Gates
 
         public IInstance Create(Vector2i pos, Orientation orientation)
         {
-            // Copy all fields
+            // Copy the state of this instance
             NotGateInstance instance = this;
             // Set the position and orientation
             instance.Position = pos;

@@ -18,6 +18,7 @@ namespace LogikUI.Simulation.Gates
 
         public IInstance Create(Vector2i pos, Orientation orientation)
         {
+            // Copy the state of this instance
             AndGateInstance instance = this;
             instance.Position = pos;
             instance.Orientation = orientation;
@@ -121,22 +122,5 @@ namespace LogikUI.Simulation.Gates
         {
             return !(left == right);
         }
-    }
-
-    class AndGate
-    {
-        public string Name => "And Gate";
-
-        public void InitDefault(ref AndGateInstance instance)
-        {
-        }
-
-        public void Propagate(Engine engine, Span<AndGateInstance> instances)
-        {
-            // We don't worry about the simulation!
-            throw new NotImplementedException();
-        }
-
-        
     }
 }
