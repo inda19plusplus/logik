@@ -1,4 +1,5 @@
 ﻿using Cairo;
+using Gtk;
 using LogikUI.Circuit;
 using LogikUI.Util;
 using System;
@@ -13,7 +14,10 @@ namespace LogikUI.Toolbar
         public Vector2i SelectionStart = default;
         public Vector2i SelectionSize = default;
 
-        public SelectTool(CircuitEditor circuitEditor) : base(Icon.Selector(), "Select", circuitEditor)
+        public SelectTool(
+            CircuitEditor circuitEditor,
+            Gtk.Toolbar toolbar
+        ) : base(Util.Icon.Selector(), "Select", circuitEditor, toolbar)
         {
         }
 

@@ -1,4 +1,5 @@
 ﻿using Cairo;
+using Gtk;
 using LogikUI.Circuit;
 using LogikUI.Component;
 using LogikUI.Simulation.Gates;
@@ -15,9 +16,16 @@ namespace LogikUI.Toolbar
         public bool PlacingComponent = false;
         public Vector2i StartPosition;
         public Vector2i VisualPosition;
-        public Orientation CompOrientation;
+        public Circuit.Orientation CompOrientation;
 
-        public ComponentTool(T exampleInstance, CircuitEditor circuitEditor) : base(Icon.AndGate(), exampleInstance.Name, circuitEditor)
+        public ComponentTool(
+            T exampleInstance, CircuitEditor circuitEditor, Gtk.Toolbar toolbar
+        ) : base(
+            Util.Icon.AndGate(),
+            exampleInstance.Name,
+            circuitEditor,
+            toolbar
+        )
         {
             BaseComponent = exampleInstance;
         }
