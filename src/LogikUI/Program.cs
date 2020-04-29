@@ -3,15 +3,16 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Globalization;
+using System.Reflection;
 using LogikUI.Component;
 using LogikUI.Hierarchy;
 using LogikUI.Circuit;
 using LogikUI.Util;
-using System.Globalization;
-using System.Reflection;
 using LogikUI.Simulation;
 using LogikUI.Toolbar;
 using LogikUI.Simulation.Gates;
+using LogikUI.File;
 
 namespace LogikUI
 {
@@ -50,15 +51,53 @@ namespace LogikUI
             return toolbar;
         }
 
-        static MenuBar CreateMenuBar() {
-            MenuBar bar = new MenuBar();
+        static MenuBar CreateMenuBar(Window parent) {
+
+            MenuItem open = new MenuItem("Open...");
+            open.Selected += (object? sender, EventArgs e) =>
+            {
+                FileFilter filter = new FileFilter();
+                filter.Name = "Project Files";
+                filter.AddPattern("*.xml");
+                filter.AddPattern("*.XML");
+
+                FileChooserDialog fcd = new FileChooserDialog("Open Project", parent, FileChooserAction.Open);
+                fcd.AddButton(Stock.Cancel, ResponseType.Cancel);
+                fcd.AddButton(Stock.Open, ResponseType.Ok);
+                fcd.DefaultResponse = ResponseType.Cancel;
+                fcd.SelectMultiple = false;
+                fcd.AddFilter(filter);
+
+                ResponseType response = (ResponseType)fcd.Run();
+                if (response == ResponseType.Ok)
+                {
+                    try
+                    {
+                        FileManager fm = new FileManager(fcd.Filename);
+
+                        Console.WriteLine($"Successfully read and parsed project file { fcd.Filename }.");
+                        Console.WriteLine($"- wires: { fm.Wires }");
+                        Console.WriteLine($"- components: { fm.Components }");
+                        Console.WriteLine($"- labels: { fm.Labels }");
+                    }
+                    catch (Exception err)
+                    {
+                        // FIXME: Do something if parse fails?
+
+                        Console.WriteLine($"Failed to read and parse project file { fcd.Filename }. Exception:");
+                        Console.WriteLine(err);
+                    }
+                }
+                
+                fcd.Dispose();
+            };
+
+            Menu fileMenu = new Menu();
+            fileMenu.Append(open);
 
             MenuItem file = new MenuItem("File");
             file.AddEvents((int)Gdk.EventMask.AllEventsMask);
-            bar.Append(file);
-            Menu fileMenu = new Menu();
             file.Submenu = fileMenu;
-            fileMenu.Append(new MenuItem("Open..."));
 
             // FIXME: Hook up callbacks
 
@@ -66,6 +105,9 @@ namespace LogikUI
             // on the ability to close the menu when you've opened it.
             // Atm there is a delay after opening the menu and when
             // you can close it...
+
+            MenuBar bar = new MenuBar();
+            bar.Append(file);
 
             return bar;
         }
@@ -133,7 +175,7 @@ namespace LogikUI
 
             //Add the label to the form
             VBox box = new VBox(false, 0);
-            box.PackStart(CreateMenuBar(), false, false, 0);
+            box.PackStart(CreateMenuBar(wnd), false, false, 0);
             box.PackStart(CreateToolbar(circuitEditor), false, false, 0);
             box.PackEnd(hPaned, true, true, 0);
             box.Expand = true;

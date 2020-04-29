@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<!-- STRUCTURE:
+circuit
+  wires
+    wire
+      from <- x: int, y: int
+      to <- x: int, y: int
+    ...
+  components
+    component
+      type
+        "and" | "dFlipFlop" | "not"
+      location <- x: int, y: int
+      orientation
+        "north" | "east" | "south" | "west"
+    ...
+  labels
+    label <- size: int(10, 100)
+      location <- x: int, y: int
+      text
+        <string>
+    ...
+-->
+
+<xs:schema 
+    id="XMLFileFormatSchema"
+    elementFormDefault="qualified"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+>
+  <!-- TYPE DEFINITIONS -->
+
+  <!-- 2d coordinates -->
+  <xs:complexType name="point">
+    <xs:attribute name="x" type="xs:int" use="required"/>
+    <xs:attribute name="y" type="xs:int" use="required"/>
+  </xs:complexType>
+
+  <!-- font size -->
+  <xs:simpleType name="size">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="10"/>
+      <xs:maxInclusive value="100"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- ELEMENT DEFINITIONS -->
+
+  <xs:element name="circuit">
+    <xs:complexType>
+      <xs:sequence>
+        
+        <xs:element name="wires">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <!-- wire representation -->
+                <xs:element name="wire" maxOccurs="unbounded">
+                  <xs:complexType>
+                    <xs:sequence>
+                      <xs:element name="from" type="point"/>
+                      <xs:element name="to" type="point"/>
+                    </xs:sequence>
+                  </xs:complexType>
+                </xs:element>
+              </xs:choice>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        
+        <xs:element name="components">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <!-- component representation -->
+                <xs:element name="component" maxOccurs="unbounded">
+                  <xs:complexType>
+                    <xs:sequence>
+                      <xs:element name="type">
+                        <xs:simpleType>
+                          <xs:restriction base="xs:string">
+                            <xs:enumeration value="and"/>
+                            <xs:enumeration value="dFlipFlop"/>
+                            <xs:enumeration value="not"/>
+                          </xs:restriction>
+                        </xs:simpleType>
+                      </xs:element>
+                      <xs:element name="location" type="point"/>
+                      <xs:element name="orientation">
+                        <xs:simpleType>
+                          <xs:restriction base="xs:string">
+                            <xs:enumeration value="north"/>
+                            <xs:enumeration value="east"/>
+                            <xs:enumeration value="south"/>
+                            <xs:enumeration value="west"/>
+                          </xs:restriction>
+                        </xs:simpleType>
+                      </xs:element>
+                    </xs:sequence>
+                  </xs:complexType>
+                </xs:element>
+              </xs:choice>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        
+        <xs:element name="labels">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <!-- label representation -->
+                <xs:element name="label" maxOccurs="unbounded">
+                  <xs:complexType>
+                    <xs:sequence>
+                      <xs:element name="location" type="point"/>
+                      <xs:element name="text" type="xs:string"/>
+                    </xs:sequence>
+                    <xs:attribute name="size" type="size" use="required"/>
+                  </xs:complexType>
+                </xs:element>
+              </xs:choice>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
