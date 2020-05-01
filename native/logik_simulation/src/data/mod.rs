@@ -8,11 +8,12 @@ mod subnet;
 mod component;
 
 /// Struct to represent the data that the backend should keep track of
+#[derive(Debug)]
 pub struct Data {
     components: Vec<Box<dyn Component>>,
     subnets: HashMap<usize, Subnet>,
     // <id, subnet>
-    edges: HashMap<usize, HashSet<usize>>, // key is from node, value is to node
+    edges: HashMap<usize, HashSet<Connection>>, // key is from node, value is to node
     // components live on odd indices
     // subnets live on even indices
 }
@@ -42,13 +43,15 @@ impl Data {
         Some(self.subnets.get_mut(&idx)?)
     }
     
-    pub(crate) fn add_component(&mut self, component: Box<dyn Component>, inputs: Vec<usize>, outputs: Vec<usize>) -> bool {
+    pub(crate) fn add_component(&mut self, component: Box<dyn Component>, inputs: Vec<Option<usize>>, outputs: Vec<Option<usize>>) -> bool {
         if component.inputs() != inputs.len() || component.outputs() != outputs.len() {
             return false;
         }
         
-        for input in inputs.into_iter().map(|e| e * 2) {
-            self.edges.entry(input).or_default().insert(2 * self.components.len() + 1);
+        for (port, input) in inputs.into_iter()
+            .enumerate()
+            .filter_map(|(i, e)| e.map(|e| (i, e * 2))) {
+            self.edges.entry(input).or_default().insert(Connection::Component(2 * self.components.len() + 1, port));
         }
         
         if outputs.len() > 0 {
@@ -57,7 +60,8 @@ impl Data {
                 .or_default()
                 .extend(outputs
                     .into_iter()
-                    .map(|e| e * 2)
+                    .enumerate()
+                    .filter_map(|(i, e)| e.map(|e| Connection::Subnet(e * 2)))
                 );
         }
         
@@ -74,14 +78,12 @@ impl Data {
     }
     
     pub(crate) fn remove_subnet(&mut self, id: usize) -> bool {
-        if self.edges.remove(&id).is_none() {
-            return false;
-        }
-        
         let id = 2 * id;
+        self.edges.remove(&id);
+        
         for i in (0..self.components.len()).map(|e| 2 * e + 1) {
             if let Entry::Occupied(mut inner) = self.edges.entry(i) {
-                inner.get_mut().remove(&id);
+                inner.get_mut().remove(&Connection::Subnet(id));
             }
         }
         
@@ -89,10 +91,14 @@ impl Data {
     }
 }
 
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
+pub enum Connection {
+    Subnet(usize),
+    Component(usize, usize),
+}
+
 #[cfg(test)]
 mod test {
-    use std::iter::FromIterator;
-    
     use crate::data::component::{AND, Output};
     
     use super::*;
@@ -137,16 +143,21 @@ mod test {
         
         data.add_subnet(0);
         
-        assert!(data.add_component(Box::new(Output {}), vec![0], vec![]));
+        assert!(data.add_component(Box::new(Output {}), vec![Some(0)], vec![]));
         
         data.add_subnet(1);
         data.add_subnet(5);
         
-        assert!(data.add_component(Box::new(AND {}), vec![1, 5], vec![0]));
+        assert!(data.add_component(Box::new(AND {}), vec![Some(1), Some(5)], vec![Some(0)]));
         
-        assert!(data.add_component(Box::new(Output {}), vec![0], vec![]));
+        assert!(data.add_component(Box::new(Output {}), vec![Some(0)], vec![]));
         
-        assert_eq!(data.edges, map!(2 => set!(3), 10 => set!(3), 3 => set!(0), 0 => set!(1, 5)));
+        assert_eq!(data.edges, map!(
+            2 => set!(Connection::Component(3, 0)),
+            10 => set!(Connection::Component(3, 1)),
+            3 => set!(Connection::Subnet(0)),
+            0 => set!(Connection::Component(1, 0), Connection::Component(5, 0))
+        ));
     }
     
     #[test]
@@ -158,12 +169,16 @@ mod test {
         
         assert_eq!(data.edges, map!());
         
-        assert!(data.add_component(Box::new(Output {}), vec![0], vec![]));
+        assert!(data.add_component(Box::new(Output {}), vec![Some(0)], vec![]));
         
-        assert_eq!(data.edges, map!(0 => set!(1)));
+        assert_eq!(data.edges, map!(0 => set!(Connection::Component(1, 0))));
         
         assert!(data.remove_subnet(0));
         
+        assert_eq!(data.edges, map!());
+        
+        assert!(data.remove_subnet(1));
+    
         assert_eq!(data.edges, map!());
     }
 }
