@@ -105,10 +105,7 @@ impl Data {
     }
     
     pub(crate) fn add_subnet(&mut self, id: usize) -> bool {
-        match self.subnets.insert(id, Subnet::new()) {
-            Some(_) => false,
-            None => true,
-        }
+        self.subnets.insert(id, Subnet::new()).is_none()
     }
     
     pub(crate) fn remove_subnet(&mut self, id: usize) -> bool {
