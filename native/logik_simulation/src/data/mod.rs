@@ -128,6 +128,33 @@ impl Data {
         
         true
     }
+    
+    pub(crate) fn link(&mut self, component: usize, port: usize, subnet: usize, direction: bool) -> bool {
+        //true is component to subnet, false is subnet to component
+        !if direction {
+            self.edges.entry(component * 2 + 1).or_default().insert(Connection::Subnet(subnet * 2))
+        } else {
+            self.edges.entry(subnet * 2).or_default().insert(Connection::Component(component * 2 + 1, port))
+        }
+    }
+    
+    pub(crate) fn unlink(&mut self, component: usize, port: usize, subnet: usize) -> bool {
+        let mut found = false;
+        
+        if let Entry::Occupied(mut inner) = self.edges.entry(component * 2 + 1) {
+            if inner.get_mut().remove(&Connection::Subnet(subnet * 2)) {
+                found = true;
+            }
+        }
+    
+        if let Entry::Occupied(mut inner) = self.edges.entry(subnet * 2) {
+            if inner.get_mut().remove(&Connection::Component(component * 2 + 1, port)) {
+                found = true;
+            }
+        }
+        
+        found
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -197,6 +224,8 @@ mod test {
             3 => set!(Connection::Subnet(0)),
             0 => set!(Connection::Component(1, 0), Connection::Component(5, 0))
         ));
+        
+        assert!(data.add_component(Box::new(AND {}), vec![], vec![]).is_err());
     }
     
     #[test]
@@ -219,5 +248,8 @@ mod test {
         assert!(data.remove_subnet(1));
     
         assert_eq!(data.edges, map!());
+        
+        assert!(!data.remove_subnet(0));
+        assert!(!data.remove_subnet(3));
     }
 }

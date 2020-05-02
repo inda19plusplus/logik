@@ -74,3 +74,15 @@ pub extern "C" fn remove_component(data: *mut Data, id: usize) -> bool {
     
     data.remove_component(id)
 }
+
+pub extern "C" fn link(data: *mut Data, component: usize, port: usize, subnet: usize, direction: bool) -> bool {
+    let data = unsafe { &mut *data };
+    
+    data.link(component, port, subnet, direction)
+}
+
+pub extern "C" fn unlink(data: *mut Data, component: usize, port: usize, subnet: usize) -> bool {
+    let data = unsafe { &mut *data };
+    
+    data.unlink(component, port, subnet)
+}
