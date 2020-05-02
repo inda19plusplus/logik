@@ -69,18 +69,21 @@ pub extern "C" fn add_component(data: *mut Data, component: usize) -> usize {
     res.unwrap()
 }
 
+#[no_mangle]
 pub extern "C" fn remove_component(data: *mut Data, id: usize) -> bool {
     let data = unsafe { &mut *data };
     
     data.remove_component(id)
 }
 
+#[no_mangle]
 pub extern "C" fn link(data: *mut Data, component: usize, port: usize, subnet: usize, direction: bool) -> bool {
     let data = unsafe { &mut *data };
     
     data.link(component, port, subnet, direction)
 }
 
+#[no_mangle]
 pub extern "C" fn unlink(data: *mut Data, component: usize, port: usize, subnet: usize) -> bool {
     let data = unsafe { &mut *data };
     
