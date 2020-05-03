@@ -13,14 +13,9 @@ namespace LogikUI.Simulation.Gates
         public Vector2i Position { get; set; }
         public Orientation Orientation { get; set; }
         public int NumberOfPorts => 4;
+        public UIntPtr BackendIdx { get; set; }
 
-        public IInstance Create(Vector2i pos, Orientation orientation)
-        {
-            DFlipFlopInstance instance = this;
-            instance.Position = pos;
-            instance.Orientation = orientation;
-            return instance;
-        }
+        UIntPtr IInstance.BackendId => new UIntPtr(69);
 
         public void GetPorts(Span<Vector2i> ports)
         {

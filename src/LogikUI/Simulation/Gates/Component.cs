@@ -7,17 +7,34 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using LogikUI.Interop;
 
 namespace LogikUI.Simulation.Gates
 {
     interface IInstance
     {
         public string Name { get; }
-        public Vector2i Position { get; }
-        public Orientation Orientation { get; }
+        public Vector2i Position { get; set; }
+        public Orientation Orientation { get; set; }
         public int NumberOfPorts { get; }
+        public UIntPtr BackendIdx { get; set; }
+        protected UIntPtr BackendId { get; }
 
-        public IInstance Create(Vector2i pos, Orientation orientation);
+        public IInstance Create(Vector2i pos, Orientation orientation)
+        {
+            IInstance instance = this;
+
+            instance.Orientation = orientation;
+            instance.Position = pos;
+
+            unsafe
+            {
+                var ptr = Logic.AddComponent(Program.backend, BackendId);
+                instance.BackendIdx = ptr;
+            }
+            
+            return instance;
+        }
 
         // This is the ports in the 
         public void GetPorts(Span<Vector2i> ports);
