@@ -120,7 +120,6 @@ namespace LogikUI.Circuit
 
     class Wires
     {
-
         public List<Wire> WiresList;
         public List<WireBundle> Bundles;
 
