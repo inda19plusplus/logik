@@ -1,30 +1,16 @@
-﻿using Cairo;
+﻿using Atk;
+using Cairo;
 using LogikUI.Circuit;
 using LogikUI.Util;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace LogikUI.Simulation.Gates
 {
-    struct OrGateInstance : IInstance, IEquatable<OrGateInstance>
+    class OrGate : IComponent
     {
         public string Name => "Or Gate";
-
-        public Vector2i Position { get; set; }
-
-        public Orientation Orientation { get; set; }
-
+        public ComponentType Type => ComponentType.Or;
         public int NumberOfPorts => 3;
-
-        public IInstance Create(Vector2i pos, Orientation orientation)
-        {
-            // Copy the state of this instance
-            OrGateInstance instance = this;
-            instance.Position = pos;
-            instance.Orientation = orientation;
-            return instance;
-        }
 
         public void GetPorts(Span<Vector2i> ports)
         {
@@ -33,10 +19,11 @@ namespace LogikUI.Simulation.Gates
             ports[2] = new Vector2i(-3, 1);
         }
 
-        public static void Draw(Context cr, Span<OrGateInstance> instances)
+        public void Draw(Context cr, InstanceData data)
         {
+            var gate = data;
             // FIXME: We want an easy way to apply the rotation of an instance
-            foreach (var gate in instances)
+            //foreach (var gate in instances)
             {
                 // FIXME: Consider orientation!
                 // We should create a nicer way to do that...
@@ -57,7 +44,7 @@ namespace LogikUI.Simulation.Gates
             cr.LineWidth = Wires.WireWidth;
             cr.Stroke();
 
-            foreach (var gate in instances)
+            //foreach (var gate in instances)
             {
                 // FIXME: We kind of don't want to do this again?
                 int horiz = gate.Orientation == Orientation.East ?
@@ -84,34 +71,6 @@ namespace LogikUI.Simulation.Gates
             }
             cr.SetSourceRGB(0.2, 0.9, 0.2);
             cr.Fill();
-        }
-
-        public override bool Equals(object? obj)
-        {
-            return obj is OrGateInstance instance && Equals(instance);
-        }
-
-        public bool Equals(OrGateInstance other)
-        {
-            return Name == other.Name &&
-                   Position.Equals(other.Position) &&
-                   Orientation == other.Orientation &&
-                   NumberOfPorts == other.NumberOfPorts;
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(Name, Position, Orientation, NumberOfPorts);
-        }
-
-        public static bool operator ==(OrGateInstance left, OrGateInstance right)
-        {
-            return left.Equals(right);
-        }
-
-        public static bool operator !=(OrGateInstance left, OrGateInstance right)
-        {
-            return !(left == right);
         }
     }
 }

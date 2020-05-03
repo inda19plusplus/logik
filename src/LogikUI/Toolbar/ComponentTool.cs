@@ -10,7 +10,7 @@ using System.Text;
 
 namespace LogikUI.Toolbar
 {
-    class ComponentTool<T> : BasicTool where T : struct, IInstance
+    class ComponentTool<T> : BasicTool where T : IComponent
     {
         public T BaseComponent;
         public bool PlacingComponent = false;
@@ -19,10 +19,10 @@ namespace LogikUI.Toolbar
         public Vector2i VisualPosition;
         public Circuit.Orientation CompOrientation;
 
-        public ComponentTool(Gtk.Image image, T exampleInstance, CircuitEditor circuitEditor, Gtk.Toolbar toolbar) 
-            : base(image, exampleInstance.Name, circuitEditor, toolbar)
+        public ComponentTool(Gtk.Image image, T component, CircuitEditor circuitEditor, Gtk.Toolbar toolbar) 
+            : base(image, component.Name, circuitEditor, toolbar)
         {
-            BaseComponent = exampleInstance;
+            BaseComponent = component;
         }
 
         public override void Select(CircuitEditor editor)
@@ -72,7 +72,9 @@ namespace LogikUI.Toolbar
             StartPosition = VisualPosition;
 
             var transaction = editor.Gates.CreateAddGateTrasaction(
-                BaseComponent.Create(VisualPosition, CompOrientation)
+                // FIXME!!!
+                InstanceData.Create(BaseComponent.Type, VisualPosition, CompOrientation)
+                //BaseComponent.Create(VisualPosition, CompOrientation)
                 //new Circuit.AndGate(VisualPosition, CompOrientation)
                 );
 
@@ -90,7 +92,7 @@ namespace LogikUI.Toolbar
         {
             if (PlacingComponent)
             {
-                editor.Gates.Components.Draw(cr, BaseComponent.Create(VisualPosition, CompOrientation));
+                BaseComponent.Draw(cr, InstanceData.Create(BaseComponent.Type, VisualPosition, CompOrientation));
             }
         }
     }

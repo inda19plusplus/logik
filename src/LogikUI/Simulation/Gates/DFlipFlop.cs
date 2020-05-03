@@ -7,20 +7,11 @@ using System.Text;
 
 namespace LogikUI.Simulation.Gates
 {
-    struct DFlipFlopInstance : IInstance
+    struct DFlipFlop : IComponent
     {
         public string Name => "D FLip-Flop";
-        public Vector2i Position { get; set; }
-        public Orientation Orientation { get; set; }
+        public ComponentType Type => ComponentType.DFlipFlop;
         public int NumberOfPorts => 4;
-
-        public IInstance Create(Vector2i pos, Orientation orientation)
-        {
-            DFlipFlopInstance instance = this;
-            instance.Position = pos;
-            instance.Orientation = orientation;
-            return instance;
-        }
 
         public void GetPorts(Span<Vector2i> ports)
         {
@@ -30,7 +21,7 @@ namespace LogikUI.Simulation.Gates
             ports[3] = new Vector2i(-2, 2);
         }
 
-        public static void Draw(Context cr, Span<DFlipFlopInstance> instances)
+        public void Draw(Context cr, InstanceData data)
         {
             throw new NotImplementedException();
         }

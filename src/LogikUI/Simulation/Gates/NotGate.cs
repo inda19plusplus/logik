@@ -8,38 +8,27 @@ using System.Text;
 
 namespace LogikUI.Simulation.Gates
 {
-    struct NotGateInstance : IInstance, IEquatable<NotGateInstance>
+    class NotGate : IComponent
     {
         public string Name => "Not Gate";
-        public Vector2i Position { get; set; }
-        public Orientation Orientation { get; set; }
+        public ComponentType Type => ComponentType.Not;
         public int NumberOfPorts => 2;
-
-        public IInstance Create(Vector2i pos, Orientation orientation)
-        {
-            // Copy the state of this instance
-            NotGateInstance instance = this;
-            // Set the position and orientation
-            instance.Position = pos;
-            instance.Orientation = orientation;
-            return instance;
-        }
 
         public void GetPorts(Span<Vector2i> ports)
         {
             ports[0] = new Vector2i(0, 0);
             ports[0] = new Vector2i(-3, 0);
         }
-
-        public static void Draw(Context cr, Span<NotGateInstance> instances)
+        
+        public void Draw(Context cr, InstanceData data)
         {
-            if (instances.Length == 0) return;
-
             double height = CircuitEditor.DotSpacing * 1.5;
             double width = CircuitEditor.DotSpacing * 3;
 
+            var gate = data;
+
             cr.LineJoin = LineJoin.Bevel;
-            foreach (var gate in instances)
+            //foreach (var gate in instances)
             {
                 double horiz = gate.Orientation == Orientation.East ?
                     -1 : gate.Orientation == Orientation.West ?
@@ -66,11 +55,11 @@ namespace LogikUI.Simulation.Gates
             }
             // FIXME: We probably shouldn't hardcode the color
             cr.SetSourceRGB(0.1, 0.1, 0.1);
-            
+
             cr.LineWidth = Wires.WireWidth;
             cr.Stroke();
 
-            foreach (var gate in instances)
+            //foreach (var gate in instances)
             {
                 // FIXME: We kind of don't want to do this again?
                 int horiz = gate.Orientation == Orientation.East ?
@@ -93,34 +82,6 @@ namespace LogikUI.Simulation.Gates
             }
             cr.SetSourceRGB(0.2, 0.9, 0.2);
             cr.Fill();
-        }
-
-        public override bool Equals(object? obj)
-        {
-            return obj is NotGateInstance instance && Equals(instance);
-        }
-
-        public bool Equals(NotGateInstance other)
-        {
-            return Name == other.Name &&
-                   Position.Equals(other.Position) &&
-                   Orientation == other.Orientation &&
-                   NumberOfPorts == other.NumberOfPorts;
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(Name, Position, Orientation, NumberOfPorts);
-        }
-
-        public static bool operator ==(NotGateInstance left, NotGateInstance right)
-        {
-            return left.Equals(right);
-        }
-
-        public static bool operator !=(NotGateInstance left, NotGateInstance right)
-        {
-            return !(left == right);
         }
     }
 }

@@ -25,12 +25,12 @@ namespace LogikUI
             // FIXME: Make this be selected with a callback or something
             //editor.CurrentTool = selectTool;
 
-            // FIXME: We want something better for this...
-            ComponentTool<AndGateInstance> andTool = new ComponentTool<AndGateInstance>(Util.Icon.AndGate(), default, editor, toolbar);
+            // FIXME: We don't want to new the components here!!
+            ComponentTool<AndGate> andTool = new ComponentTool<AndGate>(Util.Icon.AndGate(), new AndGate(), editor, toolbar);
 
-            ComponentTool<NotGateInstance> notTool = new ComponentTool<NotGateInstance>(Util.Icon.AndGate(), default, editor, toolbar);
-
-            ComponentTool<OrGateInstance> orTool = new ComponentTool<OrGateInstance>(Util.Icon.OrGate(), default, editor, toolbar);
+            ComponentTool<NotGate> notTool = new ComponentTool<NotGate>(Util.Icon.AndGate(), new NotGate(), editor, toolbar);
+            
+            ComponentTool<OrGate> orTool = new ComponentTool<OrGate>(Util.Icon.OrGate(), new OrGate(), editor, toolbar);
 
             ToolButton xorTool = new ToolButton(
                 Util.Icon.XorGate(), "Xor Gate"

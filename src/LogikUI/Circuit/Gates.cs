@@ -5,14 +5,13 @@ using LogikUI.Util;
 using Pango;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Numerics;
 using System.Text;
 
 namespace LogikUI.Circuit
 {
     // FIXME: Move to it's own file
-    enum Orientation
+    enum Orientation : int
     {
         East,
         South,
@@ -22,23 +21,38 @@ namespace LogikUI.Circuit
 
     class Gates
     {
-        public Components Components;
-        
+        public Dictionary<ComponentType, IComponent> Components = new Dictionary<ComponentType, IComponent>()
+        {
+            { ComponentType.Not, new NotGate() },
+            { ComponentType.And, new AndGate() },
+            { ComponentType.Or, new OrGate() },
+        };
+
+        public List<InstanceData> Instances = new List<InstanceData>();
+
         public Gates()
         {
-            Components = new Components();
-            // FIXME: Register this somewhere else?
-            Components.RegisterComponentType<AndGateInstance>(AndGateInstance.Draw);
-            Components.RegisterComponentType<NotGateInstance>(NotGateInstance.Draw);
-            Components.RegisterComponentType<OrGateInstance>(OrGateInstance.Draw);
         }
 
         public void Draw(Cairo.Context cr)
         {
-            Components.DrawComponents(cr);
+            //Components.DrawComponents(cr);
+            foreach (var instance in Instances)
+            {
+                if (Components.TryGetValue(instance.Type, out var comp) == false)
+                {
+                    // This is an unknown component type!!
+                    Console.WriteLine($"Unknown component type '{instance.Type}'! ({instance})");
+                    continue;
+                }
+
+                // The compiler doesn't do correct null analysis so we do '!' to tell it
+                // that comp cannot be null here.
+                comp!.Draw(cr, instance);
+            }
         }
 
-        public GateTransaction CreateAddGateTrasaction(IInstance gate)
+        public GateTransaction CreateAddGateTrasaction(InstanceData gate)
         {
             // FIXME: Do some de-duplication stuff?
             return new GateTransaction(gate);
@@ -46,12 +60,12 @@ namespace LogikUI.Circuit
 
         public void ApplyTransaction(GateTransaction transaction)
         {
-            Components.AddComponent(transaction.Created);
+            Instances.Add(transaction.Created);
         }
 
         public void RevertGateTransaction(GateTransaction transaction)
         {
-            if (Components.RemoveComponent(transaction.Created) == false)
+            if (Instances.Remove(transaction.Created) == false)
             {
                 Console.WriteLine($"Warn: Removed non-existent gate! {transaction.Created}");
             }

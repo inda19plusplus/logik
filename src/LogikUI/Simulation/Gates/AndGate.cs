@@ -8,22 +8,12 @@ using System.Text;
 
 namespace LogikUI.Simulation.Gates
 {
-    struct AndGateInstance : IInstance, IEquatable<AndGateInstance>
+    class AndGate : IComponent
     {
         // Indices for the ports
         public string Name => "And Gate";
-        public Vector2i Position { get; set; }
-        public Orientation Orientation { get; set; }
+        public ComponentType Type => ComponentType.And;
         public int NumberOfPorts => 3;
-
-        public IInstance Create(Vector2i pos, Orientation orientation)
-        {
-            // Copy the state of this instance
-            AndGateInstance instance = this;
-            instance.Position = pos;
-            instance.Orientation = orientation;
-            return instance;
-        }
 
         public void GetPorts(Span<Vector2i> ports)
         {
@@ -31,13 +21,17 @@ namespace LogikUI.Simulation.Gates
             ports[1] = new Vector2i(-3, -1);
             ports[2] = new Vector2i(-3, 1);
         }
-
-        public static void Draw(Context cr, Span<AndGateInstance> instances)
+        
+        // FIXME: Cleanup and possibly split draw into a 'outline' and 'fill'
+        // call so we can do more efficient cairo rendering.
+        public void Draw(Context cr, InstanceData data)
         {
             double height = CircuitEditor.DotSpacing * 3;
             double width = CircuitEditor.DotSpacing * 3;
 
-            foreach (var gate in instances)
+            var gate = data;
+
+            //foreach (var gate in instances)
             {
                 double horiz = gate.Orientation == Orientation.East ?
                     -1 : gate.Orientation == Orientation.West ?
@@ -66,7 +60,7 @@ namespace LogikUI.Simulation.Gates
             cr.LineWidth = Wires.WireWidth;
             cr.Stroke();
 
-            foreach (var gate in instances)
+            //foreach (var gate in instances)
             {
                 // FIXME: We kind of don't want to do this again?
                 int horiz = gate.Orientation == Orientation.East ?
@@ -93,34 +87,6 @@ namespace LogikUI.Simulation.Gates
             }
             cr.SetSourceRGB(0.2, 0.9, 0.2);
             cr.Fill();
-        }
-
-        public override bool Equals(object? obj)
-        {
-            return obj is AndGateInstance instance && Equals(instance);
-        }
-
-        public bool Equals(AndGateInstance other)
-        {
-            return Name == other.Name &&
-                   Position.Equals(other.Position) &&
-                   Orientation == other.Orientation &&
-                   NumberOfPorts == other.NumberOfPorts;
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(Name, Position, Orientation, NumberOfPorts);
-        }
-
-        public static bool operator ==(AndGateInstance left, AndGateInstance right)
-        {
-            return left.Equals(right);
-        }
-
-        public static bool operator !=(AndGateInstance left, AndGateInstance right)
-        {
-            return !(left == right);
         }
     }
 }
