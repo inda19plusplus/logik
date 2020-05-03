@@ -9,6 +9,7 @@ using LogikUI.Circuit;
 using LogikUI.Util;
 using System.Globalization;
 using System.Reflection;
+using LogikUI.Interop;
 using LogikUI.Simulation;
 using LogikUI.Toolbar;
 using LogikUI.Simulation.Gates;
@@ -17,6 +18,8 @@ namespace LogikUI
 {
     class Program
     {
+        public static unsafe Data* backend;
+        
         static Gtk.Toolbar CreateToolbar(CircuitEditor editor) {
             Gtk.Toolbar toolbar = new Gtk.Toolbar();
 
@@ -77,6 +80,11 @@ namespace LogikUI
         // Hopefully this can be fixed sooner rather than later...
         static void Main()
         {
+            unsafe
+            {
+                Program.backend = Logic.Init();
+            }
+            
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             Value a = new Value(0b00_00_00_00_01_01_01_01_10_10_10_10_11_11_11_11, 16);
@@ -155,6 +163,11 @@ namespace LogikUI
 
         private static void Wnd_Destroyed(object? sender, EventArgs e)
         {
+            unsafe
+            {
+                Logic.Exit(Program.backend);
+                Program.backend = null;
+            }
             Application.Quit();
         }
     }
