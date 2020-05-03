@@ -13,7 +13,10 @@ namespace LogikUI.Toolbar
         public Vector2i DragStartPos = default;
         public Wire CurrentWire = default;
 
-        public WireTool(CircuitEditor circuitEditor) : base(Icon.Wire(), "Wire", circuitEditor)
+        public WireTool(
+            CircuitEditor circuitEditor,
+            Gtk.Toolbar toolbar
+        ) : base(Icon.Wire(), "Wire", circuitEditor, toolbar)
         {
 
         }

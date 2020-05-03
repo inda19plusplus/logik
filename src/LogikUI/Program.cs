@@ -23,15 +23,15 @@ namespace LogikUI
         static Gtk.Toolbar CreateToolbar(CircuitEditor editor) {
             Gtk.Toolbar toolbar = new Gtk.Toolbar();
 
-            SelectTool selectTool = new SelectTool(editor);
-            WireTool wireTool = new WireTool(editor);
+            SelectTool selectTool = new SelectTool(editor, toolbar);
+            WireTool wireTool = new WireTool(editor, toolbar);
             // FIXME: Make this be selected with a callback or something
             //editor.CurrentTool = selectTool;
 
             // FIXME: We want something better for this...
-            ComponentTool<AndGateInstance> andTool = new ComponentTool<AndGateInstance>(default, editor);
+            ComponentTool<AndGateInstance> andTool = new ComponentTool<AndGateInstance>(default, editor, toolbar);
 
-            ComponentTool<NotGateInstance> notTool = new ComponentTool<NotGateInstance>(default, editor);
+            ComponentTool<NotGateInstance> notTool = new ComponentTool<NotGateInstance>(default, editor, toolbar);
 
             ToolButton orTool = new ToolButton(
                 Util.Icon.OrGate(), "Or Gate"
