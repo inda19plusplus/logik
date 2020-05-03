@@ -26,11 +26,11 @@ namespace LogikUI
             //editor.CurrentTool = selectTool;
 
             // FIXME: We don't want to new the components here!!
-            ComponentTool<AndGate> andTool = new ComponentTool<AndGate>(Util.Icon.AndGate(), new AndGate(), editor, toolbar);
+            ComponentTool andTool = new ComponentTool(ComponentType.And, "And gate", editor, toolbar);
 
-            ComponentTool<NotGate> notTool = new ComponentTool<NotGate>(Util.Icon.AndGate(), new NotGate(), editor, toolbar);
+            ComponentTool notTool = new ComponentTool(ComponentType.Not, "Not gate", editor, toolbar);
             
-            ComponentTool<OrGate> orTool = new ComponentTool<OrGate>(Util.Icon.OrGate(), new OrGate(), editor, toolbar);
+            ComponentTool orTool = new ComponentTool(ComponentType.Or, "Or gate", editor, toolbar);
 
             ToolButton xorTool = new ToolButton(
                 Util.Icon.XorGate(), "Xor Gate"

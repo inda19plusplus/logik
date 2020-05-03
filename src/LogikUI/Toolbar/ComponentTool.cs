@@ -10,19 +10,25 @@ using System.Text;
 
 namespace LogikUI.Toolbar
 {
-    class ComponentTool<T> : BasicTool where T : IComponent
+    class ComponentTool : BasicTool
     {
-        public T BaseComponent;
+        public IComponent BaseComponent;
         public bool PlacingComponent = false;
         public bool DraggingComponent = false;
         public Vector2i StartPosition;
         public Vector2i VisualPosition;
         public Circuit.Orientation CompOrientation;
 
-        public ComponentTool(Gtk.Image image, T component, CircuitEditor circuitEditor, Gtk.Toolbar toolbar) 
-            : base(image, component.Name, circuitEditor, toolbar)
+        // FIXME: Technically we can get the name of the component from the ComponentType
+        // So we shouldn't need to have the name argument here because it should be able to be derived.
+        public ComponentTool(ComponentType type, string name, CircuitEditor circuitEditor, Gtk.Toolbar toolbar) 
+            : base(Util.Icon.GetComponentImage(type), name, circuitEditor, toolbar)
         {
-            BaseComponent = component;
+            if (circuitEditor.Gates.Components.TryGetValue(type, out var component) == false)
+            {
+                throw new InvalidOperationException($"There is no ICompoennt for the component type '{type}'");
+            }
+            BaseComponent = component!;
         }
 
         public override void Select(CircuitEditor editor)
@@ -71,7 +77,7 @@ namespace LogikUI.Toolbar
             VisualPosition = StartPosition + editor.RoundDistToGrid(endOffset);
             StartPosition = VisualPosition;
 
-            var transaction = editor.Gates.CreateAddGateTrasaction(
+            var transaction = editor.Gates.CreateAddGateTransaction(
                 // FIXME!!!
                 InstanceData.Create(BaseComponent.Type, VisualPosition, CompOrientation)
                 //BaseComponent.Create(VisualPosition, CompOrientation)

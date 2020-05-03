@@ -134,7 +134,7 @@ namespace LogikUI.Simulation
             //  X | X X X X
 
             if (a.Width != b.Width) 
-                throw new WidthMissmatchException(a.Width, b.Width, $"The two values had different widths! ({a.Width} != {b.Width})");
+                throw new WidthMismatchException(a.Width, b.Width, $"The two values had different widths! ({a.Width} != {b.Width})");
 
             Value c;
             c.Width = a.Width;
@@ -157,7 +157,7 @@ namespace LogikUI.Simulation
             //  X | X X X X
 
             if (a.Width != b.Width)
-                throw new WidthMissmatchException(a.Width, b.Width, $"The two values had different widths! ({a.Width} != {b.Width})");
+                throw new WidthMismatchException(a.Width, b.Width, $"The two values had different widths! ({a.Width} != {b.Width})");
 
             // FIXME: Document the logic expressions used to derive these
 
@@ -182,7 +182,7 @@ namespace LogikUI.Simulation
             //  X | X X 1 X
 
             if (a.Width != b.Width)
-                throw new WidthMissmatchException(a.Width, b.Width, $"The two values had different widths! ({a.Width} != {b.Width})");
+                throw new WidthMismatchException(a.Width, b.Width, $"The two values had different widths! ({a.Width} != {b.Width})");
 
             // FIXME: Document the logic expressions used to derive these
 

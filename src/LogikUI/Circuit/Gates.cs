@@ -30,19 +30,20 @@ namespace LogikUI.Circuit
 
         public List<InstanceData> Instances = new List<InstanceData>();
 
-        public Gates()
-        {
-        }
-
         public void Draw(Cairo.Context cr)
         {
-            //Components.DrawComponents(cr);
             foreach (var instance in Instances)
             {
                 if (Components.TryGetValue(instance.Type, out var comp) == false)
                 {
-                    // This is an unknown component type!!
-                    Console.WriteLine($"Unknown component type '{instance.Type}'! ({instance})");
+                    if (Enum.IsDefined(typeof(ComponentType), instance.Type))
+                        // This component is defined in the enum but doesn't have a dictionary entry
+                        Console.WriteLine($"Component '{instance}' doesn't have a IComponent implementation. Either you forgot to implement the gate or you've not registered that IComponent in the Dictionary. (Instance: {instance})");
+                    else
+                        // This is an unknown component type!!
+                        Console.WriteLine($"Unknown component type '{instance.Type}'! (Instance: {instance})");
+
+                    // We won't try to draw this component
                     continue;
                 }
 
@@ -52,8 +53,14 @@ namespace LogikUI.Circuit
             }
         }
 
-        public GateTransaction CreateAddGateTrasaction(InstanceData gate)
+        public GateTransaction CreateAddGateTransaction(InstanceData gate)
         {
+            // FIXME: This transaction will have to modify wires too
+            // Should we bundle the wire edits necessary into this transaction
+            // or should that be handled somewhere else?
+            // Because we don't have access to the wires here we might want to
+            // do the wires sync outside of this class in like CircuitEditor.
+
             // FIXME: Do some de-duplication stuff?
             return new GateTransaction(gate);
         }
