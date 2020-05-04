@@ -70,14 +70,16 @@ impl Data {
             self.edges.entry(input).or_default().insert(Connection::Component(2 * idx + 1, port));
         }
         
-        if outputs.len() > 0 {
+        let filtered = outputs
+            .into_iter()
+            .filter_map(|e| e.map(|e| Connection::Subnet(e * 2)))
+            .collect::<Vec<_>>();
+        
+        if filtered.len() > 0 {
             self.edges
                 .entry(2 * idx + 1)
                 .or_default()
-                .extend(outputs
-                    .into_iter()
-                    .filter_map(|e| e.map(|e| Connection::Subnet(e * 2)))
-                );
+                .extend(filtered);
         }
         
         Ok(idx)
