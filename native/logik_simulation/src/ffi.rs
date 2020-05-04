@@ -36,21 +36,21 @@ pub extern "C" fn exit(data: *mut Data) {
 }
 
 #[no_mangle]
-pub extern "C" fn add_subnet(data: *mut Data, id: usize) -> bool {
+pub extern "C" fn add_subnet(data: *mut Data, id: i32) -> bool {
     let data = unsafe { &mut *data};
     
-    data.add_subnet(id)
+    data.add_subnet(id as usize)
 }
 
 #[no_mangle]
-pub extern "C" fn remove_subnet(data: *mut Data, id: usize) -> bool {
+pub extern "C" fn remove_subnet(data: *mut Data, id: i32) -> bool {
     let data = unsafe { &mut *data};
     
-    data.remove_subnet(id)
+    data.remove_subnet(id as usize)
 }
 
 #[no_mangle]
-pub extern "C" fn add_component(data: *mut Data, component: usize) -> usize {
+pub extern "C" fn add_component(data: *mut Data, component: i32) -> i32 {
     let data = unsafe { &mut *data};
     
     let component: Box<dyn Component> = match component {
@@ -65,26 +65,26 @@ pub extern "C" fn add_component(data: *mut Data, component: usize) -> usize {
                        iter::repeat(None).take(i).collect(),
                        iter::repeat(None).take(o).collect());
     
-    res.unwrap()
+    res.unwrap() as i32
 }
 
 #[no_mangle]
-pub extern "C" fn remove_component(data: *mut Data, id: usize) -> bool {
+pub extern "C" fn remove_component(data: *mut Data, id: i32) -> bool {
     let data = unsafe { &mut *data };
     
-    data.remove_component(id)
+    data.remove_component(id as usize)
 }
 
 #[no_mangle]
-pub extern "C" fn link(data: *mut Data, component: usize, port: usize, subnet: usize, direction: bool) -> bool {
+pub extern "C" fn link(data: *mut Data, component: usize, port: i32, subnet: i32, direction: bool) -> bool {
     let data = unsafe { &mut *data };
     
-    data.link(component, port, subnet, direction)
+    data.link(component, port as usize, subnet as usize, direction)
 }
 
 #[no_mangle]
-pub extern "C" fn unlink(data: *mut Data, component: usize, port: usize, subnet: usize) -> bool {
+pub extern "C" fn unlink(data: *mut Data, component: i32, port: i32, subnet: i32) -> bool {
     let data = unsafe { &mut *data };
     
-    data.unlink(component, port, subnet)
+    data.unlink(component as usize, port as usize, subnet as usize)
 }

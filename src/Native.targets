@@ -107,10 +107,10 @@
     <!-- FIXME: Make sure to copy the .pdb file if there is one, that way debugging can work with much less effort -->
     <!-- FIXME: Move the built library into its correct platform folder so that it's correctly picked up by DllImport -->
     <Target Name="CargoBuildCopy" DependsOnTargets="Cargo" AfterTargets="Build" Condition=" '$(IsAotBuild)' == 'false' ">
-        <Copy Condition=" '$(TargetDir)' != '' " SourceFiles="@(CargoLibrary)" DestinationFolder="$(TargetDir)/Native" />
+        <Copy Condition=" '$(TargetDir)' != '' " SourceFiles="@(CargoLibrary)" DestinationFolder="$(TargetDir)" />
     </Target>
 
     <Target Name="CargoPublishCopy" DependsOnTargets="Cargo" AfterTargets="Publish" Condition=" '$(IsAotBuild)' == 'false' ">
-        <Copy SourceFiles="@(CargoLibrary)" DestinationFolder="$(PublishDir)/Native" />
+        <Copy SourceFiles="@(CargoLibrary)" DestinationFolder="$(PublishDir)" />
     </Target>
 </Project>
