@@ -70,7 +70,7 @@ namespace LogikUI.Circuit
             Instances.Add(transaction.Created);
         }
 
-        public void RevertGateTransaction(GateTransaction transaction)
+        public void RevertTransaction(GateTransaction transaction)
         {
             if (Instances.Remove(transaction.Created) == false)
             {

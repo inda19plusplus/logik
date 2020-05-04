@@ -39,9 +39,44 @@ namespace LogikUI.Toolbar
 
         public override void DeSelect(CircuitEditor editor)
         {
+            PlacingComponent = false;
+            editor.DrawingArea.QueueDraw();
         }
 
         // FIXME: Keyboard and general mouse movement events!!
+        public override bool KeyPressed(CircuitEditor editor, Gdk.EventKey eventKey)
+        {
+            bool consumed = false;
+
+            var modifiers = eventKey.State & Accelerator.DefaultModMask;
+            if (modifiers == Gdk.ModifierType.None)
+            {
+                // No modifiers are pressed
+                if (eventKey.Key == Gdk.Key.Up)
+                {
+                    CompOrientation = Circuit.Orientation.North;
+                    consumed = true;
+                }
+                if (eventKey.Key == Gdk.Key.Down)
+                {
+                    CompOrientation = Circuit.Orientation.South;
+                    consumed = true;
+                }
+                if (eventKey.Key == Gdk.Key.Left)
+                {
+                    CompOrientation = Circuit.Orientation.East;
+                    consumed = true;
+                }
+                if (eventKey.Key == Gdk.Key.Right)
+                {
+                    CompOrientation = Circuit.Orientation.West;
+                    consumed = true;
+                }
+            }
+
+            if (consumed) editor.DrawingArea.QueueDraw();
+            return consumed;
+        }
 
         public override void MouseMoved(CircuitEditor editor, Vector2d mousePos)
         {
@@ -49,7 +84,6 @@ namespace LogikUI.Toolbar
             {
                 StartPosition = editor.RoundToGrid(mousePos);
                 VisualPosition = StartPosition;
-                CompOrientation = Circuit.Orientation.East;
             }
             
             editor.DrawingArea.QueueDraw();
@@ -59,7 +93,6 @@ namespace LogikUI.Toolbar
         {
             StartPosition = editor.RoundToGrid(dragStartPos);
             VisualPosition = StartPosition;
-            CompOrientation = Circuit.Orientation.East;
             DraggingComponent = true;
 
             editor.DrawingArea.QueueDraw();
@@ -78,16 +111,13 @@ namespace LogikUI.Toolbar
             StartPosition = VisualPosition;
 
             var transaction = editor.Gates.CreateAddGateTransaction(
-                // FIXME!!!
-                InstanceData.Create(BaseComponent.Type, VisualPosition, CompOrientation)
-                //BaseComponent.Create(VisualPosition, CompOrientation)
-                //new Circuit.AndGate(VisualPosition, CompOrientation)
+                    InstanceData.Create(BaseComponent.Type, VisualPosition, CompOrientation)
                 );
 
             editor.Gates.ApplyTransaction(transaction);
             editor.Transactions.PushTransaction(transaction);
 
-            VisualPosition = StartPosition = Vector2i.Zero;
+            StartPosition = VisualPosition;
             DraggingComponent = false;
 
             editor.DrawingArea.QueueDraw();

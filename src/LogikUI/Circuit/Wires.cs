@@ -778,11 +778,11 @@ namespace LogikUI.Circuit
             }
 
             var bundles = bundlesDict.Values.ToList();
-            Console.WriteLine($"Created bundles:");
-            foreach (var bundle in bundles)
-            {
-                Console.WriteLine($"  Bundle:\n    {string.Join("\n    ", bundle.Wires)}\n\n");
-            }
+            //Console.WriteLine($"Created bundles:");
+            //foreach (var bundle in bundles)
+            //{
+            //    Console.WriteLine($"  Bundle:\n    {string.Join("\n    ", bundle.Wires)}\n\n");
+            //}
 
             return bundles;
         }

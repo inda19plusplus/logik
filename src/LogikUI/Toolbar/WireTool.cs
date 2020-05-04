@@ -21,18 +21,6 @@ namespace LogikUI.Toolbar
 
         }
 
-        public override void Select(CircuitEditor editor)
-        {
-        }
-
-        public override void DeSelect(CircuitEditor editor)
-        {
-        }
-
-        public override void MouseMoved(CircuitEditor editor, Vector2d mousePos)
-        {
-        }
-
         public override void GestureStart(CircuitEditor editor, Vector2d dragStartPos)
         {
             DraggingWire = true;
