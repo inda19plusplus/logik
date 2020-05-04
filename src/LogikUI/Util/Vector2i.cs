@@ -47,6 +47,12 @@ namespace LogikUI.Util
             return $"{X:0.000}, {Y:0.000}";
         }
 
+        internal void Deconstruct(out int x, out int y)
+        {
+            x = X;
+            y = Y;
+        }
+
         public static Vector2i operator +(Vector2i a, Vector2i b) => new Vector2i(a.X + b.X, a.Y + b.Y);
         public static Vector2i operator -(Vector2i a, Vector2i b) => new Vector2i(a.X - b.X, a.Y - b.Y);
         public static Vector2i operator *(int scalar, Vector2i a) => new Vector2i(a.X * scalar, a.Y * scalar);

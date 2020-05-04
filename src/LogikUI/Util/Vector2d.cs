@@ -41,6 +41,12 @@ namespace LogikUI.Util
             return $"{X:0.000}, {Y:0.000}";
         }
 
+        internal void Deconstruct(out double x, out double y)
+        {
+            x = X;
+            y = Y;
+        }
+
         public static Vector2d operator -(Vector2d a) => new Vector2d(-a.X, -a.Y);
         public static Vector2d operator +(Vector2d a, Vector2d b) => new Vector2d(a.X + b.X, a.Y + b.Y);
         public static Vector2d operator -(Vector2d a, Vector2d b) => new Vector2d(a.X - b.X, a.Y - b.Y);

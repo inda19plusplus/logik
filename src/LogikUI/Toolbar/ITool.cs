@@ -1,4 +1,5 @@
-﻿using Gtk;
+﻿using Gdk;
+using Gtk;
 using LogikUI.Circuit;
 using LogikUI.Util;
 using System;
@@ -13,6 +14,8 @@ namespace LogikUI.Toolbar
         // We want to 
         public void Select(CircuitEditor editor);
         public void DeSelect(CircuitEditor editor);
+        public bool KeyPressed(CircuitEditor editor, Gdk.EventKey eventKey);
+        public void MouseMoved(CircuitEditor editor, Vector2d mousePos);
         public void GestureStart(CircuitEditor editor, Vector2d dragStartPos);
         public void GestureUpdate(CircuitEditor editor, Vector2d offset);
         public void GestureEnd(CircuitEditor editor, Vector2d endOffset);
@@ -22,7 +25,7 @@ namespace LogikUI.Toolbar
     abstract class BasicTool : ToggleToolButton, ITool
     {
         public CircuitEditor CircuitEditor;
-        private Gtk.Toolbar Toolbar;
+        public readonly Gtk.Toolbar Toolbar;
 
         public BasicTool(
             Image image, string name,
@@ -61,12 +64,14 @@ namespace LogikUI.Toolbar
 
         // FIXME: A good way to trigger redraws!!
 
-        public abstract void Select(CircuitEditor editor);
-        public abstract void DeSelect(CircuitEditor editor);
+        public virtual void Select(CircuitEditor editor) { }
+        public virtual void DeSelect(CircuitEditor editor) { }
+        public virtual bool KeyPressed(CircuitEditor editor, EventKey eventKey) => false;
+        public virtual void MouseMoved(CircuitEditor editor, Vector2d mousePos) { }
+
         public abstract void GestureStart(CircuitEditor editor, Vector2d dragStartPos);
         public abstract void GestureUpdate(CircuitEditor editor, Vector2d offset);
-        // Apparently ToolButton has a DragEnd, we create out own with 'new' here.
-        public abstract new void GestureEnd(CircuitEditor editor, Vector2d endOffset);
+        public abstract void GestureEnd(CircuitEditor editor, Vector2d endOffset);
         public abstract void Draw(CircuitEditor editor, Cairo.Context cr);
     }
 }

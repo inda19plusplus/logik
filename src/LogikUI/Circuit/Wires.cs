@@ -120,23 +120,12 @@ namespace LogikUI.Circuit
 
     class Wires
     {
-
         public List<Wire> WiresList;
         public List<WireBundle> Bundles;
-        public Wire[] Powered;
-        public Wire[] UnPowered;
-        public Vector2i[] PoweredConnections;
-        public Vector2i[] UnPoweredConnections;
 
-        public Wires(Wire[] powered, Wire[] unPowered, Vector2i[] poweredConnections, Vector2i[] unPoweredConnections)
+        public Wires(Wire[] wires)
         {
-            WiresList = new List<Wire>(powered);
-            WiresList.AddRange(unPowered);
-            Powered = powered;
-            UnPowered = unPowered;
-            PoweredConnections = poweredConnections;
-            UnPoweredConnections = unPoweredConnections;
-
+            WiresList = new List<Wire>(wires);
             Bundles = CreateBundlesFromWires(WiresList);
         }
 
@@ -247,26 +236,6 @@ namespace LogikUI.Circuit
             double height = (vertical * (length + WireWidth)) + (horizontal * WireWidth);
 
             cr.Rectangle(x, y, width, height);
-        }
-
-        public void WireArray(Cairo.Context cr, Wire[] wires)
-        {
-            foreach (var wire in wires)
-            {
-                int vertical = wire.Direction == Direction.Vertical ? 1 : 0;
-                int horizontal = 1 - vertical;
-
-                double x = wire.Pos.X * CircuitEditor.DotSpacing - HalfWireWidth;
-                double y = wire.Pos.Y * CircuitEditor.DotSpacing - HalfWireWidth;
-
-                double length = CircuitEditor.DotSpacing * wire.Length;
-                // If we are drawing a horizontal line the width is length, othervise it's WireWidth.
-                double width = (horizontal * (length + WireWidth)) + (vertical * WireWidth);
-                // The opposite of the above.
-                double height = (vertical * (length + WireWidth)) + (horizontal * WireWidth);
-
-                cr.Rectangle(x, y, width, height);
-            }
         }
 
         public void WireArray(Cairo.Context cr, List<Wire> wires)
@@ -751,7 +720,7 @@ namespace LogikUI.Circuit
             }
 
             // Re-calculate the bundles
-            // FIXME: We want to make this more efficient!
+            // FIXME: We might want to make this more efficient!
             Bundles = CreateBundlesFromWires(WiresList);
         }
 
@@ -777,7 +746,7 @@ namespace LogikUI.Circuit
             Bundles = CreateBundlesFromWires(WiresList);
         }
 
-        // FIXME: We want to make this more efficient!
+        // FIXME: We might want to make this more efficient!
         public static List<WireBundle> CreateBundlesFromWires(List<Wire> wires)
         {
             HashSet<Vector2i> positions = new HashSet<Vector2i>();
@@ -809,11 +778,11 @@ namespace LogikUI.Circuit
             }
 
             var bundles = bundlesDict.Values.ToList();
-            Console.WriteLine($"Created bundles:");
-            foreach (var bundle in bundles)
-            {
-                Console.WriteLine($"  Bundle:\n    {string.Join("\n    ", bundle.Wires)}\n\n");
-            }
+            //Console.WriteLine($"Created bundles:");
+            //foreach (var bundle in bundles)
+            //{
+            //    Console.WriteLine($"  Bundle:\n    {string.Join("\n    ", bundle.Wires)}\n\n");
+            //}
 
             return bundles;
         }
