@@ -1,12 +1,28 @@
 using Gdk;
 using Gtk;
 using LogikUI.Properties;
+using LogikUI.Simulation.Gates;
+using System.ComponentModel;
 using System.Reflection;
 
 namespace LogikUI.Util
 {
     class Icon
     {
+        public static Image GetComponentImage(ComponentType type)
+        {
+            return type switch
+            {
+                ComponentType.And => AndGate(),
+                ComponentType.Or  => OrGate(),
+                ComponentType.Not => AndGate(), // FIXME!!!
+                ComponentType.Xor => XorGate(),
+
+                // FIXME: We might want to display a graphic that represents an unknown type
+                _ => throw new InvalidEnumArgumentException(nameof(type), (int)type, typeof(ComponentType)),
+            };
+        }
+
         public static Image Selector() {
             Pixbuf pb = new Pixbuf(Resources.selector);
             pb = pb.ScaleSimple(24, 24, InterpType.Bilinear);

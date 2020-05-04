@@ -9,9 +9,11 @@ namespace LogikUI.Transaction
 {
     class GateTransaction : Transaction
     {
-        public IInstance Created;
+        //public IInstance Created;
+        // FIXME: We might want to store something else...?
+        public InstanceData Created;
 
-        public GateTransaction(IInstance created)
+        public GateTransaction(InstanceData created)
         {
             Created = created;
         }
