@@ -9,7 +9,11 @@ namespace LogikUI.Interop
 {
     static class Logic
     {
+#if WINDOWS
         const string Lib = "Native/logik_simulation";
+#else
+        const string Lib = "Native/liblogik_simulation";
+#endif
         const CallingConvention CallingConv = CallingConvention.Cdecl;
 
         [DllImport(Lib, EntryPoint = "init", ExactSpelling = true, CallingConvention = CallingConv)]
