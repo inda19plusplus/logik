@@ -32,6 +32,7 @@ ffi! {
     }
 }
 
+/*
 ffi! {
     fn init() {
         // Initialization code
@@ -40,4 +41,4 @@ ffi! {
     fn exit() {
         // Exit code
     }
-}
+}*/

@@ -1,7 +1,7 @@
 [package]
 name = "logik_simulation"
 version = "0.1.0"
-authors = ["Julius Häger <julius_hager@hotmail.com>"]
+authors = ["Julius Häger <julius_hager@hotmail.com>", "Eskil Queseth <eskilq@kth.se>"]
 edition = "2018"
 
 [lib]

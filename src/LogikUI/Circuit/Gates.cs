@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
+using LogikUI.Interop;
 
 namespace LogikUI.Circuit
 {
@@ -67,11 +68,24 @@ namespace LogikUI.Circuit
 
         public void ApplyTransaction(GateTransaction transaction)
         {
+            UIntPtr id;
+            unsafe
+            {
+                id = Logic.AddComponent(Program.backend, new UIntPtr((uint) transaction.Created.Type));
+            }
+            transaction.Created.ID = (int) id;
             Instances.Add(transaction.Created);
         }
 
         public void RevertTransaction(GateTransaction transaction)
         {
+            unsafe
+            {
+                if (transaction.Created.ID >= 0)
+                {
+                    Logic.RemoveComponent(Program.backend, new UIntPtr((uint) transaction.Created.ID));
+                }
+            }
             if (Instances.Remove(transaction.Created) == false)
             {
                 Console.WriteLine($"Warn: Removed non-existent gate! {transaction.Created}");

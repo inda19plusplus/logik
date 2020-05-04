@@ -1,10 +1,13 @@
+use std::fmt::Debug;
+
 /// A trait to define common behaviour between the components
-pub(crate) trait Component {
+pub(crate) trait Component: Debug {
     fn inputs(&self) -> usize;
     fn outputs(&self) -> usize;
 }
 
 /// Placeholder for now
+#[derive(Debug)]
 pub(crate) struct Output {
 
 }
@@ -20,6 +23,7 @@ impl Component for Output {
 }
 
 /// Placeholder for now
+#[derive(Debug)]
 pub(crate) struct AND {
 
 }

@@ -1,6 +1,7 @@
 ﻿using LogikUI.Circuit;
 using LogikUI.Util;
 using System;
+using LogikUI.Interop;
 
 namespace LogikUI.Simulation.Gates
 {
@@ -14,12 +15,12 @@ namespace LogikUI.Simulation.Gates
 
         public static InstanceData Create(ComponentType type, Vector2i position, Orientation orientation)
         {
-            // FIXME: Do soemthing about the ID?
             return new InstanceData()
             {
                 Type = type,
                 Position = position,
                 Orientation = orientation,
+                ID = -1, // Represents unassigned beacuse rust will never give a component the ID -1
             };
         }
 
