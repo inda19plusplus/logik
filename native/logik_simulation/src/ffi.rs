@@ -55,8 +55,7 @@ pub extern "C" fn add_component(data: *mut Data, component: usize) -> usize {
     
     let component: Box<dyn Component> = match component {
         0 => Box::new(Output {}),
-        1 => Box::new(AND {}),
-        _ => unreachable!() // UB
+        _ => Box::new(AND {}) // TODO: make me the same as the ID:s in C#
     };
     
     let i = component.inputs();
