@@ -29,23 +29,21 @@ namespace LogikUI
             //editor.CurrentTool = selectTool;
 
             // FIXME: We don't want to new the components here!!
+            ComponentTool bufferTool = new ComponentTool(ComponentType.Buffer, "Buffer gate", editor, toolbar);
+
             ComponentTool andTool = new ComponentTool(ComponentType.And, "And gate", editor, toolbar);
 
-            ComponentTool notTool = new ComponentTool(ComponentType.Not, "Not gate", editor, toolbar);
-            
             ComponentTool orTool = new ComponentTool(ComponentType.Or, "Or gate", editor, toolbar);
 
-            ToolButton xorTool = new ToolButton(
-                Util.Icon.XorGate(), "Xor Gate"
-            );
+            ComponentTool xorTool = new ComponentTool(ComponentType.Xor, "Xor gate", editor, toolbar);
 
             SeparatorToolItem sep = new SeparatorToolItem();
 
             toolbar.Insert(selectTool, 0);
             toolbar.Insert(wireTool, 1);
             toolbar.Insert(sep, 2);
-            toolbar.Insert(andTool, 3);
-            toolbar.Insert(notTool, 4);
+            toolbar.Insert(bufferTool, 3);
+            toolbar.Insert(andTool, 4);
             toolbar.Insert(orTool, 5);
             toolbar.Insert(xorTool, 6);
 

@@ -17,9 +17,9 @@ namespace LogikUI.Simulation.Gates
 
         public void GetPorts(Span<Vector2i> ports)
         {
-            ports[0] = new Vector2i(0, 0);
-            ports[1] = new Vector2i(-3, -1);
-            ports[2] = new Vector2i(-3, 1);
+            ports[0] = new Vector2i(-1, 1);
+            ports[1] = new Vector2i(-1, -1);
+            ports[2] = new Vector2i(2, 0);
         }
         
         // FIXME: Cleanup and possibly split draw into a 'outline' and 'fill'
@@ -28,22 +28,12 @@ namespace LogikUI.Simulation.Gates
         {
             using var transform = IComponent.ApplyComponentTransform(cr, data);
 
-            double height = CircuitEditor.DotSpacing * 3;
-            double width = CircuitEditor.DotSpacing * 3;
-
             //foreach (var gate in instances)
             {
-                var p1 = new Vector2d(-width, -height / 2);
-                var p2 = new Vector2d(-width, height / 2);
-                var p3 = new Vector2d(-width / 2, 0);
-
-                // FIXME: This might be simplyfiable. If it's not maybe write a comment about why this works.
-                double a1 = Math.PI / 2;
-                double a2 = a1 + Math.PI;
-
-                cr.MoveTo(p1);
-                cr.Arc(p3.X, p3.Y, width / 2, -Math.PI / 2, Math.PI / 2);
-                cr.LineTo(p2);
+                cr.MoveTo(-10,-15);
+                cr.RelLineTo(15, 0);
+                cr.RelCurveTo(20, 0, 20, 30, 0, 30);
+                cr.RelLineTo(-15, 0);
                 cr.ClosePath();
             }
 
@@ -54,20 +44,16 @@ namespace LogikUI.Simulation.Gates
 
             //foreach (var gate in instances)
             {
-                var p1 = new Vector2i(-3, 1);
-                var p2 = new Vector2i(-3, -1);
+                Span<Vector2i> points = stackalloc Vector2i[NumberOfPorts];
+                GetPorts(points);
 
-                var in1 = p1 * CircuitEditor.DotSpacing;
-                var in2 = p2 * CircuitEditor.DotSpacing;
-                var out1 = Vector2d.Zero;
+                foreach (var p in points) {
+                    var port = p * CircuitEditor.DotSpacing;
 
-                // FIXME: Magic number radius...
-                cr.Arc(in1.X, in1.Y, 2, 0, Math.PI * 2);
-                cr.ClosePath();
-                cr.Arc(in2.X, in2.Y, 2, 0, Math.PI * 2);
-                cr.ClosePath();
-                cr.Arc(out1.X, out1.Y, 2, 0, Math.PI * 2);
-                cr.ClosePath();
+                    // FIXME: Magic number radius...
+                    cr.Arc(port.X, port.Y, 2, 0, Math.PI * 2);
+                    cr.ClosePath();
+                }
             }
             cr.SetSourceRGB(0.2, 0.9, 0.2);
             cr.Fill();

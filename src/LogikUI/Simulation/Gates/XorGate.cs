@@ -7,10 +7,10 @@ using System.Numerics;
 
 namespace LogikUI.Simulation.Gates
 {
-    class OrGate : IComponent
+    class XorGate : IComponent
     {
-        public string Name => "Or Gate";
-        public ComponentType Type => ComponentType.Or;
+        public string Name => "Xor Gate";
+        public ComponentType Type => ComponentType.Xor;
         public int NumberOfPorts => 3;
 
         public void GetPorts(Span<Vector2i> ports)
@@ -26,14 +26,17 @@ namespace LogikUI.Simulation.Gates
 
             //foreach (var gate in instances)
             {
-                cr.MoveTo(-12.5, -15);
-                cr.RelLineTo(12.5, 0);
+                cr.MoveTo(-7.5, -15);
+                cr.RelLineTo(7.5, 0);
                 cr.RelCurveTo(10, 0, 15, 7.5, 20, 15);
                 cr.RelCurveTo(-5, 7.5, -10, 15, -20, 15);
-                cr.RelLineTo(-12.5, 0);
+                cr.RelLineTo(-7.5, 0);
                 cr.RelCurveTo(0, 0, 5, -7.5, 5, -15);
                 cr.RelCurveTo(0, -7.5, -5, -15, -5, -15);
                 cr.ClosePath();
+                cr.RelMoveTo(-5, 30);
+                cr.RelCurveTo(0, 0, 5, -7.5, 5, -15);
+                cr.RelCurveTo(0, -7.5, -5, -15, -5, -15);
             }
             cr.SetSourceRGB(0.1, 0.1, 0.1);
             cr.LineWidth = Wires.WireWidth;
