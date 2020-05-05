@@ -39,14 +39,14 @@ pub extern "C" fn exit(data: *mut Data) {
 pub extern "C" fn add_subnet(data: *mut Data, id: i32) -> bool {
     let data = unsafe { &mut *data};
     
-    data.add_subnet(id as usize)
+    data.add_subnet(id)
 }
 
 #[no_mangle]
 pub extern "C" fn remove_subnet(data: *mut Data, id: i32) -> bool {
     let data = unsafe { &mut *data};
     
-    data.remove_subnet(id as usize)
+    data.remove_subnet(id)
 }
 
 #[no_mangle]
@@ -72,19 +72,19 @@ pub extern "C" fn add_component(data: *mut Data, component: i32) -> i32 {
 pub extern "C" fn remove_component(data: *mut Data, id: i32) -> bool {
     let data = unsafe { &mut *data };
     
-    data.remove_component(id as usize)
+    data.remove_component(id)
 }
 
 #[no_mangle]
-pub extern "C" fn link(data: *mut Data, component: usize, port: i32, subnet: i32, direction: bool) -> bool {
+pub extern "C" fn link(data: *mut Data, component: i32, port: i32, subnet: i32, direction: bool) -> bool {
     let data = unsafe { &mut *data };
     
-    data.link(component, port as usize, subnet as usize, direction)
+    data.link(component, port as usize, subnet, direction)
 }
 
 #[no_mangle]
 pub extern "C" fn unlink(data: *mut Data, component: i32, port: i32, subnet: i32) -> bool {
     let data = unsafe { &mut *data };
     
-    data.unlink(component as usize, port as usize, subnet as usize)
+    data.unlink(component, port as usize, subnet)
 }

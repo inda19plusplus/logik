@@ -11,11 +11,11 @@ pub(crate) mod component;
 /// Struct to represent the data that the backend should keep track of
 #[derive(Debug)]
 pub struct Data {
-    components: HashMap<usize, Box<dyn Component>>,
-    components_free: BinaryHeap<Reverse<usize>>,
-    subnets: HashMap<usize, Subnet>,
+    components: HashMap<i32, Box<dyn Component>>,
+    components_free: BinaryHeap<Reverse<i32>>,
+    subnets: HashMap<i32, Subnet>,
     // <id, subnet>
-    edges: HashMap<usize, HashSet<Connection>>, // key is from node, value is to node
+    edges: HashMap<i32, HashSet<Connection>>, // key is from node, value is to node
     // components live on odd indices
     // subnets live on even indices
 }
@@ -30,25 +30,9 @@ impl Data {
         }
     }
     
-    pub(crate) fn component(&self, idx: usize) -> Option<&dyn Component> {
-        Some(&**self.components.get(&idx)?)
-    }
-    
-    pub(crate) fn component_mut(&mut self, idx: usize) -> Option<&mut dyn Component> {
-        Some(&mut **self.components.get_mut(&idx)?)
-    }
-    
-    pub(crate) fn subnet(&self, idx: usize) -> Option<&Subnet> {
-        Some(self.subnets.get(&idx)?)
-    }
-    
-    pub(crate) fn subnet_mut(&mut self, idx: usize) -> Option<&mut Subnet> {
-        Some(self.subnets.get_mut(&idx)?)
-    }
-    
-    fn alloc_component(&mut self, component: Box<dyn Component>) -> usize {
+    fn alloc_component(&mut self, component: Box<dyn Component>) -> i32 {
         let idx = if self.components_free.len() == 0 {
-            self.components.len()
+            self.components.len() as i32
         } else {
             self.components_free.pop().unwrap().0
         };
@@ -57,7 +41,7 @@ impl Data {
         idx
     }
     
-    pub(crate) fn add_component(&mut self, component: Box<dyn Component>, inputs: Vec<Option<usize>>, outputs: Vec<Option<usize>>) -> Result<usize, ()> {
+    pub(crate) fn add_component(&mut self, component: Box<dyn Component>, inputs: Vec<Option<i32>>, outputs: Vec<Option<i32>>) -> Result<i32, ()> {
         if component.inputs() != inputs.len() || component.outputs() != outputs.len() {
             return Err(());
         }
@@ -85,7 +69,7 @@ impl Data {
         Ok(idx)
     }
     
-    pub(crate) fn remove_component(&mut self, id: usize) -> bool {
+    pub(crate) fn remove_component(&mut self, id: i32) -> bool {
         let component = match self.components.remove(&id) {
             Some(c) => c,
             None => return false,
@@ -106,11 +90,11 @@ impl Data {
         true
     }
     
-    pub(crate) fn add_subnet(&mut self, id: usize) -> bool {
+    pub(crate) fn add_subnet(&mut self, id: i32) -> bool {
         self.subnets.insert(id, Subnet::new()).is_none()
     }
     
-    pub(crate) fn remove_subnet(&mut self, id: usize) -> bool {
+    pub(crate) fn remove_subnet(&mut self, id: i32) -> bool {
         if self.subnets.remove(&id).is_none() {
             return false;
         }
@@ -119,7 +103,7 @@ impl Data {
         
         self.edges.remove(&id);
         
-        for i in (0..self.components.len()).map(|e| 2 * e + 1) {
+        for i in (0..self.components.len() as i32).map(|e| 2 * e + 1) {
             if let Entry::Occupied(mut inner) = self.edges.entry(i) {
                 inner.get_mut().remove(&Connection::Subnet(id));
             }
@@ -128,7 +112,7 @@ impl Data {
         true
     }
     
-    pub(crate) fn link(&mut self, component: usize, port: usize, subnet: usize, direction: bool) -> bool {
+    pub(crate) fn link(&mut self, component: i32, port: usize, subnet: i32, direction: bool) -> bool {
         //true is component to subnet, false is subnet to component
         !if direction {
             self.edges.entry(component * 2 + 1).or_default().insert(Connection::Subnet(subnet * 2))
@@ -137,7 +121,7 @@ impl Data {
         }
     }
     
-    pub(crate) fn unlink(&mut self, component: usize, port: usize, subnet: usize) -> bool {
+    pub(crate) fn unlink(&mut self, component: i32, port: usize, subnet: i32) -> bool {
         let mut found = false;
         
         if let Entry::Occupied(mut inner) = self.edges.entry(component * 2 + 1) {
@@ -158,8 +142,8 @@ impl Data {
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Connection {
-    Subnet(usize),
-    Component(usize, usize),
+    Subnet(i32),
+    Component(i32, usize),
 }
 
 #[cfg(test)]
