@@ -32,7 +32,7 @@ impl Data {
     
     fn alloc_component(&mut self, component: Box<dyn Component>) -> i32 {
         let idx = if self.components_free.len() == 0 {
-            self.components.len() as i32
+            self.components.len() as i32 + 1
         } else {
             self.components_free.pop().unwrap().0
         };
