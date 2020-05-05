@@ -68,24 +68,20 @@ namespace LogikUI.Circuit
 
         public void ApplyTransaction(GateTransaction transaction)
         {
-            UIntPtr id;
-            unsafe
-            {
-                id = Logic.AddComponent(Program.backend, new UIntPtr((uint) transaction.Created.Type));
-            }
-            transaction.Created.ID = (int) id;
+            transaction.Created.ID = Logic.AddComponent(Program.Backend, transaction.Created.Type);
             Instances.Add(transaction.Created);
         }
 
         public void RevertTransaction(GateTransaction transaction)
         {
-            unsafe
+            if (transaction.Created.ID == 0)
+                throw new InvalidOperationException("Cannot revert a transaction where the gates doesn't have a valid id! (Maybe you forgot to apply the transaction before?)");
+
+            if (Logic.RemoveComponent(Program.Backend, transaction.Created.ID) == false)
             {
-                if (transaction.Created.ID >= 0)
-                {
-                    Logic.RemoveComponent(Program.backend, new UIntPtr((uint) transaction.Created.ID));
-                }
+                Console.WriteLine($"Warn: Rust said we couldn't remove this gate id: {transaction.Created.ID}. ({transaction.Created})");
             }
+
             if (Instances.Remove(transaction.Created) == false)
             {
                 Console.WriteLine($"Warn: Removed non-existent gate! {transaction.Created}");

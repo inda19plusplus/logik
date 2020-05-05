@@ -40,16 +40,4 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
-
-  <PropertyGroup Condition=" '$(NativeRid)' == 'win-x64' Or ('$(NativeRid)' == '' And '$([MSBuild]::IsOsPlatform(`WINDOWS`))' == 'true') ">
-    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" '$(NativeRid)' == 'linux-x64' Or ('$(NativeRid)' == '' And '$([MSBuild]::IsOsPlatform(`LINUX`))' == 'true') ">
-    <DefineConstants>$(DefineConstants);LINUX;UNIX</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" '$(NativeRid)' == 'osx-x64'  Or ('$(NativeRid)' == '' And '$([MSBuild]::IsOsPlatform(`OSX`))' == 'true') ">
-    <DefineConstants>$(DefineConstants);MACOS;UNIX</DefineConstants>
-  </PropertyGroup>
 </Project>

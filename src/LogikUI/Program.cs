@@ -18,7 +18,7 @@ namespace LogikUI
 {
     class Program
     {
-        public static unsafe Data* backend;
+        public static Data Backend;
         
         static Gtk.Toolbar CreateToolbar(CircuitEditor editor) {
             Gtk.Toolbar toolbar = new Gtk.Toolbar();
@@ -79,10 +79,7 @@ namespace LogikUI
         // Hopefully this can be fixed sooner rather than later...
         static void Main()
         {
-            unsafe
-            {
-                Program.backend = Logic.Init();
-            }
+            Backend = Logic.Init();
             
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
@@ -162,11 +159,7 @@ namespace LogikUI
 
         private static void Wnd_Destroyed(object? sender, EventArgs e)
         {
-            unsafe
-            {
-                Logic.Exit(Program.backend);
-                Program.backend = null;
-            }
+            Logic.Exit(Backend);
             Application.Quit();
         }
     }
