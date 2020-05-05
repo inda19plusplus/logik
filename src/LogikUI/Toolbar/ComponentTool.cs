@@ -64,12 +64,12 @@ namespace LogikUI.Toolbar
                 }
                 if (eventKey.Key == Gdk.Key.Left)
                 {
-                    CompOrientation = Circuit.Orientation.East;
+                    CompOrientation = Circuit.Orientation.West;
                     consumed = true;
                 }
                 if (eventKey.Key == Gdk.Key.Right)
                 {
-                    CompOrientation = Circuit.Orientation.West;
+                    CompOrientation = Circuit.Orientation.East;
                     consumed = true;
                 }
             }
