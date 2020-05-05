@@ -13,14 +13,18 @@ namespace LogikUI.Transaction
         // FIXME: We might want to store something else...?
         public InstanceData Created;
 
-        public GateTransaction(InstanceData created)
+        // FIXME: This feels a bit like a hack...
+        public AddControlPointsTransaction? ConnectionPointWireEdits;
+
+        public GateTransaction(InstanceData created, AddControlPointsTransaction? wireEdits)
         {
             Created = created;
+            ConnectionPointWireEdits = wireEdits;
         }
 
         public override string ToString()
         {
-            return $"Gate: ({Created})";
+            return $"Gate: ({Created}), {(ConnectionPointWireEdits != null ? $"Wires changed: ({ConnectionPointWireEdits})" : "No wires changed.")}";
         }
     }
 }

@@ -110,18 +110,18 @@ namespace LogikUI.Toolbar
             VisualPosition = StartPosition + editor.RoundDistToGrid(endOffset);
             StartPosition = VisualPosition;
 
-            var transaction = editor.Gates.CreateAddGateTransaction(
+            var transaction = editor.Gates.CreateAddGateTransaction(editor.Wires,
                     InstanceData.Create(BaseComponent.Type, VisualPosition, CompOrientation)
                 );
 
-            editor.Gates.ApplyTransaction(transaction);
-            editor.Transactions.PushTransaction(transaction);
+            Console.WriteLine($"Created gate transaction: \n{transaction}");
+
+            editor.PushTransaction(transaction);
 
             StartPosition = VisualPosition;
             DraggingComponent = false;
 
             editor.DrawingArea.QueueDraw();
-            // FIXME: Add the component!
         }
 
         public override void Draw(CircuitEditor editor, Context cr)

@@ -153,6 +153,8 @@ namespace LogikUI.Circuit
                     break;
                 case GateTransaction gt:
                     Gates.ApplyTransaction(gt);
+                    if (gt.ConnectionPointWireEdits != null) 
+                        Wires.ApplyTransaction(gt.ConnectionPointWireEdits);
                     break;
                 case BundledTransaction bt:
                     {
@@ -178,6 +180,8 @@ namespace LogikUI.Circuit
                     break;
                 case GateTransaction gt:
                     Gates.RevertTransaction(gt);
+                    if (gt.ConnectionPointWireEdits != null)
+                        Wires.RevertTransaction(gt.ConnectionPointWireEdits);
                     break;
                 case BundledTransaction bt:
                     {

@@ -54,7 +54,7 @@ namespace LogikUI.Circuit
             }
         }
 
-        public GateTransaction CreateAddGateTransaction(InstanceData gate)
+        public GateTransaction CreateAddGateTransaction(Wires wires, InstanceData gate)
         {
             // FIXME: This transaction will have to modify wires too
             // Should we bundle the wire edits necessary into this transaction
@@ -62,8 +62,23 @@ namespace LogikUI.Circuit
             // Because we don't have access to the wires here we might want to
             // do the wires sync outside of this class in like CircuitEditor.
 
+            if (Components.TryGetValue(gate.Type, out var component) == false)
+                throw new System.ComponentModel.InvalidEnumArgumentException(nameof(gate.Type), (int)gate.Type, typeof(ComponentType));
+
+            Span<Vector2i> ports = stackalloc Vector2i[component!.NumberOfPorts];
+            component!.GetPorts(ports);
+
+            // FIXME: Consider orientation
+            // Move the ports to be not be relative to the component
+            for (int i = 0; i < ports.Length; i++)
+            {
+                ports[i] += gate.Position;
+            }
+
+            var wTransaction = wires.CreateAddConnectionPointsTransaction(ports);
+
             // FIXME: Do some de-duplication stuff?
-            return new GateTransaction(gate);
+            return new GateTransaction(gate, wTransaction);
         }
 
         public void ApplyTransaction(GateTransaction transaction)
