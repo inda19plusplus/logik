@@ -58,12 +58,9 @@ pub extern "C" fn add_component(data: *mut Data, component: i32) -> i32 {
         _ => Box::new(AND {}) // TODO: make me the same as the ID:s in C#
     };
     
-    let i = component.inputs();
-    let o = component.outputs();
+    let p = component.ports();
     
-    let res = data.add_component(component,
-                       iter::repeat(None).take(i).collect(),
-                       iter::repeat(None).take(o).collect());
+    let res = data.add_component(component, iter::repeat(None).take(p).collect());
     
     res.unwrap() as i32
 }

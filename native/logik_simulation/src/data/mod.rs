@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet, BinaryHeap};
 use std::collections::hash_map::Entry;
 
-use crate::data::component::Component;
+use crate::data::component::{Component, PortType};
 use crate::data::subnet::Subnet;
 use std::cmp::Reverse;
 
@@ -41,32 +41,34 @@ impl Data {
         idx
     }
     
-    pub(crate) fn add_component(&mut self, component: Box<dyn Component>, inputs: Vec<Option<i32>>, outputs: Vec<Option<i32>>) -> Result<i32, ()> {
-        if component.inputs() != inputs.len() || component.outputs() != outputs.len() {
+    pub(crate) fn add_component(&mut self, component: Box<dyn Component>, ports: Vec<Option<i32>>) -> Result<i32, ()> {
+        if ports.len() != component.ports() {
             return Err(());
         }
         
-        let idx = self.alloc_component(component);
-        
-        for (port, input) in inputs.into_iter()
+        let ports = ports.into_iter()
             .enumerate()
-            .filter_map(|(i, e)| e.map(|e| (i, e * 2))) {
-            self.edges.entry(input).or_default().insert(Connection::Component(2 * idx + 1, port));
-        }
-        
-        let filtered = outputs
-            .into_iter()
-            .filter_map(|e| e.map(|e| Connection::Subnet(e * 2)))
+            .filter_map(|(i, e)| e.map(|e| (component.port_type(i).unwrap(), i, e * 2)))
             .collect::<Vec<_>>();
         
-        if filtered.len() > 0 {
-            self.edges
-                .entry(2 * idx + 1)
-                .or_default()
-                .extend(filtered);
+        let idx = 2 * self.alloc_component(component) + 1;
+    
+        for port in ports {
+            match port.0 {
+                PortType::Input => {
+                    self.edges.entry(port.2).or_default().insert(Connection::Component(idx, port.1));
+                }
+                PortType::Output => {
+                    self.edges.entry(idx).or_default().insert(Connection::Subnet(port.2));
+                }
+                PortType::Bidirectional => {
+                    self.edges.entry(port.2).or_default().insert(Connection::Component(idx, port.1));
+                    self.edges.entry(idx).or_default().insert(Connection::Subnet(port.2));
+                }
+            }
         }
         
-        Ok(idx)
+        Ok((idx - 1) / 2)
     }
     
     pub(crate) fn remove_component(&mut self, id: i32) -> bool {
@@ -81,8 +83,8 @@ impl Data {
     
         for i in self.subnets.keys().map(|e| *e * 2) {
             if let Entry::Occupied(mut inner) = self.edges.entry(i) {
-                for input in 0..component.inputs() {
-                    inner.get_mut().remove(&Connection::Component(2 * id + 1, input));
+                for port in 0..component.ports() {
+                    inner.get_mut().remove(&Connection::Component(2 * id + 1, port));
                 }
             }
         }
@@ -169,7 +171,7 @@ mod test {
         };
     );
     
-    macro_rules! set {
+    macro_rules! set (
         ( $($val:expr),+ ) => {
             {
                 let mut s = ::std::collections::HashSet::new();
@@ -184,7 +186,7 @@ mod test {
                 ::std::collections::HashSet::new();
             }
         };
-    }
+    );
     
     #[test]
     fn test_adding_components() {
@@ -192,23 +194,23 @@ mod test {
         
         data.add_subnet(0);
         
-        assert!(data.add_component(Box::new(Output {}), vec![Some(0)], vec![]).is_ok());
+        assert!(data.add_component(Box::new(Output {}), vec![Some(0)]).is_ok());
         
         data.add_subnet(1);
         data.add_subnet(5);
         
-        assert!(data.add_component(Box::new(AND {}), vec![Some(1), Some(5)], vec![Some(0)]).is_ok());
+        assert!(data.add_component(Box::new(AND {}), vec![Some(1), Some(5), Some(0)]).is_ok());
         
-        assert!(data.add_component(Box::new(Output {}), vec![Some(0)], vec![]).is_ok());
+        assert!(data.add_component(Box::new(Output {}), vec![Some(0)]).is_ok());
         
         assert_eq!(data.edges, map!(
-            2 => set!(Connection::Component(3, 0)),
-            10 => set!(Connection::Component(3, 1)),
-            3 => set!(Connection::Subnet(0)),
-            0 => set!(Connection::Component(1, 0), Connection::Component(5, 0))
+            2 => set!(Connection::Component(5, 0)),
+            10 => set!(Connection::Component(5, 1)),
+            5 => set!(Connection::Subnet(0)),
+            0 => set!(Connection::Component(3, 0), Connection::Component(7, 0))
         ));
         
-        assert!(data.add_component(Box::new(AND {}), vec![], vec![]).is_err());
+        assert!(data.add_component(Box::new(AND {}), vec![]).is_err());
     }
     
     #[test]
@@ -220,9 +222,9 @@ mod test {
         
         assert_eq!(data.edges, map!());
         
-        assert!(data.add_component(Box::new(Output {}), vec![Some(0)], vec![]).is_ok());
+        assert!(data.add_component(Box::new(Output {}), vec![Some(0)]).is_ok());
         
-        assert_eq!(data.edges, map!(0 => set!(Connection::Component(1, 0))));
+        assert_eq!(data.edges, map!(0 => set!(Connection::Component(3, 0))));
         
         assert!(data.remove_subnet(0));
         

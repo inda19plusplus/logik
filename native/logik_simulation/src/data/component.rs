@@ -2,8 +2,14 @@ use std::fmt::Debug;
 
 /// A trait to define common behaviour between the components
 pub(crate) trait Component: Debug {
-    fn inputs(&self) -> usize;
-    fn outputs(&self) -> usize;
+    fn ports(&self) -> usize;
+    fn port_type(&self, port: usize) -> Option<PortType>;
+}
+
+pub(crate) enum PortType {
+    Input,
+    Output,
+    Bidirectional,
 }
 
 /// Placeholder for now
@@ -13,12 +19,15 @@ pub(crate) struct Output {
 }
 
 impl Component for Output {
-    fn inputs(&self) -> usize {
+    fn ports(&self) -> usize {
         1
     }
     
-    fn outputs(&self) -> usize {
-        0
+    fn port_type(&self, port: usize) -> Option<PortType> {
+        match port {
+            0 => Some(PortType::Input),
+            _ => None,
+        }
     }
 }
 
@@ -29,11 +38,15 @@ pub(crate) struct AND {
 }
 
 impl Component for AND {
-    fn inputs(&self) -> usize {
-        2
+    fn ports(&self) -> usize {
+        3
     }
     
-    fn outputs(&self) -> usize {
-        1
+    fn port_type(&self, port: usize) -> Option<PortType> {
+        match port {
+            0 | 1 => Some(PortType::Input),
+            2 => Some(PortType::Output),
+            _ => None,
+        }
     }
 }
