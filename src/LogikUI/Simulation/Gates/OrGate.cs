@@ -1,18 +1,16 @@
-﻿using Cairo;
+﻿using Atk;
+using Cairo;
 using LogikUI.Circuit;
 using LogikUI.Util;
 using System;
-using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 
 namespace LogikUI.Simulation.Gates
 {
-    class AndGate : IComponent
+    class OrGate : IComponent
     {
-        // Indices for the ports
-        public string Name => "And Gate";
-        public ComponentType Type => ComponentType.And;
+        public string Name => "Or Gate";
+        public ComponentType Type => ComponentType.Or;
         public int NumberOfPorts => 3;
 
         public void GetPorts(Span<Vector2i> ports)
@@ -21,33 +19,27 @@ namespace LogikUI.Simulation.Gates
             ports[1] = new Vector2i(-3, -1);
             ports[2] = new Vector2i(-3, 1);
         }
-        
-        // FIXME: Cleanup and possibly split draw into a 'outline' and 'fill'
-        // call so we can do more efficient cairo rendering.
+
         public void Draw(Context cr, InstanceData data)
         {
             using var transform = IComponent.ApplyComponentTransform(cr, data);
 
-            double height = CircuitEditor.DotSpacing * 3;
-            double width = CircuitEditor.DotSpacing * 3;
-
+            var gate = data;
             //foreach (var gate in instances)
             {
-                var p1 = new Vector2d(-width, -height / 2);
-                var p2 = new Vector2d(-width, height / 2);
-                var p3 = new Vector2d(-width / 2, 0);
+                var c1 = new Vector2d(-3.264, -2.448) * CircuitEditor.DotSpacing;
+                var c2 = new Vector2d(-3.264, +2.448) * CircuitEditor.DotSpacing;
+                var c3 = new Vector2d(-6.086, 0) * CircuitEditor.DotSpacing;
 
-                // FIXME: This might be simplyfiable. If it's not maybe write a comment about why this works.
-                double a1 = Math.PI / 2;
-                double a2 = a1 + Math.PI;
-
-                cr.MoveTo(p1);
-                cr.Arc(p3.X, p3.Y, width / 2, -Math.PI / 2, Math.PI / 2);
-                cr.LineTo(p2);
-                cr.ClosePath();
+                const double r1 = 4.08 * CircuitEditor.DotSpacing;
+                const double r2 = 3.264 * CircuitEditor.DotSpacing;
+                cr.NewSubPath();
+                cr.Arc(c1.X, c1.Y, r1, 37 * MathUtil.D2R, (37 + 53) * MathUtil.D2R);
+                cr.NewSubPath();
+                cr.Arc(c2.X, c2.Y, r1, -90 * MathUtil.D2R, (-90 + 53) * MathUtil.D2R);
+                cr.NewSubPath();
+                cr.Arc(c3.X, c3.Y, r2, -30 * MathUtil.D2R, (-30 + 60) * MathUtil.D2R);
             }
-
-            // FIXME: We probably shouldn't hardcode the color
             cr.SetSourceRGB(0.1, 0.1, 0.1);
             cr.LineWidth = Wires.WireWidth;
             cr.Stroke();

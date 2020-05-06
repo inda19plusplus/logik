@@ -9,6 +9,12 @@ using LogikUI.Component;
 using LogikUI.Hierarchy;
 using LogikUI.Circuit;
 using LogikUI.Util;
+<<<<<<< HEAD
+=======
+using System.Globalization;
+using System.Reflection;
+using LogikUI.Interop;
+>>>>>>> 64f15097b812b2e1f1782132fe3d767c4d3ea377
 using LogikUI.Simulation;
 using LogikUI.Toolbar;
 using LogikUI.Simulation.Gates;
@@ -18,6 +24,8 @@ namespace LogikUI
 {
     class Program
     {
+        public static Data Backend;
+        
         static Gtk.Toolbar CreateToolbar(CircuitEditor editor) {
             Gtk.Toolbar toolbar = new Gtk.Toolbar();
 
@@ -26,14 +34,13 @@ namespace LogikUI
             // FIXME: Make this be selected with a callback or something
             //editor.CurrentTool = selectTool;
 
-            // FIXME: We want something better for this...
-            ComponentTool<AndGateInstance> andTool = new ComponentTool<AndGateInstance>(default, editor, toolbar);
+            // FIXME: We don't want to new the components here!!
+            ComponentTool andTool = new ComponentTool(ComponentType.And, "And gate", editor, toolbar);
 
-            ComponentTool<NotGateInstance> notTool = new ComponentTool<NotGateInstance>(default, editor, toolbar);
+            ComponentTool notTool = new ComponentTool(ComponentType.Not, "Not gate", editor, toolbar);
+            
+            ComponentTool orTool = new ComponentTool(ComponentType.Or, "Or gate", editor, toolbar);
 
-            ToolButton orTool = new ToolButton(
-                Util.Icon.OrGate(), "Or Gate"
-            );
             ToolButton xorTool = new ToolButton(
                 Util.Icon.XorGate(), "Xor Gate"
             );
@@ -165,6 +172,8 @@ namespace LogikUI
         // Hopefully this can be fixed sooner rather than later...
         static void Main()
         {
+            Backend = Logic.Init();
+            
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
             Value a = new Value(0b00_00_00_00_01_01_01_01_10_10_10_10_11_11_11_11, 16);
@@ -243,6 +252,7 @@ namespace LogikUI
 
         private static void Wnd_Destroyed(object? sender, EventArgs e)
         {
+            Logic.Exit(Backend);
             Application.Quit();
         }
     }
