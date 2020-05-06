@@ -219,7 +219,7 @@ namespace LogikUI.Circuit
         public static List<Vector2i> FindConnectionPoints(List<Wire> wires, List<Vector2i> connectionPoints)
         {
             // Calculate all points
-            Vector2i[] points = new Vector2i[wires.Count * 2 + connectionPoints.Count];
+            Vector2i[] points = new Vector2i[wires.Count * 2];
             for (int i = 0; i < wires.Count; i++)
             {
                 points[i * 2] = wires[i].Pos;
@@ -229,27 +229,32 @@ namespace LogikUI.Circuit
                 points[i * 2 + 1] = wires[i].Pos + new Vector2i(horiz, vert) * wires[i].Length;
             }
 
-            // FIXME: We might not want to copy all of the connection points every time we do this...
-            for (int i = 0; i < connectionPoints.Count; i++)
-            {
-                points[wires.Count * 2 + i] = connectionPoints[i];
-            }
-
             Array.Sort(points, (p1, p2) => p1.X == p2.X ? p1.Y - p2.Y : p1.X - p2.X);
 
             List<Vector2i> connections = new List<Vector2i>();
 
-            Vector2i last = points[0];
-            int count = 0;
-            for (int i = 1; i < points.Length; i++)
+            for (int i = 0; i < points.Length; i++)
             {
-                if (last == points[i]) count++;
-                else
+                int count = 1;
+                Vector2i startOfGroup = points[i];
+
+                // We always want a connection point if a wires connects
+                // to a connection point.
+                if (connectionPoints.Contains(startOfGroup))
+                    count = 2;
+
+                while (i + count < points.Length &&
+                    startOfGroup == points[i + count])
                 {
-                    if (count > 1) connections.Add(last);
-                    count = 0;
+                    count++;
                 }
-                last = points[i];
+
+                // We do -1 here because the for loop is going to add one.
+                i += count - 1;
+
+                // If there where more than one connection here
+                // we want to display a connection here.
+                if (count > 1) connections.Add(startOfGroup);
             }
 
             return connections;
