@@ -78,29 +78,60 @@ namespace LogikUI.Circuit
             var wTransaction = wires.CreateAddConnectionPointsTransaction(ports);
 
             // FIXME: Do some de-duplication stuff?
-            return new GateTransaction(gate, wTransaction);
+            return new GateTransaction(false, gate, wTransaction);
         }
 
         public void ApplyTransaction(GateTransaction transaction)
         {
-            transaction.Created.ID = Logic.AddComponent(Program.Backend, transaction.Created.Type);
-            Instances.Add(transaction.Created);
+            if (transaction.RemoveComponent == false)
+            {
+                transaction.Gate.ID = Logic.AddComponent(Program.Backend, transaction.Gate.Type);
+                Instances.Add(transaction.Gate);
+            }
+            else
+            {
+                if (transaction.Gate.ID == 0)
+                    throw new InvalidOperationException("Cannot delete a gate that doesn't have a valid id! (Maybe you forgot to apply the transaction before?)");
+
+                if (Logic.RemoveComponent(Program.Backend, transaction.Gate.ID) == false)
+                {
+                    Console.WriteLine($"Warn: Rust said we couldn't remove this gate id: {transaction.Gate.ID}. ({transaction.Gate})");
+                }
+
+                if (Instances.Remove(transaction.Gate) == false)
+                {
+                    Console.WriteLine($"Warn: Removed non-existent gate! {transaction.Gate}");
+                }
+            }
         }
 
+        // FIXME: Revert here is just a mirrored copy if Apply.
+        // We could make this less error prone by consolidating them into one thing?
         public void RevertTransaction(GateTransaction transaction)
         {
-            if (transaction.Created.ID == 0)
-                throw new InvalidOperationException("Cannot revert a transaction where the gates doesn't have a valid id! (Maybe you forgot to apply the transaction before?)");
-
-            if (Logic.RemoveComponent(Program.Backend, transaction.Created.ID) == false)
+            if (transaction.RemoveComponent == false)
             {
-                Console.WriteLine($"Warn: Rust said we couldn't remove this gate id: {transaction.Created.ID}. ({transaction.Created})");
-            }
+                // Here we should revert a add transation, i.e. removing the component
+                if (transaction.Gate.ID == 0)
+                    throw new InvalidOperationException("Cannot revert a transaction where the gates doesn't have a valid id! (Maybe you forgot to apply the transaction before?)");
 
-            if (Instances.Remove(transaction.Created) == false)
-            {
-                Console.WriteLine($"Warn: Removed non-existent gate! {transaction.Created}");
+                if (Logic.RemoveComponent(Program.Backend, transaction.Gate.ID) == false)
+                {
+                    Console.WriteLine($"Warn: Rust said we couldn't remove this gate id: {transaction.Gate.ID}. ({transaction.Gate})");
+                }
+
+                if (Instances.Remove(transaction.Gate) == false)
+                {
+                    Console.WriteLine($"Warn: Removed non-existent gate! {transaction.Gate}");
+                }
             }
+            else
+            {
+                // Here we are reverting a delete, i.e. adding it back again
+                transaction.Gate.ID = Logic.AddComponent(Program.Backend, transaction.Gate.Type);
+                Instances.Add(transaction.Gate);
+            }
+            
         }
     }
 }

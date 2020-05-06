@@ -114,9 +114,9 @@ namespace LogikUI.Toolbar
                     InstanceData.Create(BaseComponent.Type, VisualPosition, CompOrientation)
                 );
 
-            Console.WriteLine($"Created gate transaction: \n{transaction}");
-
             editor.PushTransaction(transaction);
+
+            Console.WriteLine($"Created gate transaction: \n{transaction}");
 
             StartPosition = VisualPosition;
             DraggingComponent = false;

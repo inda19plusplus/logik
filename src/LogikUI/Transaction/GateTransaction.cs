@@ -11,20 +11,22 @@ namespace LogikUI.Transaction
     {
         //public IInstance Created;
         // FIXME: We might want to store something else...?
-        public InstanceData Created;
+        public bool RemoveComponent;
+        public InstanceData Gate;
 
         // FIXME: This feels a bit like a hack...
-        public AddControlPointsTransaction? ConnectionPointWireEdits;
+        public ConnectionPointsTransaction? ConnectionPointWireEdits;
 
-        public GateTransaction(InstanceData created, AddControlPointsTransaction? wireEdits)
+        public GateTransaction(bool remove, InstanceData created, ConnectionPointsTransaction? wireEdits)
         {
-            Created = created;
+            RemoveComponent = remove;
+            Gate = created;
             ConnectionPointWireEdits = wireEdits;
         }
 
         public override string ToString()
         {
-            return $"Gate: ({Created}), {(ConnectionPointWireEdits != null ? $"Wires changed: ({ConnectionPointWireEdits})" : "No wires changed.")}";
+            return $"Gate: ({Gate}) {(RemoveComponent ? "removed" : "added")}, {(ConnectionPointWireEdits != null ? $"Wires changed: ({ConnectionPointWireEdits})" : "No wires changed.")}";
         }
     }
 }
