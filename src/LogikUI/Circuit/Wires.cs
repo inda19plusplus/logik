@@ -375,7 +375,8 @@ namespace LogikUI.Circuit
                     Deleted.Add(splitWire);
                     continue;
                 }
-                else if (wire.Direction == splitWire.Direction)
+                else if (wire.Direction == splitWire.Direction && 
+                    ConnectionPoints.Contains(location.Value) == false)
                 {
                     // This means that we should merge the two wires.
                     // We can do that by deleting the existing wire and
