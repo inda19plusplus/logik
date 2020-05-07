@@ -234,6 +234,10 @@ impl Data {
         self.dirty_subnets.get_mut(0).unwrap().insert(subnet);
     }
     
+    pub(crate) fn dirty_subnet(&mut self, subnet: i32) {
+        self.update_subnet(subnet, self.subnets.get(&subnet).unwrap().val());
+    }
+    
     #[cfg(test)]
     fn update_silent(&mut self, subnet: i32, state: SubnetState) {
         self.subnets.get_mut(&subnet).unwrap().update(state);

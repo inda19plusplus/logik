@@ -86,8 +86,16 @@ pub extern "C" fn unlink(data: *mut Data, component: i32, port: i32, subnet: i32
     data.unlink(component, port as usize, subnet)
 }
 
+#[no_mangle]
 pub extern "C" fn tick(data: *mut Data) {
     let data = unsafe { &mut *data };
     
     data.advance_time();
+}
+
+#[no_mangle]
+pub extern "C" fn dirty_subnet(data: *mut Data, subnet: i32) {
+    let data = unsafe { &mut *data };
+    
+    data.dirty_subnet(subnet);
 }
