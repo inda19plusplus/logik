@@ -24,9 +24,10 @@ namespace LogikUI.Circuit
     {
         public Dictionary<ComponentType, IComponent> Components = new Dictionary<ComponentType, IComponent>()
         {
-            { ComponentType.Not, new NotGate() },
+            { ComponentType.Buffer, new BufferGate() },
             { ComponentType.And, new AndGate() },
             { ComponentType.Or, new OrGate() },
+            { ComponentType.Xor, new XorGate() },
         };
 
         public List<InstanceData> Instances = new List<InstanceData>();

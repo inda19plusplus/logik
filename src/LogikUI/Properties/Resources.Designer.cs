@@ -63,6 +63,16 @@ namespace LogikUI.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        public static byte[] gate_buffer {
+            get {
+                object obj = ResourceManager.GetObject("gate_buffer", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         public static byte[] gate_and {
             get {
                 object obj = ResourceManager.GetObject("gate_and", resourceCulture);
