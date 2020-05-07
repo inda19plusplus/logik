@@ -1,8 +1,8 @@
-use std::collections::{HashMap, HashSet, BinaryHeap};
+use std::collections::{HashMap, HashSet, BinaryHeap, VecDeque};
 use std::collections::hash_map::Entry;
 
-use crate::data::component::Component;
-use crate::data::subnet::Subnet;
+use crate::data::component::{Component, PortType};
+use crate::data::subnet::{Subnet, SubnetState};
 use std::cmp::Reverse;
 
 pub(crate) mod subnet;
@@ -18,7 +18,7 @@ pub struct Data {
     edges: HashMap<i32, HashSet<Edge>>, // key is node, value is all edges associated with the node
     // components live on odd indices
     // subnets live on even indices
-    dirty_subnets: Vec<Vec<i32>>,
+    dirty_subnets: VecDeque<Vec<i32>>,
 }
 
 impl Data {
@@ -28,7 +28,7 @@ impl Data {
             components_free: BinaryHeap::new(),
             subnets: HashMap::new(),
             edges: HashMap::new(),
-            dirty_subnets: Vec::new(),
+            dirty_subnets: VecDeque::new(),
         }
     }
     
@@ -107,7 +107,6 @@ impl Data {
     }
     
     pub(crate) fn link(&mut self, component: i32, port: usize, subnet: i32) -> bool {
-        //true is component to subnet, false is subnet to component
         let direction = match self.port_direction_component(component, port) {
             Some(t) => t,
             None => return false,
@@ -164,6 +163,74 @@ impl Data {
     fn port_direction_component(&self, component: i32, port: usize) -> Option<EdgeDirection> {
         Some(self.components.get(&component)?.port_type(port)?.to_edge_direction())
     }
+    
+    pub(crate) fn advance_time(&mut self) {
+        let to_simulate = match self.dirty_subnets.pop_front() {
+            Some(t) => t,
+            None => return,
+        };
+    
+        let mut simulating = HashSet::new();
+        for subnet in to_simulate {
+            for edge in self.edges.get(&(2 * subnet)).unwrap() {
+                if edge.direction != EdgeDirection::ToSubnet {
+                    simulating.insert((edge.component - 1) / 2);
+                }
+            }
+        }
+    
+        for s in simulating {
+            self.simulate(s);
+        }
+    }
+    
+    fn simulate(&mut self, component: i32) {
+        let comp = &**self.components.get(&component).unwrap();
+        let edges = self.edges.get(&(2 * component + 1)).unwrap();
+        let mut searching = HashSet::new();
+        let mut dirty_ports = HashSet::new();
+        for (port_idx, port_type) in comp.ports_type()
+            .into_iter()
+            .enumerate()
+        {
+            if port_type != PortType::Output {
+                searching.insert(port_idx);
+            } else if port_type != PortType::Input {
+                dirty_ports.insert(port_idx);
+            }
+        }
+    
+        let mut states = HashMap::new();
+        let mut dirtying = HashMap::new();
+        
+        for edge in edges {
+            if searching.contains(&edge.port) {
+                let val = self.subnets.get(&(edge.subnet / 2)).unwrap().val();
+                states.insert(edge.port, val);
+            } else if dirty_ports.contains(&edge.port) {
+                dirtying.insert(edge.port, edge.subnet / 2);
+            }
+        }
+        
+        if states.len() != searching.len() {
+            return;
+        }
+        
+        let res = comp.evaluate(states).unwrap();
+    
+        for (port, state) in res {
+            let subnet = dirtying.get(&port).unwrap();
+            self.update_subnet(*subnet, state);
+        }
+    }
+    
+    fn update_subnet(&mut self, subnet: i32, state: SubnetState) {
+        self.subnets.get_mut(&subnet).unwrap().update(state);
+        if self.dirty_subnets.len() == 0 { //maybe change to account for propagation time
+            self.dirty_subnets.push_back(Vec::new());
+        }
+        self.dirty_subnets.get_mut(0).unwrap().push(subnet);
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -214,7 +281,7 @@ pub(crate) enum EdgeDirection {
 
 #[cfg(test)]
 mod test {
-    use crate::data::component::{AND, Output};
+    use crate::data::component::{AND, Output, NOT};
     use crate::{map, set};
     use super::*;
     
@@ -298,5 +365,27 @@ mod test {
         
         assert!(!data.remove_subnet(0));
         assert!(!data.remove_subnet(3));
+    }
+    
+    #[test]
+    fn test_simulation() {
+        let mut data = Data::new();
+        
+        data.add_subnet(0);
+        data.add_subnet(1);
+        
+        assert!(data.add_component(Box::new(NOT {}), vec![Some(0), Some(1)]).is_ok());
+        
+        data.update_subnet(0, SubnetState::Off);
+        
+        assert_eq!(data.dirty_subnets, VecDeque::from(vec![vec![0]]));
+        
+        data.advance_time();
+        
+        assert_eq!(data.dirty_subnets, VecDeque::from(vec![vec![1]]));
+        
+        data.advance_time();
+        
+        assert_eq!(data.dirty_subnets, VecDeque::from(vec![]));
     }
 }

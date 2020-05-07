@@ -73,7 +73,7 @@ pub extern "C" fn remove_component(data: *mut Data, id: i32) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn link(data: *mut Data, component: i32, port: i32, subnet: i32, direction: bool) -> bool {
+pub extern "C" fn link(data: *mut Data, component: i32, port: i32, subnet: i32) -> bool {
     let data = unsafe { &mut *data };
     
     data.link(component, port as usize, subnet)
@@ -84,4 +84,10 @@ pub extern "C" fn unlink(data: *mut Data, component: i32, port: i32, subnet: i32
     let data = unsafe { &mut *data };
     
     data.unlink(component, port as usize, subnet)
+}
+
+pub extern "C" fn tick(data: *mut Data) {
+    let data = unsafe { &mut *data };
+    
+    data.advance_time();
 }

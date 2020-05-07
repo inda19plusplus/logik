@@ -10,10 +10,18 @@ impl Subnet {
             state: SubnetState::Floating,
         }
     }
+    
+    pub(crate) fn val(&self) -> SubnetState {
+        self.state
+    }
+    
+    pub(crate) fn update(&mut self, state: SubnetState) {
+        self.state = state;
+    }
 }
 
 /// An enum to represent the different states that a subnet can have
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub(crate) enum SubnetState {
     Off,
     On,

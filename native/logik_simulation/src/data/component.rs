@@ -9,7 +9,7 @@ pub(crate) trait Component: Debug {
     fn ports(&self) -> usize;
     fn port_type(&self, port: usize) -> Option<PortType>;
     // requires that data has a value for every input or bidirectional port
-    // and in turn guarantees that the return value has a value for every output
+    // and in turn guarantees that the return value has a value for every output or bidirectional port
     fn evaluate(&self, data: HashMap<usize, SubnetState>) -> Option<HashMap<usize, SubnetState>>;
     
     fn ports_type(&self) -> Vec<PortType> {
@@ -125,5 +125,36 @@ impl Component for AND {
         } else {
             Some(map!(2 => SubnetState::Off))
         }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct NOT {
+
+}
+
+impl Component for NOT {
+    fn ports(&self) -> usize {
+        2
+    }
+    
+    fn port_type(&self, port: usize) -> Option<PortType> {
+        match port {
+            0 => Some(PortType::Input),
+            1 => Some(PortType::Output),
+            _ => None,
+        }
+    }
+    
+    fn evaluate(&self, data: HashMap<usize, SubnetState>) -> Option<HashMap<usize, SubnetState>> {
+        if !data.contains_key(&0) {
+            return None;
+        }
+        
+        Some(map!(1 => match data.get(&0).unwrap() {
+            SubnetState::Off => SubnetState::On,
+            SubnetState::On => SubnetState::Off,
+            _ => SubnetState::Error,
+        }))
     }
 }
