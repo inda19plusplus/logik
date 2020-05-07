@@ -238,6 +238,10 @@ impl Data {
         self.update_subnet(subnet, self.subnets.get(&subnet).unwrap().val());
     }
     
+    pub(crate) fn subnet(&self, subnet: i32) -> Option<&Subnet> {
+        self.subnets.get(&subnet)
+    }
+    
     #[cfg(test)]
     fn update_silent(&mut self, subnet: i32, state: SubnetState) {
         self.subnets.get_mut(&subnet).unwrap().update(state);

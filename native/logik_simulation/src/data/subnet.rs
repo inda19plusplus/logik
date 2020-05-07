@@ -21,10 +21,11 @@ impl Subnet {
 }
 
 /// An enum to represent the different states that a subnet can have
+#[repr(u8)]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
-pub(crate) enum SubnetState {
-    Off,
-    On,
-    Floating,
-    Error,
+pub enum SubnetState {
+    Floating = 0,
+    Off = 1,
+    On = 2,
+    Error = 3,
 }

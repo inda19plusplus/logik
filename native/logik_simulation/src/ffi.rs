@@ -1,6 +1,7 @@
 use crate::data::Data;
 use crate::data::component::{Component, Output, AND};
 use std::iter;
+use crate::data::subnet::SubnetState;
 // Converts a rust function definition into one that can be called from c (and by extension c#).
 // A function with the signature 'fn <name>(<params>) <return> { <body> }'
 /* Into a function with the signature 
@@ -98,4 +99,11 @@ pub extern "C" fn dirty_subnet(data: *mut Data, subnet: i32) {
     let data = unsafe { &mut *data };
     
     data.dirty_subnet(subnet);
+}
+
+#[no_mangle]
+pub extern "C" fn subnet_state(data: *mut Data, subnet: i32) -> SubnetState {
+    let data = unsafe { &mut *data };
+    
+    data.subnet(subnet).unwrap().val()
 }

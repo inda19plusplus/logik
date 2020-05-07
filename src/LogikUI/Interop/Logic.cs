@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using LogikUI.Simulation;
 
 namespace LogikUI.Interop
 {
@@ -44,6 +45,9 @@ namespace LogikUI.Interop
         
         [DllImport(Lib, EntryPoint = "dirty_subnet", ExactSpelling = true, CallingConvention = CallingConv)]
         public static extern void DirtySubnet(Data data, int subnet);
+        
+        [DllImport(Lib, EntryPoint = "subnet_state", ExactSpelling = true, CallingConvention = CallingConv)]
+        public static extern ValueState SubnetState(Data data, int subnet);
     }
 
     public struct Data
