@@ -1,5 +1,5 @@
 /// Representing a subnet with a certain state
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub(crate) struct Subnet {
     state: SubnetState,
 }
