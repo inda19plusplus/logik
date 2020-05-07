@@ -13,7 +13,7 @@ impl Subnet {
 }
 
 /// An enum to represent the different states that a subnet can have
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub(crate) enum SubnetState {
     Off,
     On,

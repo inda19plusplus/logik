@@ -12,8 +12,8 @@ pub unsafe extern "cdecl" fn <name>(<params>) <return> {
 }
 
 */
-#[macro_use]
-macro_rules! ffi {
+
+/*macro_rules! ffi {
     ($(fn $name:ident ( $( $arg_ident:ident : $arg_ty:ty),* ) $( -> $ret_ty:ty)? $body:block)*) => {
         $(
             #[allow(unsafe_code, unused_attributes)]
@@ -23,7 +23,7 @@ macro_rules! ffi {
             }
         )*
     };
-}
+}*/
 
 #[no_mangle]
 pub extern "C" fn init() -> *mut Data {
@@ -76,7 +76,7 @@ pub extern "C" fn remove_component(data: *mut Data, id: i32) -> bool {
 pub extern "C" fn link(data: *mut Data, component: i32, port: i32, subnet: i32, direction: bool) -> bool {
     let data = unsafe { &mut *data };
     
-    data.link(component, port as usize, subnet, direction)
+    data.link(component, port as usize, subnet)
 }
 
 #[no_mangle]
