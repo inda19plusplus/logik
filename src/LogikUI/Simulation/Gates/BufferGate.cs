@@ -17,8 +17,8 @@ namespace LogikUI.Simulation.Gates
 
         public void GetPorts(Span<Vector2i> ports)
         {
-            ports[0] = new Vector2i(-1, 0);
-            ports[1] = new Vector2i(2, 0);
+            ports[0] = new Vector2i(-3, 0);
+            ports[1] = new Vector2i(0, 0);
         }
         
         // FIXME: Cleanup and possibly split draw into a 'outline' and 'fill'
@@ -29,7 +29,7 @@ namespace LogikUI.Simulation.Gates
 
             //foreach (var gate in instances)
             {
-                cr.MoveTo(-10,-15);
+                cr.MoveTo(-30,-15);
                 cr.RelLineTo(30, 15);
                 cr.RelLineTo(-30, 15);
                 cr.ClosePath();

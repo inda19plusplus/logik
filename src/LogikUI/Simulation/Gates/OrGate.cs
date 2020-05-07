@@ -15,9 +15,9 @@ namespace LogikUI.Simulation.Gates
 
         public void GetPorts(Span<Vector2i> ports)
         {
-            ports[0] = new Vector2i(-1, 1);
-            ports[1] = new Vector2i(-1, -1);
-            ports[2] = new Vector2i(2, 0);
+            ports[0] = new Vector2i(-3, 1);
+            ports[1] = new Vector2i(-3, -1);
+            ports[2] = new Vector2i(0, 0);
         }
 
         public void Draw(Context cr, InstanceData data)
@@ -26,7 +26,7 @@ namespace LogikUI.Simulation.Gates
 
             //foreach (var gate in instances)
             {
-                cr.MoveTo(-12.5, -15);
+                cr.MoveTo(-32.5, -15);
                 cr.RelLineTo(12.5, 0);
                 cr.RelCurveTo(10, 0, 15, 7.5, 20, 15);
                 cr.RelCurveTo(-5, 7.5, -10, 15, -20, 15);
