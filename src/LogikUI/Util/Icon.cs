@@ -13,9 +13,9 @@ namespace LogikUI.Util
         {
             return type switch
             {
+                ComponentType.Buffer => BufferGate(),
                 ComponentType.And => AndGate(),
                 ComponentType.Or  => OrGate(),
-                ComponentType.Not => AndGate(), // FIXME!!!
                 ComponentType.Xor => XorGate(),
 
                 // FIXME: We might want to display a graphic that represents an unknown type
@@ -35,22 +35,28 @@ namespace LogikUI.Util
             return new Image(pb);
         }
 
+        public static Image BufferGate() {
+            Pixbuf pb = new Pixbuf(Resources.gate_buffer);
+            pb = pb.ScaleSimple(24, 24, InterpType.Bilinear);
+            return new Image(pb);
+        }
+
         public static Image AndGate() {
             Pixbuf pb = new Pixbuf(Resources.gate_and);
             pb = pb.ScaleSimple(24, 24, InterpType.Bilinear);
             return new Image(pb);
-		}
+        }
 
         public static Image OrGate() {
             Pixbuf pb = new Pixbuf(Resources.gate_or);
             pb = pb.ScaleSimple(24, 24, InterpType.Bilinear);
             return new Image(pb);
-		}
+        }
 
         public static Image XorGate() {
             Pixbuf pb = new Pixbuf(Resources.gate_xor);
             pb = pb.ScaleSimple(24, 24, InterpType.Bilinear);
             return new Image(pb);
-		}
+        }
     }
 }
