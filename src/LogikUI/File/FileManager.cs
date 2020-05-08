@@ -258,10 +258,21 @@ namespace LogikUI.File
                     xmlWriter.WriteEndElement();
 
                 }
-                //end wires
+               
                 xmlWriter.WriteEndElement();
+                //end wires
 
                 //components
+                xmlWriter.WriteStartElement("components");
+
+                foreach (var component in Components)
+                {
+                    xmlWriter.WriteStartElement("component");
+                    
+                    xmlWriter.WriteEndElement();
+                }
+
+                xmlWriter.WriteEndElement();
 
                 //end components
 
@@ -281,9 +292,9 @@ namespace LogikUI.File
                     xmlWriter.WriteEndElement();
                 }
 
-                //end labels
+                
                 xmlWriter.WriteEndElement();
-
+                //end labels
 
 
                 xmlWriter.WriteEndElement();
