@@ -210,20 +210,110 @@ namespace LogikUI.File
         {
             if (IsNew) throw new InvalidOperationException("The file is new.");
 
-            throw new NotImplementedException();
+            //FIXME: delete file before save
+            
+            Save(filename);
+
         }
 
-        /// <summary>
-        /// Writes the project to a specified file.
-        /// </summary>
-        /// <param name="filename">The path of the new project file.</param>
+        // <summary>
+        // Writes the project to a specified file.
+        // </summary>
+        // <param name="filename">The path of the new project file.</param>
         public static void Save(string filename)
         {
-            throw new NotImplementedException();
-
-            // If successful...
+           
             IsNew = false;
             FileManager.filename = filename;
+
+            try
+            {
+                XmlReaderSettings settings = new XmlReaderSettings();
+                settings.ValidationType = ValidationType.Schema;
+                settings.ValidationFlags |= XmlSchemaValidationFlags.ProcessInlineSchema;
+                settings.ValidationFlags |= XmlSchemaValidationFlags.ProcessSchemaLocation;
+                settings.ValidationFlags |= XmlSchemaValidationFlags.ReportValidationWarnings;
+                settings.ValidationEventHandler += new ValidationEventHandler(ValidationCallBack);
+
+                XmlWriter xmlWriter = XmlWriter.Create(filename);
+                xmlWriter.WriteStartDocument();
+                xmlWriter.WriteStartElement("circuit");
+
+                //wires
+                xmlWriter.WriteStartElement("wires");
+                foreach (var wire in Wires)
+                {
+
+                    xmlWriter.WriteStartElement("wire");
+
+                    //from
+                    xmlWriter.WriteStartElement("from");
+                    xmlWriter.WriteAttributeString("x", wire.Pos.X.ToString());
+                    xmlWriter.WriteAttributeString("y", wire.Pos.Y.ToString());
+                    xmlWriter.WriteEndElement();
+
+                    //to
+                    xmlWriter.WriteStartElement("to");
+                    xmlWriter.WriteAttributeString("x", wire.EndPos.X.ToString());
+                    xmlWriter.WriteAttributeString("y", wire.EndPos.Y.ToString());
+                    xmlWriter.WriteEndElement();
+
+                    xmlWriter.WriteEndElement();
+
+                }
+                //end wires
+
+                //components
+
+                //end components
+
+                //labels
+                xmlWriter.WriteStartElement("labels");
+
+                foreach (var text_label in Labels)
+                {
+                    xmlWriter.WriteStartElement("label");
+                    xmlWriter.WriteAttributeString("size", text_label.TextSize.ToString());
+
+                    //text
+                    xmlWriter.WriteStartElement("text");
+                    xmlWriter.WriteString(text_label.Text);
+                    xmlWriter.WriteEndElement();
+
+                    xmlWriter.WriteEndElement();
+                }
+
+                xmlWriter.WriteEndElement();
+
+
+                //end labels
+                xmlWriter.WriteEndElement();
+
+
+
+                xmlWriter.WriteEndDocument();
+                xmlWriter.Close();
+            }
+            catch (Exception e)
+            {
+                //e is XmlException || e is XPathException || e is InvalidProjectDataException || e is XmlSchemaException
+                if (e is XmlException || e is InvalidOperationException)
+                {
+                    MessageDialog md = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Info, ButtonsType.Ok, "Not Able To Save Data To File");
+                    md.Run();
+                    md.Dispose();
+
+                    throw new ArgumentException("Failed to parse to XMl", e);
+                } else
+                {
+                    MessageDialog md = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Info, ButtonsType.Ok, "Not Able To Save Data To File");
+                    md.Run();
+                    md.Dispose();
+
+                    throw new ArgumentException("Failed to save to filename", e);
+                }
+            }
+
         }
     }
 }
