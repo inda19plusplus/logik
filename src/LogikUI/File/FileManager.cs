@@ -228,14 +228,11 @@ namespace LogikUI.File
 
             try
             {
-                XmlReaderSettings settings = new XmlReaderSettings();
-                settings.ValidationType = ValidationType.Schema;
-                settings.ValidationFlags |= XmlSchemaValidationFlags.ProcessInlineSchema;
-                settings.ValidationFlags |= XmlSchemaValidationFlags.ProcessSchemaLocation;
-                settings.ValidationFlags |= XmlSchemaValidationFlags.ReportValidationWarnings;
-                settings.ValidationEventHandler += new ValidationEventHandler(ValidationCallBack);
+                XmlWriterSettings settings = new XmlWriterSettings();
+                settings.Indent = true;
+                settings.NewLineOnAttributes = true;
 
-                XmlWriter xmlWriter = XmlWriter.Create(filename);
+                XmlWriter xmlWriter = XmlWriter.Create(filename, settings);
                 xmlWriter.WriteStartDocument();
                 xmlWriter.WriteStartElement("circuit");
 
