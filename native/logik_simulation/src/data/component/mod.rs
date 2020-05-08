@@ -4,13 +4,15 @@ use crate::map;
 use std::collections::HashMap;
 use crate::data::EdgeDirection;
 
+pub(crate) mod statefuls;
+
 /// A trait to define common behaviour between the components
 pub(crate) trait Component: Debug {
     fn ports(&self) -> usize;
     fn port_type(&self, port: usize) -> Option<PortType>;
     // requires that data has a value for every input or bidirectional port
     // and in turn guarantees that the return value has a value for every output or bidirectional port
-    fn evaluate(&self, data: HashMap<usize, SubnetState>) -> Option<HashMap<usize, SubnetState>>;
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>>;
     
     fn ports_type(&self) -> Vec<PortType> {
         (0..self.ports())
@@ -46,6 +48,28 @@ impl From<PortType> for EdgeDirection {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) struct StateChange {
+    old: SubnetState,
+    current: SubnetState,
+}
+
+impl StateChange {
+    pub(crate) fn new(old: SubnetState, current: SubnetState) -> Self {
+        Self { old, current }
+    }
+    
+    pub(crate) fn rising(&self) -> bool {
+        self.old == SubnetState::Off &&
+            self.current == SubnetState::On
+    }
+    
+    pub(crate) fn falling(&self) -> bool {
+        self.old == SubnetState::On &&
+            self.current == SubnetState::Off
+    }
+}
+
 /// Placeholder for now
 #[derive(Debug)]
 pub(crate) struct Output {
@@ -64,7 +88,7 @@ impl Component for Output {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, SubnetState>) -> Option<HashMap<usize, SubnetState>> {
+    fn evaluate(&self, _: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
         Some(map!())
     }
 }
@@ -86,7 +110,7 @@ impl Component for Input {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, SubnetState>) -> Option<HashMap<usize, SubnetState>> {
+    fn evaluate(&self, _: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
         Some(map!(0 => SubnetState::On))
     }
 }
@@ -110,17 +134,18 @@ impl Component for AND {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, SubnetState>) -> Option<HashMap<usize, SubnetState>> {
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
         if !(data.contains_key(&0) && data.contains_key(&1)) {
             return None;
         }
         
-        if matches!(data.get(&0).unwrap(), SubnetState::Error | SubnetState::Floating) ||
-            matches!(data.get(&1).unwrap(), SubnetState::Error | SubnetState::Floating) {
+        if matches!(data.get(&0).unwrap().current, SubnetState::Error | SubnetState::Floating) ||
+            matches!(data.get(&1).unwrap().current, SubnetState::Error | SubnetState::Floating) {
             return Some(map!(2 => SubnetState::Error));
         }
         
-        if data.get(&0).unwrap() == &SubnetState::On && data.get(&1).unwrap() == &SubnetState::On {
+        if data.get(&0).unwrap().current == SubnetState::On &&
+            data.get(&1).unwrap().current == SubnetState::On {
             Some(map!(2 => SubnetState::On))
         } else {
             Some(map!(2 => SubnetState::Off))
@@ -146,12 +171,12 @@ impl Component for NOT {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, SubnetState>) -> Option<HashMap<usize, SubnetState>> {
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
         if !data.contains_key(&0) {
             return None;
         }
         
-        Some(map!(1 => match data.get(&0).unwrap() {
+        Some(map!(1 => match data.get(&0).unwrap().current {
             SubnetState::Off => SubnetState::On,
             SubnetState::On => SubnetState::Off,
             _ => SubnetState::Error,

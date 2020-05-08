@@ -1,12 +1,13 @@
 use std::collections::{HashMap, HashSet, BinaryHeap, VecDeque};
 use std::collections::hash_map::Entry;
 
-use crate::data::component::{Component, PortType};
+use crate::data::component::{Component, PortType, StateChange};
 use crate::data::subnet::{Subnet, SubnetState};
 use std::cmp::Reverse;
 
 pub(crate) mod subnet;
 pub(crate) mod component;
+
 #[cfg(test)]
 mod test;
 
@@ -21,6 +22,7 @@ pub struct Data {
     // components live on odd indices
     // subnets live on even indices
     dirty_subnets: VecDeque<HashSet<i32>>,
+    changed_subnets: HashMap<i32, SubnetState>, //<subnet, old state>
 }
 
 impl Data {
@@ -31,6 +33,7 @@ impl Data {
             subnets: HashMap::new(),
             edges: HashMap::new(),
             dirty_subnets: VecDeque::new(),
+            changed_subnets: HashMap::new(),
         }
     }
     
@@ -180,13 +183,26 @@ impl Data {
                 }
             }
         }
-    
+        
+        let mut old_state = HashMap::new();
+        
+        std::mem::swap(&mut self.changed_subnets, &mut old_state);
+        
+        let mut diff: HashMap<_, HashSet<SubnetState>> = HashMap::new();
+        
         for s in simulating {
-            self.simulate(s);
+            let d = self.simulate(s, &old_state);
+            for (k, v) in d.into_iter() {
+                diff.entry(k).or_default().extend(v.into_iter());
+            }
+        }
+        
+        for (subnet, proposals) in diff {
+            self.update_subnet(subnet, SubnetState::work_out_diff(&proposals));
         }
     }
     
-    fn simulate(&mut self, component: i32) {
+    fn simulate(&mut self, component: i32, old_state: &HashMap<i32, SubnetState>) -> HashMap<i32, HashSet<SubnetState>> {
         let comp = &**self.components.get(&component).unwrap();
         let edges = self.edges.get(&(2 * component + 1)).unwrap();
         let mut searching = HashSet::new();
@@ -208,30 +224,41 @@ impl Data {
         for edge in edges {
             if searching.contains(&edge.port) {
                 let val = self.subnets.get(&(edge.subnet / 2)).unwrap().val();
-                states.insert(edge.port, val);
+                let old = match old_state.get(&(edge.subnet / 2)) {
+                    Some(t) => *t,
+                    None => val,
+                };
+                let diff = StateChange::new(old, val);
+                states.insert(edge.port, diff);
             } else if dirty_ports.contains(&edge.port) {
                 dirtying.insert(edge.port, edge.subnet / 2);
             }
         }
         
         if states.len() != searching.len() {
-            return;
+            return HashMap::new();
         }
         
         let res = comp.evaluate(states).unwrap();
-    
+        let mut updating: HashMap<i32, HashSet<SubnetState>> = HashMap::new();
+        
         for (port, state) in res {
             let subnet = dirtying.get(&port).unwrap();
-            self.update_subnet(*subnet, state);
+            updating.entry(*subnet).or_default().insert(state);
         }
+        
+        updating
     }
     
     fn update_subnet(&mut self, subnet: i32, state: SubnetState) {
-        self.subnets.get_mut(&subnet).unwrap().update(state);
-        if self.dirty_subnets.len() == 0 { //maybe change to account for propagation time
-            self.dirty_subnets.push_back(HashSet::new());
+        let old_state = self.subnets.get(&subnet).unwrap().val();
+        if self.subnets.get_mut(&subnet).unwrap().update(state) { //we actually changed a subnet
+            if self.dirty_subnets.len() == 0 { //maybe change to account for propagation time
+                self.dirty_subnets.push_back(HashSet::new());
+            }
+            self.dirty_subnets.get_mut(0).unwrap().insert(subnet);
+            self.changed_subnets.insert(subnet, old_state);
         }
-        self.dirty_subnets.get_mut(0).unwrap().insert(subnet);
     }
     
     pub(crate) fn dirty_subnet(&mut self, subnet: i32) {

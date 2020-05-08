@@ -1,6 +1,8 @@
 use crate::data::component::{AND, Output, NOT};
 use crate::{map, set};
 use super::*;
+use crate::data::component::statefuls::SRFlipFlop;
+use std::cell::Cell;
 
 macro_rules! edge {
         ($subnet:expr, $component:expr, $port:expr, 0) => {
@@ -246,4 +248,69 @@ fn test_simulation_3() {
             5 => subnet!(SubnetState::Off),
             6 => subnet!(SubnetState::Off)
         ));
+}
+
+#[test]
+fn test_sr_latch() {
+    let mut data = Data::new();
+    
+    data.add_subnet(0);
+    data.add_subnet(1);
+    data.add_subnet(2);
+    data.add_subnet(3);
+    data.add_subnet(4);
+    data.add_subnet(5);
+    
+    assert!(data.add_component(Box::new( SRFlipFlop { state: Cell::new(false) }),
+                       vec![Some(0), Some(1), Some(2), Some(3), Some(4), Some(5)]).is_ok());
+    
+    data.update_subnet(0, SubnetState::On);
+    data.update_subnet(2, SubnetState::Off);
+    
+    data.advance_time();
+    
+    assert_eq!(data.subnets, map!(
+        0 => subnet!(SubnetState::On),
+        1 => subnet!(SubnetState::Floating),
+        2 => subnet!(SubnetState::Off),
+        3 => subnet!(SubnetState::Floating),
+        4 => subnet!(SubnetState::Off),
+        5 => subnet!(SubnetState::On)
+    ));
+    
+    data.update_subnet(2, SubnetState::On);
+    
+    data.advance_time();
+    
+    assert_eq!(data.subnets, map!(
+        0 => subnet!(SubnetState::On),
+        1 => subnet!(SubnetState::Floating),
+        2 => subnet!(SubnetState::On),
+        3 => subnet!(SubnetState::Floating),
+        4 => subnet!(SubnetState::On),
+        5 => subnet!(SubnetState::Off)
+    ));
+}
+
+#[test]
+fn test_error_driving() {
+    let mut data = Data::new();
+    
+    data.add_subnet(0);
+    data.add_subnet(1);
+    data.add_subnet(2);
+    
+    assert!(data.add_component(Box::new(NOT {}), vec![Some(0), Some(2)]).is_ok());
+    assert!(data.add_component(Box::new(NOT {}), vec![Some(1), Some(2)]).is_ok());
+    
+    data.update_subnet(0, SubnetState::Off);
+    data.update_subnet(1, SubnetState::On);
+    
+    data.advance_time();
+    
+    assert_eq!(data.subnets, map!(
+        0 => subnet!(SubnetState::Off),
+        1 => subnet!(SubnetState::On),
+        2 => subnet!(SubnetState::Error)
+    ));
 }
