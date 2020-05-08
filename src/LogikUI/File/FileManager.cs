@@ -259,6 +259,7 @@ namespace LogikUI.File
 
                 }
                 //end wires
+                xmlWriter.WriteEndElement();
 
                 //components
 
@@ -280,14 +281,12 @@ namespace LogikUI.File
                     xmlWriter.WriteEndElement();
                 }
 
-                xmlWriter.WriteEndElement();
-
-
                 //end labels
                 xmlWriter.WriteEndElement();
 
 
 
+                xmlWriter.WriteEndElement();
                 xmlWriter.WriteEndDocument();
                 xmlWriter.Close();
             }
