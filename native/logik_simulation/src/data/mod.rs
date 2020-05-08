@@ -1,12 +1,14 @@
-use std::collections::{HashMap, HashSet, BinaryHeap};
+use std::collections::{HashMap, HashSet, BinaryHeap, VecDeque};
 use std::collections::hash_map::Entry;
 
-use crate::data::component::Component;
-use crate::data::subnet::Subnet;
+use crate::data::component::{Component, PortType};
+use crate::data::subnet::{Subnet, SubnetState};
 use std::cmp::Reverse;
 
 pub(crate) mod subnet;
 pub(crate) mod component;
+#[cfg(test)]
+mod test;
 
 /// Struct to represent the data that the backend should keep track of
 #[derive(Debug)]
@@ -15,9 +17,10 @@ pub struct Data {
     components_free: BinaryHeap<Reverse<i32>>,
     subnets: HashMap<i32, Subnet>,
     // <id, subnet>
-    edges: HashMap<i32, HashSet<Connection>>, // key is from node, value is to node
+    edges: HashMap<i32, HashSet<Edge>>, // key is node, value is all edges associated with the node
     // components live on odd indices
     // subnets live on even indices
+    dirty_subnets: VecDeque<HashSet<i32>>,
 }
 
 impl Data {
@@ -27,6 +30,7 @@ impl Data {
             components_free: BinaryHeap::new(),
             subnets: HashMap::new(),
             edges: HashMap::new(),
+            dirty_subnets: VecDeque::new(),
         }
     }
     
@@ -41,50 +45,40 @@ impl Data {
         idx
     }
     
-    pub(crate) fn add_component(&mut self, component: Box<dyn Component>, inputs: Vec<Option<i32>>, outputs: Vec<Option<i32>>) -> Result<i32, ()> {
-        if component.inputs() != inputs.len() || component.outputs() != outputs.len() {
+    pub(crate) fn add_component(&mut self, component: Box<dyn Component>, ports: Vec<Option<i32>>) -> Result<i32, ()> {
+        if ports.len() != component.ports() {
             return Err(());
         }
         
-        let idx = self.alloc_component(component);
-        
-        for (port, input) in inputs.into_iter()
+        let ports = ports.into_iter()
             .enumerate()
-            .filter_map(|(i, e)| e.map(|e| (i, e * 2))) {
-            self.edges.entry(input).or_default().insert(Connection::Component(2 * idx + 1, port));
-        }
-        
-        let filtered = outputs
-            .into_iter()
-            .filter_map(|e| e.map(|e| Connection::Subnet(e * 2)))
+            .filter_map(|(i, e)| e.map(|e| (component.port_type(i).unwrap(), i, e)))
             .collect::<Vec<_>>();
         
-        if filtered.len() > 0 {
-            self.edges
-                .entry(2 * idx + 1)
-                .or_default()
-                .extend(filtered);
+        let idx = self.alloc_component(component);
+    
+        for port in ports {
+            self.add_edge(port.2, idx, port.1, port.0.into());
         }
         
         Ok(idx)
     }
     
     pub(crate) fn remove_component(&mut self, id: i32) -> bool {
-        let component = match self.components.remove(&id) {
-            Some(c) => c,
-            None => return false,
+        if self.components.remove(&id).is_none() {
+            return false
         };
         
         self.components_free.push(Reverse(id));
-        
-        self.edges.remove(&(2 * id + 1));
     
-        for i in self.subnets.keys().map(|e| *e * 2) {
-            if let Entry::Occupied(mut inner) = self.edges.entry(i) {
-                for input in 0..component.inputs() {
-                    inner.get_mut().remove(&Connection::Component(2 * id + 1, input));
-                }
-            }
+        let mut to_remove = Vec::new();
+        
+        for edge in self.edges.get(&id).unwrap() {
+            to_remove.push(edge.clone());
+        }
+    
+        for r in to_remove {
+            self.remove_edge(&r);
         }
         
         true
@@ -99,140 +93,213 @@ impl Data {
             return false;
         }
     
-        let id = 2 * id;
-        
-        self.edges.remove(&id);
-        
-        for i in (0..self.components.len() as i32).map(|e| 2 * e + 1) {
-            if let Entry::Occupied(mut inner) = self.edges.entry(i) {
-                inner.get_mut().remove(&Connection::Subnet(id));
+        if let Some(edges) = self.edges.get(&(2 * id)) {
+            let mut to_remove = Vec::new();
+    
+            for edge in edges {
+                to_remove.push(edge.clone());
+            }
+    
+            for r in to_remove {
+                self.remove_edge(&r);
             }
         }
         
         true
     }
     
-    pub(crate) fn link(&mut self, component: i32, port: usize, subnet: i32, direction: bool) -> bool {
-        //true is component to subnet, false is subnet to component
-        !if direction {
-            self.edges.entry(component * 2 + 1).or_default().insert(Connection::Subnet(subnet * 2))
-        } else {
-            self.edges.entry(subnet * 2).or_default().insert(Connection::Component(component * 2 + 1, port))
-        }
+    pub(crate) fn link(&mut self, component: i32, port: usize, subnet: i32) -> bool {
+        let direction = match self.port_direction_component(component, port) {
+            Some(t) => t,
+            None => return false,
+        };
+        
+        self.add_edge(subnet, component, port, direction);
+        
+        true
     }
     
     pub(crate) fn unlink(&mut self, component: i32, port: usize, subnet: i32) -> bool {
-        let mut found = false;
+        let direction = match self.port_direction_component(component, port) {
+            Some(t) => t,
+            None => return false,
+        };
         
-        if let Entry::Occupied(mut inner) = self.edges.entry(component * 2 + 1) {
-            if inner.get_mut().remove(&Connection::Subnet(subnet * 2)) {
-                found = true;
+        self.remove_edge(&Edge::new(subnet, component, port, direction));
+        
+        true
+    }
+    
+    fn add_edge(&mut self, subnet: i32, component: i32, port: usize, direction: EdgeDirection) {
+        let edge = Edge::new(subnet, component, port, direction);
+    
+        let mut removing = Vec::new();
+        if let Entry::Occupied(inner) = self.edges.entry(2 * subnet) {
+            let same = inner.get().iter().find(|e| e.same_nodes(&edge));
+            if let Some(same) = same { //This edge already exists
+                removing.push(same.clone());
             }
         }
     
-        if let Entry::Occupied(mut inner) = self.edges.entry(subnet * 2) {
-            if inner.get_mut().remove(&Connection::Component(component * 2 + 1, port)) {
-                found = true;
+        for r in removing {
+            self.remove_edge(&r);
+        }
+        
+        // here, we're guaranteed to not have an edge between the subnet and the component's port
+        // so we can just put in edges without worry of collision
+        self.edges.entry(2 * component + 1).or_default().insert(edge.clone());
+        self.edges.entry(2 * subnet).or_default().insert(edge);
+    }
+    
+    fn remove_edge(&mut self, edge: &Edge) {
+        self.edges.get_mut(&(edge.component)).unwrap().remove(edge);
+        self.edges.get_mut(&(edge.subnet)).unwrap().remove(edge);
+        if self.edges.get(&(edge.component)).unwrap().len() == 0 {
+            self.edges.remove(&(edge.component));
+        }
+        if self.edges.get(&(edge.subnet)).unwrap().len() == 0 {
+            self.edges.remove(&(edge.subnet));
+        }
+    }
+    
+    fn port_direction_component(&self, component: i32, port: usize) -> Option<EdgeDirection> {
+        Some(self.components.get(&component)?.port_type(port)?.to_edge_direction())
+    }
+    
+    pub(crate) fn advance_time(&mut self) {
+        let to_simulate = match self.dirty_subnets.pop_front() {
+            Some(t) => t,
+            None => return,
+        };
+    
+        let mut simulating = HashSet::new();
+        for subnet in to_simulate {
+            for edge in self.edges.get(&(2 * subnet)).unwrap() {
+                if edge.direction != EdgeDirection::ToSubnet {
+                    simulating.insert((edge.component - 1) / 2);
+                }
+            }
+        }
+    
+        for s in simulating {
+            self.simulate(s);
+        }
+    }
+    
+    fn simulate(&mut self, component: i32) {
+        let comp = &**self.components.get(&component).unwrap();
+        let edges = self.edges.get(&(2 * component + 1)).unwrap();
+        let mut searching = HashSet::new();
+        let mut dirty_ports = HashSet::new();
+        for (port_idx, port_type) in comp.ports_type()
+            .into_iter()
+            .enumerate()
+        {
+            if port_type != PortType::Output {
+                searching.insert(port_idx);
+            } else if port_type != PortType::Input {
+                dirty_ports.insert(port_idx);
+            }
+        }
+    
+        let mut states = HashMap::new();
+        let mut dirtying = HashMap::new();
+        
+        for edge in edges {
+            if searching.contains(&edge.port) {
+                let val = self.subnets.get(&(edge.subnet / 2)).unwrap().val();
+                states.insert(edge.port, val);
+            } else if dirty_ports.contains(&edge.port) {
+                dirtying.insert(edge.port, edge.subnet / 2);
             }
         }
         
-        found
+        if states.len() != searching.len() {
+            return;
+        }
+        
+        let res = comp.evaluate(states).unwrap();
+    
+        for (port, state) in res {
+            let subnet = dirtying.get(&port).unwrap();
+            self.update_subnet(*subnet, state);
+        }
+    }
+    
+    fn update_subnet(&mut self, subnet: i32, state: SubnetState) {
+        self.subnets.get_mut(&subnet).unwrap().update(state);
+        if self.dirty_subnets.len() == 0 { //maybe change to account for propagation time
+            self.dirty_subnets.push_back(HashSet::new());
+        }
+        self.dirty_subnets.get_mut(0).unwrap().insert(subnet);
+    }
+    
+    pub(crate) fn dirty_subnet(&mut self, subnet: i32) {
+        self.update_subnet(subnet, self.subnets.get(&subnet).unwrap().val());
+    }
+    
+    pub(crate) fn subnet(&self, subnet: i32) -> Option<&Subnet> {
+        self.subnets.get(&subnet)
+    }
+    
+    pub(crate) fn port_state(&self, component: i32, port: usize) -> Option<SubnetState> {
+        for edge in self.edges.get(&(2 * component + 1))? {
+            if edge.port == port {
+                return Some(self.subnets.get(&(edge.subnet / 2))?.val())
+            }
+        }
+        
+        None
+    }
+    
+    #[cfg(test)]
+    fn update_silent(&mut self, subnet: i32, state: SubnetState) {
+        self.subnets.get_mut(&subnet).unwrap().update(state);
     }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum Connection {
-    Subnet(i32),
+    Subnet(i32, usize),
     Component(i32, usize),
 }
 
-#[cfg(test)]
-mod test {
-    use crate::data::component::{AND, Output};
-    
-    use super::*;
-    
-    macro_rules! map (
-        ( $($key:expr => $value:expr),+ ) => {
-            {
-                let mut m = ::std::collections::HashMap::new();
-                $(
-                    m.insert($key, $value);
-                )+
-                m
-            }
-        };
-        () => {
-            {
-                ::std::collections::HashMap::new()
-            }
-        };
-    );
-    
-    macro_rules! set {
-        ( $($val:expr),+ ) => {
-            {
-                let mut s = ::std::collections::HashSet::new();
-                $(
-                    s.insert($val);
-                )+
-                s
-            }
-        };
-        () => {
-            {
-                ::std::collections::HashSet::new();
-            }
-        };
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
+struct Edge {
+    subnet: i32,
+    component: i32,
+    port: usize,
+    direction: EdgeDirection,
+}
+
+impl Edge {
+    fn new(subnet: i32, component: i32, port: usize, direction: EdgeDirection) -> Self {
+        Self {
+            subnet: 2 * subnet,
+            component: 2 * component + 1,
+            port, direction
+        }
     }
     
-    #[test]
-    fn test_adding_components() {
-        let mut data = Data::new();
-        
-        data.add_subnet(0);
-        
-        assert!(data.add_component(Box::new(Output {}), vec![Some(0)], vec![]).is_ok());
-        
-        data.add_subnet(1);
-        data.add_subnet(5);
-        
-        assert!(data.add_component(Box::new(AND {}), vec![Some(1), Some(5)], vec![Some(0)]).is_ok());
-        
-        assert!(data.add_component(Box::new(Output {}), vec![Some(0)], vec![]).is_ok());
-        
-        assert_eq!(data.edges, map!(
-            2 => set!(Connection::Component(3, 0)),
-            10 => set!(Connection::Component(3, 1)),
-            3 => set!(Connection::Subnet(0)),
-            0 => set!(Connection::Component(1, 0), Connection::Component(5, 0))
-        ));
-        
-        assert!(data.add_component(Box::new(AND {}), vec![], vec![]).is_err());
+    fn same_nodes(&self, other: &Self) -> bool {
+        self.subnet == other.subnet &&
+            self.component == other.component &&
+            self.port == other.port
     }
     
-    #[test]
-    fn test_removing_subnets() {
-        let mut data = Data::new();
-        
-        data.add_subnet(0);
-        data.add_subnet(1);
-        
-        assert_eq!(data.edges, map!());
-        
-        assert!(data.add_component(Box::new(Output {}), vec![Some(0)], vec![]).is_ok());
-        
-        assert_eq!(data.edges, map!(0 => set!(Connection::Component(1, 0))));
-        
-        assert!(data.remove_subnet(0));
-        
-        assert_eq!(data.edges, map!());
-        
-        assert!(data.remove_subnet(1));
-    
-        assert_eq!(data.edges, map!());
-        
-        assert!(!data.remove_subnet(0));
-        assert!(!data.remove_subnet(3));
+    fn add_direction(mut self, direction: EdgeDirection) -> Self {
+        if self.direction == direction {
+            self
+        } else {
+            self.direction = EdgeDirection::Bidirectional;
+            self
+        }
     }
+}
+
+#[derive(Debug, Eq, PartialEq, Clone, Copy, Hash)]
+pub(crate) enum EdgeDirection {
+    ToComponent,
+    ToSubnet,
+    Bidirectional,
 }
