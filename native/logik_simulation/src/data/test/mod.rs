@@ -314,3 +314,25 @@ fn test_error_driving() {
         2 => subnet!(SubnetState::Error)
     ));
 }
+
+#[test]
+fn test_linking() {
+    let mut data = Data::new();
+    
+    assert!(data.add_component(Box::new(AND {}), vec![None, None, None]).is_ok());
+    
+    data.add_subnet(0);
+    data.add_subnet(1);
+    data.add_subnet(2);
+    
+    data.update_subnet(0, SubnetState::On);
+    data.update_subnet(1, SubnetState::On);
+    
+    assert!(data.link(1, 0, 0));
+    assert!(data.link(1, 1, 1));
+    assert!(data.link(1, 2, 2));
+    
+    assert_eq!(data.dirty_subnets, VecDeque::from(vec![]));
+    
+    assert_eq!(data.subnets.get(&2).unwrap().val(), SubnetState::On);
+}

@@ -118,6 +118,8 @@ impl Data {
         };
         
         self.add_edge(subnet, component, port, direction);
+        self.dirty_component_inputs(component);
+        self.process_till_clean();
         
         true
     }
@@ -129,6 +131,8 @@ impl Data {
         };
         
         self.remove_edge(&Edge::new(subnet, component, port, direction));
+        self.dirty_component_inputs(component);
+        self.process_till_clean();
         
         true
     }
@@ -177,7 +181,7 @@ impl Data {
     
         let mut simulating = HashSet::new();
         for subnet in to_simulate {
-            for edge in self.edges.get(&(2 * subnet)).unwrap() {
+            for edge in self.edges.get(&(2 * subnet)).unwrap_or(&HashSet::new()) {
                 if edge.direction != EdgeDirection::ToSubnet {
                     simulating.insert((edge.component - 1) / 2);
                 }
@@ -243,11 +247,27 @@ impl Data {
         let mut updating: HashMap<i32, HashSet<SubnetState>> = HashMap::new();
         
         for (port, state) in res {
-            let subnet = dirtying.get(&port).unwrap();
-            updating.entry(*subnet).or_default().insert(state);
+            if let Some(subnet) = dirtying.get(&port) {
+                updating.entry(*subnet).or_default().insert(state);
+            }
         }
         
         updating
+    }
+    
+    fn dirty_component_inputs(&mut self, component: i32) {
+        let edges = self.edges.get(&(2 * component + 1)).unwrap();
+    
+        let mut dirtying = Vec::new();
+        for edge in edges {
+            if edge.direction != EdgeDirection::ToSubnet {
+                dirtying.push(edge.subnet / 2);
+            }
+        }
+    
+        for d in dirtying {
+            self.dirty_subnet(d);
+        }
     }
     
     fn update_subnet(&mut self, subnet: i32, state: SubnetState) {
@@ -262,7 +282,10 @@ impl Data {
     }
     
     pub(crate) fn dirty_subnet(&mut self, subnet: i32) {
-        self.update_subnet(subnet, self.subnets.get(&subnet).unwrap().val());
+        if self.dirty_subnets.len() == 0 {
+            self.dirty_subnets.push_back(HashSet::new());
+        }
+        self.dirty_subnets.get_mut(0).unwrap().insert(subnet);
     }
     
     pub(crate) fn subnet(&self, subnet: i32) -> Option<&Subnet> {
@@ -279,16 +302,19 @@ impl Data {
         None
     }
     
+    fn process_till_clean(&mut self) -> bool {
+        const MAX_ITERS: i32 = 1000;
+        for _ in 0..MAX_ITERS {
+            self.advance_time();
+        }
+        
+        false
+    }
+    
     #[cfg(test)]
     fn update_silent(&mut self, subnet: i32, state: SubnetState) {
         self.subnets.get_mut(&subnet).unwrap().update(state);
     }
-}
-
-#[derive(Debug, Eq, PartialEq, Clone, Hash)]
-pub enum Connection {
-    Subnet(i32, usize),
-    Component(i32, usize),
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
