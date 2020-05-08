@@ -242,6 +242,16 @@ impl Data {
         self.subnets.get(&subnet)
     }
     
+    pub(crate) fn port_state(&self, component: i32, port: usize) -> Option<SubnetState> {
+        for edge in self.edges.get(&(2 * component + 1))? {
+            if edge.port == port {
+                return Some(self.subnets.get(&(edge.subnet / 2))?.val())
+            }
+        }
+        
+        None
+    }
+    
     #[cfg(test)]
     fn update_silent(&mut self, subnet: i32, state: SubnetState) {
         self.subnets.get_mut(&subnet).unwrap().update(state);

@@ -48,6 +48,9 @@ namespace LogikUI.Interop
         
         [DllImport(Lib, EntryPoint = "subnet_state", ExactSpelling = true, CallingConvention = CallingConv)]
         public static extern ValueState SubnetState(Data data, int subnet);
+
+        [DllImport(Lib, EntryPoint = "port_state", ExactSpelling = true, CallingConvention = CallingConv)]
+        public static extern ValueState PortState(Data data, int component, UIntPtr port);
     }
 
     public struct Data

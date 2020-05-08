@@ -107,3 +107,10 @@ pub extern "C" fn subnet_state(data: *mut Data, subnet: i32) -> SubnetState {
     
     data.subnet(subnet).unwrap().val()
 }
+
+#[no_mangle]
+pub extern "C" fn port_state(data: *mut Data, component: i32, port: usize) -> SubnetState {
+    let data = unsafe { &mut *data };
+    
+    data.port_state(component, port).unwrap()
+}
