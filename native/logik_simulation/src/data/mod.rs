@@ -23,6 +23,7 @@ pub struct Data {
     // subnets live on even indices
     dirty_subnets: VecDeque<HashSet<i32>>,
     changed_subnets: HashMap<i32, SubnetState>, //<subnet, old state>
+    clocks: Vec<i32>,
 }
 
 impl Data {
@@ -34,6 +35,7 @@ impl Data {
             edges: HashMap::new(),
             dirty_subnets: VecDeque::new(),
             changed_subnets: HashMap::new(),
+            clocks: Vec::new(),
         }
     }
     
@@ -67,6 +69,10 @@ impl Data {
         Ok(idx)
     }
     
+    pub(crate) fn clock(&mut self, clock_id: i32) {
+        self.clocks.push(clock_id);
+    }
+    
     pub(crate) fn remove_component(&mut self, id: i32) -> bool {
         if self.components.remove(&id).is_none() {
             return false
@@ -84,7 +90,10 @@ impl Data {
     
         for r in to_remove {
             self.remove_edge(&r);
+            self.dirty_subnet(r.subnet / 2);
         }
+        
+        self.process_until_clean();
         
         true
     }
@@ -120,8 +129,8 @@ impl Data {
         };
         
         self.add_edge(subnet, component, port, direction);
-        self.dirty_component_inputs(component);
-        self.process_till_clean();
+        self.update_component(component);
+        self.process_until_clean();
         
         true
     }
@@ -133,8 +142,9 @@ impl Data {
         };
         
         self.remove_edge(&Edge::new(subnet, component, port, direction));
-        self.dirty_component_inputs(component);
-        self.process_till_clean();
+        self.dirty_subnet(subnet);
+        self.update_component(component);
+        self.process_until_clean();
         
         true
     }
@@ -194,7 +204,7 @@ impl Data {
         
         std::mem::swap(&mut self.changed_subnets, &mut old_state);
         
-        let mut diff: HashMap<_, HashSet<SubnetState>> = HashMap::new();
+        let mut diff: HashMap<i32, HashSet<SubnetState>> = HashMap::new();
         
         for s in simulating {
             let d = self.simulate(s, &old_state);
@@ -208,6 +218,8 @@ impl Data {
         }
     }
     
+    /// Takes in a component id and the difference between the old state and the current and
+    /// outputs a map of what states the subnets should have next iteration
     fn simulate(&mut self, component: i32, old_state: &HashMap<i32, SubnetState>) -> HashMap<i32, HashSet<SubnetState>> {
         let comp = &**self.components.get(&component).unwrap();
         let edges = self.edges.get(&(2 * component + 1)).unwrap();
@@ -253,21 +265,27 @@ impl Data {
         updating
     }
     
-    fn dirty_component_inputs(&mut self, component: i32) {
-        let edges = self.edges.get(&(2 * component + 1)).unwrap();
+    /// Forces a component to update and advances time. Is probably called when the user places a
+    /// components and wants the changes to propagate. Also empties propagates changes until no
+    /// more updates are happening.
+    fn update_component(&mut self, component: i32) {
+        let mut old_state = HashMap::new();
+        
+        std::mem::swap(&mut old_state, &mut self.changed_subnets);
+        
+        let diff = self.simulate(component, &old_state);
+        
+        self.apply_state_diff(diff);
+    }
     
-        let mut dirtying = Vec::new();
-        for edge in edges {
-            if edge.direction != EdgeDirection::ToSubnet {
-                dirtying.push(edge.subnet / 2);
-            }
-        }
-    
-        for d in dirtying {
-            self.dirty_subnet(d);
+    /// Takes a change in subnet_state and updates the relevant subnets
+    fn apply_state_diff(&mut self, diff: HashMap<i32, HashSet<SubnetState>>) {
+        for (subnet, proposals) in diff {
+            self.update_subnet(subnet, SubnetState::work_out_diff(&proposals));
         }
     }
     
+    /// Changes a subnets value and enques it in dirty_subnets if the state changed
     fn update_subnet(&mut self, subnet: i32, state: SubnetState) {
         let old_state = self.subnets.get(&subnet).unwrap().val();
         if self.subnets.get_mut(&subnet).unwrap().update(state) { //we actually changed a subnet
@@ -279,6 +297,7 @@ impl Data {
         }
     }
     
+    /// Dirties a subnet
     pub(crate) fn dirty_subnet(&mut self, subnet: i32) {
         if self.dirty_subnets.len() == 0 {
             self.dirty_subnets.push_back(HashSet::new());
@@ -286,10 +305,12 @@ impl Data {
         self.dirty_subnets.get_mut(0).unwrap().insert(subnet);
     }
     
-    pub(crate) fn subnet(&self, subnet: i32) -> Option<&Subnet> {
-        self.subnets.get(&subnet)
+    /// Gets the state of a subnet
+    pub(crate) fn subnet_state(&self, subnet: i32) -> Option<SubnetState> {
+        Some(self.subnets.get(&subnet)?.val())
     }
     
+    /// Gets the state of a subnet which a port is connected to
     pub(crate) fn port_state(&self, component: i32, port: usize) -> Option<SubnetState> {
         for edge in self.edges.get(&(2 * component + 1))? {
             if edge.port == port {
@@ -300,7 +321,7 @@ impl Data {
         None
     }
     
-    fn process_till_clean(&mut self) -> bool {
+    fn process_until_clean(&mut self) -> bool {
         const MAX_ITERS: i32 = 1000;
         for _ in 0..MAX_ITERS {
             self.advance_time();
@@ -309,12 +330,21 @@ impl Data {
         false
     }
     
+    /// Toggles all clocks
+    pub(crate) fn time_step(&mut self) {
+        for clock in &self.clocks {
+            self.update_component(*clock);
+        }
+        self.process_until_clean();
+    }
+    
     #[cfg(test)]
     fn update_silent(&mut self, subnet: i32, state: SubnetState) {
         self.subnets.get_mut(&subnet).unwrap().update(state);
     }
 }
 
+/// Stores subnets and components in edge-query format
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 struct Edge {
     subnet: i32,

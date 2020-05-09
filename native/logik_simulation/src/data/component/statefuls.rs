@@ -288,3 +288,38 @@ impl SRFlipFlop {
         Self { state: Cell::new(false) }
     }
 }
+
+#[derive(Debug)]
+pub(crate) struct Clock {
+    state: Cell<bool>,
+}
+
+impl Component for Clock {
+    fn ports(&self) -> usize {
+        1
+    }
+    
+    fn port_type(&self, port: usize) -> Option<PortType> {
+        match port {
+            0 => Some(PortType::Output),
+            _ => None,
+        }
+    }
+    
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let val = match self.state.get() {
+            true => SubnetState::On,
+            false => SubnetState::Off
+        };
+        
+        self.state.set(!self.state.get());
+        
+        map!(0 => val)
+    }
+}
+
+impl Clock {
+    pub(crate) fn new() -> Self {
+        Self { state: Cell::new(false) }
+    }
+}

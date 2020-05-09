@@ -36,7 +36,7 @@ pub extern "C" fn remove_subnet(data: *mut Data, id: i32) -> bool {
 pub extern "C" fn add_component(data: *mut Data, component: i32) -> i32 {
     let data = unsafe { &mut *data};
     
-    let component: Box<dyn Component> = match component {
+    let comp: Box<dyn Component> = match component {
         1 => Box::new(Constant::new()),
         2 => Box::new(OutputGate {}),
         3 => Box::new(InputGate {}),
@@ -57,14 +57,19 @@ pub extern "C" fn add_component(data: *mut Data, component: i32) -> i32 {
         102 => Box::new(JKFlipFlop::new()),
         103 => Box::new(SRFlipFlop::new()),
         300 => Box::new(Probe {}),
+        302 => Box::new(Clock::new()),
         _ => unreachable!()
     };
     
-    let p = component.ports();
+    let p = comp.ports();
     
-    let res = data.add_component(component, iter::repeat(None).take(p).collect());
+    let res = data.add_component(comp, iter::repeat(None).take(p).collect()).unwrap();
     
-    res.unwrap() as i32
+    if component == 302 {
+        data.clock(res);
+    }
+    
+    res
 }
 
 #[no_mangle]
@@ -92,21 +97,14 @@ pub extern "C" fn unlink(data: *mut Data, component: i32, port: i32, subnet: i32
 pub extern "C" fn tick(data: *mut Data) {
     let data = unsafe { &mut *data };
     
-    data.advance_time();
-}
-
-#[no_mangle]
-pub extern "C" fn dirty_subnet(data: *mut Data, subnet: i32) {
-    let data = unsafe { &mut *data };
-    
-    data.dirty_subnet(subnet);
+    data.time_step();
 }
 
 #[no_mangle]
 pub extern "C" fn subnet_state(data: *mut Data, subnet: i32) -> SubnetState {
     let data = unsafe { &mut *data };
     
-    data.subnet(subnet).unwrap().val()
+    data.subnet_state(subnet).unwrap()
 }
 
 #[no_mangle]
