@@ -12,7 +12,7 @@ pub(crate) trait Component: Debug {
     fn port_type(&self, port: usize) -> Option<PortType>;
     // requires that data has a value for every input or bidirectional port
     // and in turn guarantees that the return value has a value for every output or bidirectional port
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>>;
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState>;
     
     fn ports_type(&self) -> Vec<PortType> {
         (0..self.ports())
@@ -68,4 +68,11 @@ impl StateChange {
         self.old == SubnetState::On &&
             self.current == SubnetState::Off
     }
+}
+
+#[macro_export]
+macro_rules! port_or_default {
+    ($data:ident ,$id:expr) => {
+        $data.get(&($id)).map(|e| e.current).unwrap_or(SubnetState::Floating)
+    };
 }

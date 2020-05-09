@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use crate::data::component::{StateChange, PortType, Component};
 use crate::data::subnet::SubnetState;
-use crate::map;
+use crate::{map, port_or_default};
 
 /// Placeholder for now
 #[derive(Debug)]
@@ -19,8 +19,8 @@ impl Component for OutputGate {
         }
     }
     
-    fn evaluate(&self, _: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        Some(map!())
+    fn evaluate(&self, _: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        map!()
     }
 }
 
@@ -39,8 +39,8 @@ impl Component for InputGate {
         }
     }
     
-    fn evaluate(&self, _: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        Some(map!(0 => SubnetState::On))
+    fn evaluate(&self, _: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        map!(0 => SubnetState::On)
     }
 }
 
@@ -60,12 +60,10 @@ impl Component for Buffer {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if !data.contains_key(&0) {
-            return None;
-        }
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let input = port_or_default!(data, 0);
         
-        Some(map!(1 => data.get(&0).unwrap().current))
+        map!(1 => input)
     }
 }
 
@@ -85,16 +83,14 @@ impl Component for NOT {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if !data.contains_key(&0) {
-            return None;
-        }
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let input = port_or_default!(data, 0);
         
-        Some(map!(1 => match data.get(&0).unwrap().current {
+        map!(1 => match input {
             SubnetState::Off => SubnetState::On,
             SubnetState::On => SubnetState::Off,
             _ => SubnetState::Error
-        }))
+        })
     }
 }
 
@@ -115,24 +111,20 @@ impl Component for AND {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if !(data.contains_key(&0) && data.contains_key(&1)) {
-            return None;
-        }
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let a = port_or_default!(data, 0);
+        let b = port_or_default!(data, 1);
         
-        if let (Some(port1), Some(port2)) = (data.get(&0), data.get(&1)) {
-            Some(map!(
+        map!(
                 2 =>
-            if port1.current == SubnetState::Off || port2.current == SubnetState::Off {
+            if a == SubnetState::Off || b == SubnetState::Off {
                 SubnetState::Off
-            } else if port1.current == SubnetState::On && port2.current == SubnetState::On {
+            } else if b == SubnetState::On && b == SubnetState::On {
                 SubnetState::On
             } else {
                 SubnetState::Error
-            }))
-        } else {
-            None
-        }
+            }
+        )
     }
 }
 
@@ -152,24 +144,19 @@ impl Component for NAND {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if !(data.contains_key(&0) && data.contains_key(&1)) {
-            return None;
-        }
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let a = port_or_default!(data, 0);
+        let b = port_or_default!(data, 1);
         
-        if let (Some(port1), Some(port2)) = (data.get(&0), data.get(&1)) {
-            Some(map!(
-                2 =>
-            if port1.current == SubnetState::Off || port2.current == SubnetState::Off {
+        map!( 2 =>
+            if a == SubnetState::Off || b == SubnetState::Off {
                 SubnetState::On
-            } else if port1.current == SubnetState::On && port2.current == SubnetState::On {
+            } else if a == SubnetState::On && b == SubnetState::On {
                 SubnetState::Off
             } else {
                 SubnetState::Error
-            }))
-        } else {
-            None
-        }
+            }
+        )
     }
 }
 
@@ -189,24 +176,20 @@ impl Component for OR {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if !(data.contains_key(&0) && data.contains_key(&1)) {
-            return None;
-        }
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let a = port_or_default!(data, 0);
+        let b = port_or_default!(data, 1);
         
-        if let (Some(port1), Some(port2)) = (data.get(&0), data.get(&1)) {
-            Some(map!(
-                2 =>
-            if port1.current == SubnetState::On || port2.current == SubnetState::On {
+        
+        map!(2 =>
+            if a == SubnetState::On || b == SubnetState::On {
                 SubnetState::On
-            } else if port1.current == SubnetState::Off && port2.current == SubnetState::Off {
+            } else if a == SubnetState::Off && b == SubnetState::Off {
                 SubnetState::Off
             } else {
                 SubnetState::Error
-            }))
-        } else {
-            None
-        }
+            }
+        )
     }
 }
 
@@ -226,24 +209,19 @@ impl Component for NOR {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if !(data.contains_key(&0) && data.contains_key(&1)) {
-            return None;
-        }
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let a = port_or_default!(data, 0);
+        let b = port_or_default!(data, 1);
         
-        if let (Some(port1), Some(port2)) = (data.get(&0), data.get(&1)) {
-            Some(map!(
-                2 =>
-            if port1.current == SubnetState::On || port2.current == SubnetState::On {
+        map!(2 =>
+            if a == SubnetState::On || b == SubnetState::On {
                 SubnetState::Off
-            } else if port1.current == SubnetState::Off && port2.current == SubnetState::Off {
+            } else if a == SubnetState::Off && b == SubnetState::Off {
                 SubnetState::On
             } else {
                 SubnetState::Error
-            }))
-        } else {
-            None
-        }
+            }
+        )
     }
 }
 
@@ -263,25 +241,20 @@ impl Component for XOR {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if !(data.contains_key(&0) && data.contains_key(&1)) {
-            return None;
-        }
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let a = port_or_default!(data, 0);
+        let b = port_or_default!(data, 1);
         
-        if let (Some(port1), Some(port2)) = (data.get(&0), data.get(&1)) {
-            Some(map!(
-                2 =>
-            if port1.current == SubnetState::Floating || port1.current == SubnetState::Error ||
-                port2.current == SubnetState::Floating || port2.current == SubnetState::Error {
+        map!(2 =>
+            if a == SubnetState::Floating || a == SubnetState::Error ||
+                b == SubnetState::Floating || b == SubnetState::Error {
                 SubnetState::Error
-            } else if port1.current == port2.current {
+            } else if a == b {
                 SubnetState::Off
             } else {
                 SubnetState::On
-            }))
-        } else {
-            None
-        }
+            }
+        )
     }
 }
 
@@ -301,24 +274,80 @@ impl Component for XNOR {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if !(data.contains_key(&0) && data.contains_key(&1)) {
-            return None;
-        }
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let a = port_or_default!(data, 0);
+        let b = port_or_default!(data, 1);
         
-        if let (Some(port1), Some(port2)) = (data.get(&0), data.get(&1)) {
-            Some(map!(
-                2 =>
-            if port1.current == SubnetState::Floating || port1.current == SubnetState::Error ||
-                port2.current == SubnetState::Floating || port2.current == SubnetState::Error {
+        map!(2 =>
+            if a == SubnetState::Floating || a == SubnetState::Error ||
+                b == SubnetState::Floating || b == SubnetState::Error {
                 SubnetState::Error
-            } else if port1.current == port2.current {
+            } else if a == b {
                 SubnetState::On
             } else {
                 SubnetState::Off
-            }))
+            }
+        )
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct TriBuffer {}
+
+impl Component for TriBuffer {
+    fn ports(&self) -> usize {
+        3 // 0 is input, 1 is enable, 2 is output
+    }
+    
+    fn port_type(&self, port: usize) -> Option<PortType> {
+        match port {
+            0 | 1 => Some(PortType::Input),
+            2 => Some(PortType::Output),
+            _ => None,
+        }
+    }
+    
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let input = port_or_default!(data, 0);
+        let enable = port_or_default!(data, 1);
+        
+        if enable.truthy() {
+            map!(2 => input)
         } else {
-            None
+            map!(2 => SubnetState::Floating)
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct TriInverter {}
+
+impl Component for TriInverter {
+    fn ports(&self) -> usize {
+        3 // 0 is input, 1 is enable, 2 is output
+    }
+    
+    fn port_type(&self, port: usize) -> Option<PortType> {
+        match port {
+            0 | 1 => Some(PortType::Input),
+            2 => Some(PortType::Output),
+            _ => None,
+        }
+    }
+    
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let input = port_or_default!(data, 0);
+        let enable = port_or_default!(data, 1);
+        
+        if enable.truthy() {
+            let input = match input {
+                SubnetState::On => SubnetState::Off,
+                SubnetState::Off => SubnetState::On,
+                _ => SubnetState::Error,
+            };
+            map!(2 => input)
+        } else {
+            map!(2 => SubnetState::Floating)
         }
     }
 }

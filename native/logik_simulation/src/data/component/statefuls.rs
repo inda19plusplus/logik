@@ -2,7 +2,7 @@ use crate::data::component::{Component, PortType, StateChange};
 use crate::data::subnet::SubnetState;
 use std::collections::HashMap;
 use std::cell::Cell;
-use crate::map;
+use crate::{map, port_or_default};
 
 impl SRFlipFlop {
     pub(crate) fn new() -> Self {
@@ -31,27 +31,29 @@ impl Component for DFlipFlop {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if let (Some(port0), Some(port1), Some(port2)) =
-            (data.get(&0), data.get(&1), data.get(&2)) {
-            if port1.rising() && port2.current != SubnetState::On {
-                if port0.current == SubnetState::On {
-                    self.state.set(true);
-                } else if port0.current == SubnetState::Off {
-                    self.state.set(false);
-                }
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let d = port_or_default!(data, 0);
+        let clock = data.get(&1).map(|e| e.rising()).unwrap_or(false);
+        let disable = port_or_default!(data, 2);
+        
+        if clock && disable != SubnetState::On {
+            if d == SubnetState::On {
+                self.state.set(true);
+            } else if d == SubnetState::Off {
+                self.state.set(false);
             }
         }
+        
     
         let vals = match self.state.get() {
             true => (SubnetState::On, SubnetState::Off),
             false => (SubnetState::Off, SubnetState::On),
         };
     
-        Some(map!(
-                3 => vals.0,
-                4 => vals.1
-            ))
+        map!(
+            3 => vals.0,
+            4 => vals.1
+        )
     }
 }
 
@@ -82,13 +84,14 @@ impl Component for TFlipFlop {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if let (Some(port0), Some(port1), Some(port2)) =
-        (data.get(&0), data.get(&1), data.get(&2)) {
-            if port1.rising() && port2.current != SubnetState::On {
-                if port0.current.truthy() {
-                    self.state.set(!self.state.get());
-                }
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let t = port_or_default!(data, 0);
+        let clock = data.get(&1).map(|e| e.rising()).unwrap_or(false);
+        let disable = port_or_default!(data, 2);
+        
+        if clock && disable != SubnetState::On {
+            if t.truthy() {
+                self.state.set(!self.state.get());
             }
         }
         
@@ -97,10 +100,10 @@ impl Component for TFlipFlop {
             false => (SubnetState::Off, SubnetState::On),
         };
         
-        Some(map!(
-                3 => vals.0,
-                4 => vals.1
-            ))
+        map!(
+            3 => vals.0,
+            4 => vals.1
+        )
     }
 }
 
@@ -131,29 +134,33 @@ impl Component for JKFlipFlop {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if let (Some(port0), Some(port1), Some(port2), Some(port3)) =
-            (data.get(&0), data.get(&1), data.get(&2), data.get(&3)) {
-            if port2.rising() && port3.current != SubnetState::On {
-                if port0.current.truthy() && port1.current.falsy() {
-                    self.state.set(true);
-                } else if port0.current.falsy() && port1.current.truthy() {
-                    self.state.set(false);
-                } else if port0.current.truthy() && port1.current.truthy() {
-                    self.state.set(!self.state.get());
-                }
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let j = port_or_default!(data, 0);
+        let k = port_or_default!(data, 1);
+        let clock = data.get(&2).map(|e| e.rising()).unwrap_or(false);
+        let disable = port_or_default!(data, 3);
+        
+        
+        if clock && disable != SubnetState::On {
+            if j.truthy() && k.falsy() {
+                self.state.set(true);
+            } else if j.falsy() && k.truthy() {
+                self.state.set(false);
+            } else if j.truthy() && k.truthy() {
+                self.state.set(!self.state.get());
             }
         }
+        
         
         let vals = match self.state.get() {
             true => (SubnetState::On, SubnetState::Off),
             false => (SubnetState::Off, SubnetState::On),
         };
         
-        Some(map!(
+        map!(
             4 => vals.0,
             5 => vals.1
-        ))
+        )
     }
 }
 
@@ -184,26 +191,30 @@ impl Component for SRFlipFlop {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if let (Some(port0), Some(port1), Some(port2), Some(port3)) =
-            (data.get(&0), data.get(&1), data.get(&2), data.get(&3)) {
-            if port2.rising() && port3.current != SubnetState::On {
-                if port0.current.truthy() && port1.current.falsy() {
-                    self.state.set(true);
-                } else if port1.current.truthy() && port0.current.falsy() {
-                    self.state.set(false);
-                }
+    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let s = port_or_default!(data, 0);
+        let r = port_or_default!(data, 1);
+        let clock = data.get(&2).map(|e| e.rising()).unwrap_or(false);
+        let disable = port_or_default!(data, 3);
+        
+        
+        if clock && disable != SubnetState::On {
+            if s.truthy() && r.falsy() {
+                self.state.set(true);
+            } else if s.falsy() && r.truthy() {
+                self.state.set(false);
             }
         }
+        
         
         let vals = match self.state.get() {
             true => (SubnetState::On, SubnetState::Off),
             false => (SubnetState::Off, SubnetState::On),
         };
         
-        Some(map!(
+        map!(
             4 => vals.0,
             5 => vals.1
-        ))
+        )
     }
 }

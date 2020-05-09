@@ -239,11 +239,7 @@ impl Data {
             }
         }
         
-        if states.len() != searching.len() {
-            return HashMap::new();
-        }
-        
-        let res = comp.evaluate(states).unwrap();
+        let res = comp.evaluate(states);
         let mut updating: HashMap<i32, HashSet<SubnetState>> = HashMap::new();
         
         for (port, state) in res {
