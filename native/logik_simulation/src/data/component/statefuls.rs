@@ -4,7 +4,71 @@ use std::collections::HashMap;
 use std::cell::Cell;
 use crate::{map, port_or_default};
 
-impl SRFlipFlop {
+#[derive(Debug)]
+pub(crate) struct Constant {
+    #[cfg(not(test))]
+    state: Cell<bool>,
+    #[cfg(test)]
+    pub state: Cell<bool>,
+}
+
+impl Component for Constant {
+    fn ports(&self) -> usize {
+        1
+    }
+    
+    fn port_type(&self, port: usize) -> Option<PortType> {
+        match port {
+            0 => Some(PortType::Output),
+            _ => None,
+        }
+    }
+    
+    fn evaluate(&self, _: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let val = match self.state.get() {
+            true => SubnetState::On,
+            false => SubnetState::Off,
+        };
+        map!(0 => val)
+    }
+}
+
+impl Constant {
+    pub(crate) fn new() -> Self {
+        Self { state: Cell::new(false) }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct Button {
+    #[cfg(not(test))]
+    state: Cell<bool>,
+    #[cfg(test)]
+    pub state: Cell<bool>,
+}
+
+impl Component for Button {
+    fn ports(&self) -> usize {
+        1
+    }
+    
+    fn port_type(&self, port: usize) -> Option<PortType> {
+        match port {
+            0 => Some(PortType::Output),
+            _ => None,
+        }
+    }
+    
+    fn evaluate(&self, _: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let val = match self.state.get() {
+            true => SubnetState::On,
+            false => SubnetState::Off,
+        };
+        map!(0 => val)
+    }
+}
+
+impl Button {
     pub(crate) fn new() -> Self {
         Self { state: Cell::new(false) }
     }
@@ -216,5 +280,11 @@ impl Component for SRFlipFlop {
             4 => vals.0,
             5 => vals.1
         )
+    }
+}
+
+impl SRFlipFlop {
+    pub(crate) fn new() -> Self {
+        Self { state: Cell::new(false) }
     }
 }

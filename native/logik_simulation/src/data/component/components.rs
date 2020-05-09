@@ -3,7 +3,6 @@ use crate::data::component::{StateChange, PortType, Component};
 use crate::data::subnet::SubnetState;
 use crate::{map, port_or_default};
 
-/// Placeholder for now
 #[derive(Debug)]
 pub(crate) struct OutputGate {}
 
@@ -349,5 +348,45 @@ impl Component for TriInverter {
         } else {
             map!(2 => SubnetState::Floating)
         }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct Probe {}
+
+impl Component for Probe {
+    fn ports(&self) -> usize {
+        1
+    }
+    
+    fn port_type(&self, port: usize) -> Option<PortType> {
+        match port {
+            0 => Some(PortType::Input),
+            _ => None,
+        }
+    }
+    
+    fn evaluate(&self, _: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        map!()
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct LED {}
+
+impl Component for LED {
+    fn ports(&self) -> usize {
+        1
+    }
+    
+    fn port_type(&self, port: usize) -> Option<PortType> {
+        match port {
+            0 => Some(PortType::Input),
+            _ => None,
+        }
+    }
+    
+    fn evaluate(&self, _: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        map!()
     }
 }

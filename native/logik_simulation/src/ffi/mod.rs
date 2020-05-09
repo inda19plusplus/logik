@@ -37,8 +37,11 @@ pub extern "C" fn add_component(data: *mut Data, component: i32) -> i32 {
     let data = unsafe { &mut *data};
     
     let component: Box<dyn Component> = match component {
+        1 => Box::new(Constant::new()),
         2 => Box::new(OutputGate {}),
         3 => Box::new(InputGate {}),
+        5 => Box::new(LED {}),
+        8 => Box::new(Button::new()),
         50 => Box::new(Buffer {}),
         51 => Box::new(NOT {}),
         52 => Box::new(AND {}),
@@ -53,6 +56,7 @@ pub extern "C" fn add_component(data: *mut Data, component: i32) -> i32 {
         101 => Box::new(TFlipFlop::new()),
         102 => Box::new(JKFlipFlop::new()),
         103 => Box::new(SRFlipFlop::new()),
+        300 => Box::new(Probe {}),
         _ => unreachable!()
     };
     

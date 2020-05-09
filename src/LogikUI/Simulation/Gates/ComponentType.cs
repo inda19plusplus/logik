@@ -11,10 +11,10 @@
         Output      = 2,
         Input       = 3,
         InputOutput = 4,
-        // LED = 5,
+        LED = 5,
         // LEDMatrix = 6,
         // SevenSegment = 7,
-        // Button = 8,
+        Button = 8,
         // Switch = 9,
 
         // Normal/standard gates (reserved range 50-99)
