@@ -1,4 +1,4 @@
-use crate::data::component::{AND, Output, NOT};
+use crate::data::component::components::*;
 use crate::{map, set};
 use super::*;
 use crate::data::component::statefuls::SRFlipFlop;
@@ -47,14 +47,14 @@ fn test_adding_components() {
     
     data.add_subnet(0);
     
-    assert!(data.add_component(Box::new(Output {}), vec![Some(0)]).is_ok());
+    assert!(data.add_component(Box::new(OutputGate {}), vec![Some(0)]).is_ok());
     
     data.add_subnet(1);
     data.add_subnet(5);
     
     assert!(data.add_component(Box::new(AND {}), vec![Some(1), Some(5), Some(0)]).is_ok());
     
-    assert!(data.add_component(Box::new(Output {}), vec![Some(0)]).is_ok());
+    assert!(data.add_component(Box::new(OutputGate {}), vec![Some(0)]).is_ok());
     
     assert_eq!(data.edges, map!(
             3 => set!(edge!(0, 3, 0, 0)),
@@ -77,7 +77,7 @@ fn test_removing_subnets() {
     
     assert_eq!(data.edges, map!());
     
-    assert!(data.add_component(Box::new(Output {}), vec![Some(0)]).is_ok());
+    assert!(data.add_component(Box::new(OutputGate {}), vec![Some(0)]).is_ok());
     
     assert_eq!(data.edges, map!(
             0 => set!(edge!(0, 3, 0, 0)),

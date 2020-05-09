@@ -1,7 +1,9 @@
 use crate::data::Data;
-use crate::data::component::{Component, Output, AND};
 use std::iter;
 use crate::data::subnet::SubnetState;
+use crate::data::component::components::*;
+use crate::data::component::Component;
+use crate::data::component::statefuls::SRFlipFlop;
 
 #[cfg(test)]
 mod test;
@@ -35,8 +37,21 @@ pub extern "C" fn add_component(data: *mut Data, component: i32) -> i32 {
     let data = unsafe { &mut *data};
     
     let component: Box<dyn Component> = match component {
-        0 => Box::new(Output {}),
-        _ => Box::new(AND {}) // TODO: make me the same as the ID:s in C#
+        2 => Box::new(OutputGate {}),
+        3 => Box::new(InputGate {}),
+        50 => Box::new(Buffer {}),
+        51 => Box::new(NOT {}),
+        52 => Box::new(AND {}),
+        53 => Box::new(NAND {}),
+        54 => Box::new(OR {}),
+        55 => Box::new(NOR {}),
+        56 => Box::new(XOR {}),
+        57 => Box::new(XNOR {}),
+        100 => Box::new(DFlipFlop::new()),
+        101 => Box::new(TFlipFlop::new()),
+        102 => Box::new(JKFlipFlop::new()),
+        103 => Box::new(SRFlipFlop::new()),
+        _ => unreachable!()
     };
     
     let p = component.ports();

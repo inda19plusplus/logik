@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 use crate::data::subnet::SubnetState;
-use crate::map;
 use std::collections::HashMap;
 use crate::data::EdgeDirection;
 
 pub(crate) mod statefuls;
+pub(crate) mod components;
 
 /// A trait to define common behaviour between the components
 pub(crate) trait Component: Debug {
@@ -67,119 +67,5 @@ impl StateChange {
     pub(crate) fn falling(&self) -> bool {
         self.old == SubnetState::On &&
             self.current == SubnetState::Off
-    }
-}
-
-/// Placeholder for now
-#[derive(Debug)]
-pub(crate) struct Output {
-
-}
-
-impl Component for Output {
-    fn ports(&self) -> usize {
-        1
-    }
-    
-    fn port_type(&self, port: usize) -> Option<PortType> {
-        match port {
-            0 => Some(PortType::Input),
-            _ => None,
-        }
-    }
-    
-    fn evaluate(&self, _: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        Some(map!())
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct Input {
-
-}
-
-impl Component for Input {
-    fn ports(&self) -> usize {
-        1
-    }
-    
-    fn port_type(&self, port: usize) -> Option<PortType> {
-        match port {
-            0 => Some(PortType::Output),
-            _ => None,
-        }
-    }
-    
-    fn evaluate(&self, _: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        Some(map!(0 => SubnetState::On))
-    }
-}
-
-/// Placeholder for now
-#[derive(Debug)]
-pub(crate) struct AND {
-
-}
-
-impl Component for AND {
-    fn ports(&self) -> usize {
-        3
-    }
-    
-    fn port_type(&self, port: usize) -> Option<PortType> {
-        match port {
-            0 | 1 => Some(PortType::Input),
-            2 => Some(PortType::Output),
-            _ => None,
-        }
-    }
-    
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if !(data.contains_key(&0) && data.contains_key(&1)) {
-            return None;
-        }
-        
-        if matches!(data.get(&0).unwrap().current, SubnetState::Error | SubnetState::Floating) ||
-            matches!(data.get(&1).unwrap().current, SubnetState::Error | SubnetState::Floating) {
-            return Some(map!(2 => SubnetState::Error));
-        }
-        
-        if data.get(&0).unwrap().current == SubnetState::On &&
-            data.get(&1).unwrap().current == SubnetState::On {
-            Some(map!(2 => SubnetState::On))
-        } else {
-            Some(map!(2 => SubnetState::Off))
-        }
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct NOT {
-
-}
-
-impl Component for NOT {
-    fn ports(&self) -> usize {
-        2
-    }
-    
-    fn port_type(&self, port: usize) -> Option<PortType> {
-        match port {
-            0 => Some(PortType::Input),
-            1 => Some(PortType::Output),
-            _ => None,
-        }
-    }
-    
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
-        if !data.contains_key(&0) {
-            return None;
-        }
-        
-        Some(map!(1 => match data.get(&0).unwrap().current {
-            SubnetState::Off => SubnetState::On,
-            SubnetState::On => SubnetState::Off,
-            _ => SubnetState::Error,
-        }))
     }
 }
