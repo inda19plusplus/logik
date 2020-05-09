@@ -186,7 +186,7 @@ impl Component for SRFlipFlop {
     
     fn evaluate(&self, data: HashMap<usize, StateChange>) -> Option<HashMap<usize, SubnetState>> {
         if let (Some(port0), Some(port1), Some(port2), Some(port3)) =
-        (data.get(&0), data.get(&1), data.get(&2), data.get(&3)) {
+            (data.get(&0), data.get(&1), data.get(&2), data.get(&3)) {
             if port2.rising() && port3.current != SubnetState::On {
                 if port0.current.truthy() && port1.current.falsy() {
                     self.state.set(true);

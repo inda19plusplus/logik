@@ -290,6 +290,34 @@ fn test_sr_latch() {
         4 => subnet!(SubnetState::On),
         5 => subnet!(SubnetState::Off)
     ));
+    
+    data.update_subnet(0, SubnetState::Off);
+    data.update_subnet(1, SubnetState::On);
+    data.update_subnet(2, SubnetState::Off);
+    
+    data.advance_time();
+    
+    assert_eq!(data.subnets, map!(
+        0 => subnet!(SubnetState::Off),
+        1 => subnet!(SubnetState::On),
+        2 => subnet!(SubnetState::Off),
+        3 => subnet!(SubnetState::Floating),
+        4 => subnet!(SubnetState::On),
+        5 => subnet!(SubnetState::Off)
+    ));
+    
+    data.update_subnet(2, SubnetState::On);
+    
+    data.advance_time();
+    
+    assert_eq!(data.subnets, map!(
+        0 => subnet!(SubnetState::Off),
+        1 => subnet!(SubnetState::On),
+        2 => subnet!(SubnetState::On),
+        3 => subnet!(SubnetState::Floating),
+        4 => subnet!(SubnetState::Off),
+        5 => subnet!(SubnetState::On)
+    ));
 }
 
 #[test]
