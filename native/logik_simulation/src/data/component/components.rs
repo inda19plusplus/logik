@@ -93,8 +93,7 @@ impl Component for NOT {
         Some(map!(1 => match data.get(&0).unwrap().current {
             SubnetState::Off => SubnetState::On,
             SubnetState::On => SubnetState::Off,
-            SubnetState::Floating => SubnetState::Floating,
-            SubnetState::Error => SubnetState::Error
+            _ => SubnetState::Error
         }))
     }
 }
@@ -129,7 +128,7 @@ impl Component for AND {
             } else if port1.current == SubnetState::On && port2.current == SubnetState::On {
                 SubnetState::On
             } else {
-                SubnetState::Floating
+                SubnetState::Error
             }))
         } else {
             None
@@ -166,7 +165,7 @@ impl Component for NAND {
             } else if port1.current == SubnetState::On && port2.current == SubnetState::On {
                 SubnetState::Off
             } else {
-                SubnetState::Floating
+                SubnetState::Error
             }))
         } else {
             None
@@ -203,7 +202,7 @@ impl Component for OR {
             } else if port1.current == SubnetState::Off && port2.current == SubnetState::Off {
                 SubnetState::Off
             } else {
-                SubnetState::Floating
+                SubnetState::Error
             }))
         } else {
             None
@@ -240,7 +239,7 @@ impl Component for NOR {
             } else if port1.current == SubnetState::Off && port2.current == SubnetState::Off {
                 SubnetState::On
             } else {
-                SubnetState::Floating
+                SubnetState::Error
             }))
         } else {
             None
@@ -274,7 +273,7 @@ impl Component for XOR {
                 2 =>
             if port1.current == SubnetState::Floating || port1.current == SubnetState::Error ||
                 port2.current == SubnetState::Floating || port2.current == SubnetState::Error {
-                SubnetState::Floating
+                SubnetState::Error
             } else if port1.current == port2.current {
                 SubnetState::Off
             } else {
@@ -312,7 +311,7 @@ impl Component for XNOR {
                 2 =>
             if port1.current == SubnetState::Floating || port1.current == SubnetState::Error ||
                 port2.current == SubnetState::Floating || port2.current == SubnetState::Error {
-                SubnetState::Floating
+                SubnetState::Error
             } else if port1.current == port2.current {
                 SubnetState::On
             } else {
