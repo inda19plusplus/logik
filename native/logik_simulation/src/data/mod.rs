@@ -21,9 +21,9 @@ pub struct Data {
     edges: HashMap<i32, HashSet<Edge>>, // key is node, value is all edges associated with the node
     // components live on odd indices
     // subnets live on even indices
+    clocks: Vec<i32>,
     dirty_subnets: VecDeque<HashSet<i32>>,
     changed_subnets: HashMap<i32, SubnetState>, //<subnet, old state>
-    clocks: Vec<i32>,
 }
 
 impl Data {
@@ -332,9 +332,15 @@ impl Data {
     
     /// Toggles all clocks
     pub(crate) fn time_step(&mut self) {
+        let mut updating = Vec::new();
         for clock in &self.clocks {
-            self.update_component(*clock);
+            updating.push(*clock);
         }
+        
+        for u in updating {
+            self.update_component(u);
+        }
+        
         self.process_until_clean();
     }
     
