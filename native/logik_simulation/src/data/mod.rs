@@ -75,9 +75,11 @@ impl Data {
         self.components_free.push(Reverse(id));
     
         let mut to_remove = Vec::new();
-        
-        for edge in self.edges.get(&id).unwrap() {
-            to_remove.push(edge.clone());
+    
+        if let Some(edges) = self.edges.get(&id) {
+            for edge in edges {
+                to_remove.push(edge.clone());
+            }
         }
     
         for r in to_remove {
