@@ -22,8 +22,7 @@ pub struct Data {
     // components live on odd indices
     // subnets live on even indices
     clocks: Vec<i32>,
-    dirty_subnets: VecDeque<HashSet<i32>>,
-    changed_subnets: HashMap<i32, SubnetState>, //<subnet, old state>
+    simulation: Simulator,
 }
 
 impl Data {
@@ -33,9 +32,8 @@ impl Data {
             components_free: BinaryHeap::new(),
             subnets: HashMap::new(),
             edges: HashMap::new(),
-            dirty_subnets: VecDeque::new(),
-            changed_subnets: HashMap::new(),
             clocks: Vec::new(),
+            simulation: Simulator::new(),
         }
     }
     
@@ -90,10 +88,10 @@ impl Data {
     
         for r in to_remove {
             self.remove_edge(&r);
-            self.dirty_subnet(r.subnet / 2);
+            self.simulation.dirty_subnet(r.subnet / 2);
         }
         
-        self.process_until_clean();
+        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.edges);
         
         true
     }
@@ -129,8 +127,8 @@ impl Data {
         };
         
         self.add_edge(subnet, component, port, direction);
-        self.update_component(component);
-        self.process_until_clean();
+        self.simulation.update_component(component, &self.components, &mut self.subnets, &self.edges);
+        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.edges);
         
         true
     }
@@ -142,9 +140,9 @@ impl Data {
         };
         
         self.remove_edge(&Edge::new(subnet, component, port, direction));
-        self.dirty_subnet(subnet);
-        self.update_component(component);
-        self.process_until_clean();
+        self.simulation.dirty_subnet(subnet);
+        self.simulation.update_component(component, &self.components, &mut self.subnets, &self.edges);
+        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.edges);
         
         true
     }
@@ -185,15 +183,70 @@ impl Data {
         Some(self.components.get(&component)?.port_type(port)?.to_edge_direction())
     }
     
-    pub(crate) fn advance_time(&mut self) {
+    /// Gets the state of a subnet
+    pub(crate) fn subnet_state(&self, subnet: i32) -> Option<SubnetState> {
+        Some(self.subnets.get(&subnet)?.val())
+    }
+    
+    /// Gets the state of a subnet which a port is connected to
+    pub(crate) fn port_state(&self, component: i32, port: usize) -> Option<SubnetState> {
+        for edge in self.edges.get(&(2 * component + 1))? {
+            if edge.port == port {
+                return Some(self.subnets.get(&(edge.subnet / 2))?.val())
+            }
+        }
+        
+        None
+    }
+    
+    pub(crate) fn time_step(&mut self) {
+        self.simulation.time_step(&self.clocks, &self.components, &mut self.subnets, &self.edges);
+    }
+}
+
+#[cfg(test)]
+impl Data {
+    fn update_subnet(&mut self, subnet: i32, state: SubnetState) {
+        self.simulation.update_subnet(subnet, state, &mut self.subnets);
+    }
+    
+    fn advance_time(&mut self) {
+        self.simulation.advance_time(&self.components, &mut self.subnets, &self.edges);
+    }
+    
+    fn update_silent(&mut self, subnet: i32, state: SubnetState) {
+        self.subnets.get_mut(&subnet).unwrap().update(state);
+    }
+}
+
+#[derive(Debug)]
+struct Simulator {
+    dirty_subnets: VecDeque<HashSet<i32>>,
+    changed_subnets: HashMap<i32, SubnetState>, //<subnet, old state>
+}
+
+impl Simulator {
+    fn new() -> Self {
+        Self {
+            dirty_subnets: VecDeque::new(),
+            changed_subnets: HashMap::new(),
+        }
+    }
+    
+    fn advance_time(
+        &mut self,
+        components: &HashMap<i32, Box<dyn Component>>,
+        subnets: &mut HashMap<i32, Subnet>,
+        edges: &HashMap<i32, HashSet<Edge>>
+    ) {
         let to_simulate = match self.dirty_subnets.pop_front() {
             Some(t) => t,
             None => return,
         };
-    
+        
         let mut simulating = HashSet::new();
         for subnet in to_simulate {
-            for edge in self.edges.get(&(2 * subnet)).unwrap_or(&HashSet::new()) {
+            for edge in edges.get(&(2 * subnet)).unwrap_or(&HashSet::new()) {
                 if edge.direction != EdgeDirection::ToSubnet {
                     simulating.insert((edge.component - 1) / 2);
                 }
@@ -207,22 +260,30 @@ impl Data {
         let mut diff: HashMap<i32, HashSet<SubnetState>> = HashMap::new();
         
         for s in simulating {
-            let d = self.simulate(s, &old_state);
+            let d = self.simulate(s, &old_state, components, subnets, edges);
             for (k, v) in d.into_iter() {
                 diff.entry(k).or_default().extend(v.into_iter());
             }
         }
         
         for (subnet, proposals) in diff {
-            self.update_subnet(subnet, SubnetState::work_out_diff(&proposals));
+            self.update_subnet(subnet, SubnetState::work_out_diff(&proposals), subnets);
         }
     }
     
     /// Takes in a component id and the difference between the old state and the current and
     /// outputs a map of what states the subnets should have next iteration
-    fn simulate(&mut self, component: i32, old_state: &HashMap<i32, SubnetState>) -> HashMap<i32, HashSet<SubnetState>> {
-        let comp = &**self.components.get(&component).unwrap();
-        let edges = self.edges.get(&(2 * component + 1)).unwrap();
+    fn simulate(
+        &mut self,
+        component: i32,
+        old_state: &HashMap<i32, SubnetState>,
+        components: &HashMap<i32, Box<dyn Component>>,
+        subnets: &HashMap<i32, Subnet>,
+        edges: &HashMap<i32, HashSet<Edge>>
+    ) -> HashMap<i32, HashSet<SubnetState>>
+    {
+        let comp = &**components.get(&component).unwrap();
+        let edges = edges.get(&(2 * component + 1)).unwrap();
         let mut searching = HashSet::new();
         let mut dirty_ports = HashSet::new();
         for (port_idx, port_type) in comp.ports_type()
@@ -235,13 +296,13 @@ impl Data {
                 dirty_ports.insert(port_idx);
             }
         }
-    
+        
         let mut states = HashMap::new();
         let mut dirtying = HashMap::new();
         
         for edge in edges {
             if searching.contains(&edge.port) {
-                let val = self.subnets.get(&(edge.subnet / 2)).unwrap().val();
+                let val = subnets.get(&(edge.subnet / 2)).unwrap().val();
                 let old = match old_state.get(&(edge.subnet / 2)) {
                     Some(t) => *t,
                     None => val,
@@ -268,27 +329,33 @@ impl Data {
     /// Forces a component to update and advances time. Is probably called when the user places a
     /// components and wants the changes to propagate. Also empties propagates changes until no
     /// more updates are happening.
-    fn update_component(&mut self, component: i32) {
+    fn update_component(
+        &mut self,
+        component: i32,
+        components: &HashMap<i32, Box<dyn Component>>,
+        subnets: &mut HashMap<i32, Subnet>,
+        edges: &HashMap<i32, HashSet<Edge>>
+    ) {
         let mut old_state = HashMap::new();
         
         std::mem::swap(&mut old_state, &mut self.changed_subnets);
         
-        let diff = self.simulate(component, &old_state);
+        let diff = self.simulate(component, &old_state, components, subnets, edges);
         
-        self.apply_state_diff(diff);
+        self.apply_state_diff(diff, subnets);
     }
     
     /// Takes a change in subnet_state and updates the relevant subnets
-    fn apply_state_diff(&mut self, diff: HashMap<i32, HashSet<SubnetState>>) {
+    fn apply_state_diff(&mut self, diff: HashMap<i32, HashSet<SubnetState>>, subnets: &mut HashMap<i32, Subnet>) {
         for (subnet, proposals) in diff {
-            self.update_subnet(subnet, SubnetState::work_out_diff(&proposals));
+            self.update_subnet(subnet, SubnetState::work_out_diff(&proposals), subnets);
         }
     }
     
     /// Changes a subnets value and enques it in dirty_subnets if the state changed
-    fn update_subnet(&mut self, subnet: i32, state: SubnetState) {
-        let old_state = self.subnets.get(&subnet).unwrap().val();
-        if self.subnets.get_mut(&subnet).unwrap().update(state) { //we actually changed a subnet
+    fn update_subnet(&mut self, subnet: i32, state: SubnetState, subnets: &mut HashMap<i32, Subnet>) {
+        let old_state = subnets.get(&subnet).unwrap().val();
+        if subnets.get_mut(&subnet).unwrap().update(state) { //we actually changed a subnet
             if self.dirty_subnets.len() == 0 { //maybe change to account for propagation time
                 self.dirty_subnets.push_back(HashSet::new());
             }
@@ -298,55 +365,45 @@ impl Data {
     }
     
     /// Dirties a subnet
-    pub(crate) fn dirty_subnet(&mut self, subnet: i32) {
+    fn dirty_subnet(&mut self, subnet: i32) {
         if self.dirty_subnets.len() == 0 {
             self.dirty_subnets.push_back(HashSet::new());
         }
         self.dirty_subnets.get_mut(0).unwrap().insert(subnet);
     }
     
-    /// Gets the state of a subnet
-    pub(crate) fn subnet_state(&self, subnet: i32) -> Option<SubnetState> {
-        Some(self.subnets.get(&subnet)?.val())
-    }
-    
-    /// Gets the state of a subnet which a port is connected to
-    pub(crate) fn port_state(&self, component: i32, port: usize) -> Option<SubnetState> {
-        for edge in self.edges.get(&(2 * component + 1))? {
-            if edge.port == port {
-                return Some(self.subnets.get(&(edge.subnet / 2))?.val())
-            }
-        }
-        
-        None
-    }
-    
-    fn process_until_clean(&mut self) -> bool {
+    fn process_until_clean(
+        &mut self,
+        components: &HashMap<i32, Box<dyn Component>>,
+        subnets: &mut HashMap<i32, Subnet>,
+        edges: &HashMap<i32, HashSet<Edge>>
+    ) -> bool {
         const MAX_ITERS: i32 = 1000;
         for _ in 0..MAX_ITERS {
-            self.advance_time();
+            self.advance_time(components, subnets, edges);
         }
         
         false
     }
     
     /// Toggles all clocks
-    pub(crate) fn time_step(&mut self) {
+    fn time_step(
+        &mut self,
+        clocks: &[i32],
+        components: &HashMap<i32, Box<dyn Component>>,
+        subnets: &mut HashMap<i32, Subnet>,
+        edges: &HashMap<i32, HashSet<Edge>>
+    ) {
         let mut updating = Vec::new();
-        for clock in &self.clocks {
+        for clock in clocks {
             updating.push(*clock);
         }
         
         for u in updating {
-            self.update_component(u);
+            self.update_component(u, components, subnets, edges);
         }
         
-        self.process_until_clean();
-    }
-    
-    #[cfg(test)]
-    fn update_silent(&mut self, subnet: i32, state: SubnetState) {
-        self.subnets.get_mut(&subnet).unwrap().update(state);
+        self.process_until_clean(components, subnets, edges);
     }
 }
 
