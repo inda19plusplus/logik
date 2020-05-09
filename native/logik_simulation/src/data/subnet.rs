@@ -49,4 +49,18 @@ impl SubnetState {
             _ => SubnetState::Error,
         }
     }
+    
+    pub(crate) fn truthy(&self) -> bool {
+        match self {
+            SubnetState::On => true,
+            _ => false,
+        }
+    }
+    
+    pub(crate) fn falsy(&self) -> bool {
+        match self {
+            SubnetState::Off | SubnetState::Floating => true,
+            _ => false,
+        }
+    }
 }

@@ -3,7 +3,7 @@ use std::iter;
 use crate::data::subnet::SubnetState;
 use crate::data::component::components::*;
 use crate::data::component::Component;
-use crate::data::component::statefuls::SRFlipFlop;
+use crate::data::component::statefuls::*;
 
 #[cfg(test)]
 mod test;
