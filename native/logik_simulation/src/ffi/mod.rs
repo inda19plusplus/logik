@@ -47,6 +47,8 @@ pub extern "C" fn add_component(data: *mut Data, component: i32) -> i32 {
         55 => Box::new(NOR {}),
         56 => Box::new(XOR {}),
         57 => Box::new(XNOR {}),
+        60 => Box::new(TriBuffer {}),
+        61 => Box::new(TriInverter {}),
         100 => Box::new(DFlipFlop::new()),
         101 => Box::new(TFlipFlop::new()),
         102 => Box::new(JKFlipFlop::new()),
