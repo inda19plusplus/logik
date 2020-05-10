@@ -70,6 +70,32 @@ impl StateChange {
     }
 }
 
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+#[repr(i32)]
+pub enum ComponentId {
+    Constant = 1,
+    Output = 2,
+    Input = 3,
+    LED = 5,
+    Button = 8,
+    Buffer = 50,
+    Not = 51,
+    And = 52,
+    Nand = 53,
+    Or = 54,
+    Nor = 55,
+    Xor = 56,
+    Xnor = 57,
+    TriStateBuffer   = 60,
+    TriStateInverter = 61,
+    DFlipFlop     = 100,
+    TFlipFlop     = 101,
+    JKFlipFlop    = 102,
+    SRFlipFlop    = 103,
+    Probe = 300,
+    Clock    = 302,
+}
+
 #[macro_export]
 macro_rules! port_or_default {
     ($data:ident ,$id:expr) => {

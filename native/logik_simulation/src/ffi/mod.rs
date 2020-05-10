@@ -2,7 +2,7 @@ use crate::data::Data;
 use std::iter;
 use crate::data::subnet::SubnetState;
 use crate::data::component::components::*;
-use crate::data::component::Component;
+use crate::data::component::{Component, ComponentId};
 use crate::data::component::statefuls::*;
 
 #[cfg(test)]
@@ -33,39 +33,38 @@ pub extern "C" fn remove_subnet(data: *mut Data, id: i32) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn add_component(data: *mut Data, component: i32) -> i32 {
+pub extern "C" fn add_component(data: *mut Data, component: ComponentId) -> i32 {
     let data = unsafe { &mut *data};
     
     let comp: Box<dyn Component> = match component {
-        1 => Box::new(Constant::new()),
-        2 => Box::new(OutputGate {}),
-        3 => Box::new(InputGate {}),
-        5 => Box::new(LED {}),
-        8 => Box::new(Button::new()),
-        50 => Box::new(Buffer {}),
-        51 => Box::new(NOT {}),
-        52 => Box::new(AND {}),
-        53 => Box::new(NAND {}),
-        54 => Box::new(OR {}),
-        55 => Box::new(NOR {}),
-        56 => Box::new(XOR {}),
-        57 => Box::new(XNOR {}),
-        60 => Box::new(TriBuffer {}),
-        61 => Box::new(TriInverter {}),
-        100 => Box::new(DFlipFlop::new()),
-        101 => Box::new(TFlipFlop::new()),
-        102 => Box::new(JKFlipFlop::new()),
-        103 => Box::new(SRFlipFlop::new()),
-        300 => Box::new(Probe {}),
-        302 => Box::new(Clock::new()),
-        _ => unreachable!()
+        ComponentId::Constant => Box::new(Constant::new()),
+        ComponentId::Output => Box::new(OutputGate {}),
+        ComponentId::Input => Box::new(InputGate {}),
+        ComponentId::LED => Box::new(LED {}),
+        ComponentId::Button => Box::new(Button::new()),
+        ComponentId::Buffer => Box::new(Buffer {}),
+        ComponentId::Not => Box::new(NOT {}),
+        ComponentId::And => Box::new(AND {}),
+        ComponentId::Nand => Box::new(NAND {}),
+        ComponentId::Or => Box::new(OR {}),
+        ComponentId::Nor => Box::new(NOR {}),
+        ComponentId::Xor => Box::new(XOR {}),
+        ComponentId::Xnor => Box::new(XNOR {}),
+        ComponentId::TriStateBuffer => Box::new(TriBuffer {}),
+        ComponentId::TriStateInverter => Box::new(TriInverter {}),
+        ComponentId::DFlipFlop => Box::new(DFlipFlop::new()),
+        ComponentId::TFlipFlop => Box::new(TFlipFlop::new()),
+        ComponentId::JKFlipFlop => Box::new(JKFlipFlop::new()),
+        ComponentId::SRFlipFlop => Box::new(SRFlipFlop::new()),
+        ComponentId::Probe => Box::new(Probe {}),
+        ComponentId::Clock => Box::new(Clock::new()),
     };
     
     let p = comp.ports();
     
     let res = data.add_component(comp, iter::repeat(None).take(p).collect()).unwrap();
     
-    if component == 302 {
+    if component == ComponentId::Clock {
         data.clock(res);
     }
     

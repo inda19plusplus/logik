@@ -67,7 +67,6 @@ impl SubnetState {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
     use crate::data::subnet::SubnetState;
     use crate::set;
     
