@@ -1,6 +1,7 @@
 use crate::data::Data;
 use crate::data::component::{Component, Output, AND};
 use std::iter;
+use crate::data::subnet::SubnetState;
 // Converts a rust function definition into one that can be called from c (and by extension c#).
 // A function with the signature 'fn <name>(<params>) <return> { <body> }'
 /* Into a function with the signature 
@@ -12,8 +13,8 @@ pub unsafe extern "cdecl" fn <name>(<params>) <return> {
 }
 
 */
-#[macro_use]
-macro_rules! ffi {
+
+/*macro_rules! ffi {
     ($(fn $name:ident ( $( $arg_ident:ident : $arg_ty:ty),* ) $( -> $ret_ty:ty)? $body:block)*) => {
         $(
             #[allow(unsafe_code, unused_attributes)]
@@ -23,7 +24,7 @@ macro_rules! ffi {
             }
         )*
     };
-}
+}*/
 
 #[no_mangle]
 pub extern "C" fn init() -> *mut Data {
@@ -58,12 +59,9 @@ pub extern "C" fn add_component(data: *mut Data, component: i32) -> i32 {
         _ => Box::new(AND {}) // TODO: make me the same as the ID:s in C#
     };
     
-    let i = component.inputs();
-    let o = component.outputs();
+    let p = component.ports();
     
-    let res = data.add_component(component,
-                       iter::repeat(None).take(i).collect(),
-                       iter::repeat(None).take(o).collect());
+    let res = data.add_component(component, iter::repeat(None).take(p).collect());
     
     res.unwrap() as i32
 }
@@ -76,10 +74,10 @@ pub extern "C" fn remove_component(data: *mut Data, id: i32) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn link(data: *mut Data, component: i32, port: i32, subnet: i32, direction: bool) -> bool {
+pub extern "C" fn link(data: *mut Data, component: i32, port: i32, subnet: i32) -> bool {
     let data = unsafe { &mut *data };
     
-    data.link(component, port as usize, subnet, direction)
+    data.link(component, port as usize, subnet)
 }
 
 #[no_mangle]
@@ -87,4 +85,32 @@ pub extern "C" fn unlink(data: *mut Data, component: i32, port: i32, subnet: i32
     let data = unsafe { &mut *data };
     
     data.unlink(component, port as usize, subnet)
+}
+
+#[no_mangle]
+pub extern "C" fn tick(data: *mut Data) {
+    let data = unsafe { &mut *data };
+    
+    data.advance_time();
+}
+
+#[no_mangle]
+pub extern "C" fn dirty_subnet(data: *mut Data, subnet: i32) {
+    let data = unsafe { &mut *data };
+    
+    data.dirty_subnet(subnet);
+}
+
+#[no_mangle]
+pub extern "C" fn subnet_state(data: *mut Data, subnet: i32) -> SubnetState {
+    let data = unsafe { &mut *data };
+    
+    data.subnet(subnet).unwrap().val()
+}
+
+#[no_mangle]
+pub extern "C" fn port_state(data: *mut Data, component: i32, port: i32) -> SubnetState {
+    let data = unsafe { &mut *data };
+    
+    data.port_state(component, port as usize).unwrap()
 }

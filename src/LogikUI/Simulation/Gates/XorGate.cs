@@ -1,18 +1,16 @@
-﻿using Cairo;
+﻿using Atk;
+using Cairo;
 using LogikUI.Circuit;
 using LogikUI.Util;
 using System;
-using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 
 namespace LogikUI.Simulation.Gates
 {
-    class AndGate : IComponent
+    class XorGate : IComponent
     {
-        // Indices for the ports
-        public string Name => "And Gate";
-        public ComponentType Type => ComponentType.And;
+        public string Name => "Xor Gate";
+        public ComponentType Type => ComponentType.Xor;
         public int NumberOfPorts => 3;
 
         public void GetPorts(Span<Vector2i> ports)
@@ -21,23 +19,25 @@ namespace LogikUI.Simulation.Gates
             ports[1] = new Vector2i(-3, -1);
             ports[2] = new Vector2i(0, 0);
         }
-        
-        // FIXME: Cleanup and possibly split draw into a 'outline' and 'fill'
-        // call so we can do more efficient cairo rendering.
+
         public void Draw(Context cr, InstanceData data)
         {
             using var transform = IComponent.ApplyComponentTransform(cr, data);
 
             //foreach (var gate in instances)
             {
-                cr.MoveTo(-30,-15);
-                cr.RelLineTo(15, 0);
-                cr.RelCurveTo(20, 0, 20, 30, 0, 30);
-                cr.RelLineTo(-15, 0);
+                cr.MoveTo(-27.5, -15);
+                cr.RelLineTo(7.5, 0);
+                cr.RelCurveTo(10, 0, 15, 7.5, 20, 15);
+                cr.RelCurveTo(-5, 7.5, -10, 15, -20, 15);
+                cr.RelLineTo(-7.5, 0);
+                cr.RelCurveTo(0, 0, 5, -7.5, 5, -15);
+                cr.RelCurveTo(0, -7.5, -5, -15, -5, -15);
                 cr.ClosePath();
+                cr.RelMoveTo(-5, 30);
+                cr.RelCurveTo(0, 0, 5, -7.5, 5, -15);
+                cr.RelCurveTo(0, -7.5, -5, -15, -5, -15);
             }
-
-            // FIXME: We probably shouldn't hardcode the color
             cr.SetSourceRGB(0.1, 0.1, 0.1);
             cr.LineWidth = Wires.WireWidth;
             cr.Stroke();

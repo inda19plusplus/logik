@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using LogikUI.Simulation;
 
 namespace LogikUI.Interop
 {
@@ -34,10 +35,22 @@ namespace LogikUI.Interop
         public static extern bool RemoveComponent(Data data, int componentId);
         
         [DllImport(Lib, EntryPoint = "link", ExactSpelling = true, CallingConvention = CallingConv)]
-        public static extern void Link(Data data, int componentId, int port, int subnetId, bool direction);
+        public static extern void Link(Data data, int componentId, int port, int subnetId);
         
         [DllImport(Lib, EntryPoint = "unlink", ExactSpelling = true, CallingConvention = CallingConv)]
         public static extern void Unlink(Data data, int componentId, int port, int subnetId);
+        
+        [DllImport(Lib, EntryPoint = "tick", ExactSpelling = true, CallingConvention = CallingConv)]
+        public static extern void Tick(Data data);
+        
+        [DllImport(Lib, EntryPoint = "dirty_subnet", ExactSpelling = true, CallingConvention = CallingConv)]
+        public static extern void DirtySubnet(Data data, int subnet);
+        
+        [DllImport(Lib, EntryPoint = "subnet_state", ExactSpelling = true, CallingConvention = CallingConv)]
+        public static extern ValueState SubnetState(Data data, int subnet);
+
+        [DllImport(Lib, EntryPoint = "port_state", ExactSpelling = true, CallingConvention = CallingConv)]
+        public static extern ValueState PortState(Data data, int component, int port);
     }
 
     public struct Data
