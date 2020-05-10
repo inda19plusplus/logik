@@ -64,3 +64,28 @@ impl SubnetState {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashSet;
+    use crate::data::subnet::SubnetState;
+    use crate::set;
+    
+    #[test]
+    fn test_working_out_subnet_diff() {
+        let d1 = set!(SubnetState::Floating, SubnetState::On);
+        assert_eq!(SubnetState::work_out_diff(&d1), SubnetState::On);
+        
+        let d2 = set!(SubnetState::Floating, SubnetState::Floating);
+        assert_eq!(SubnetState::work_out_diff(&d2), SubnetState::Floating);
+        
+        let d3 = set!(SubnetState::On, SubnetState::Off, SubnetState::Floating);
+        assert_eq!(SubnetState::work_out_diff(&d3), SubnetState::Error);
+        
+        let d4 = set!(SubnetState::On, SubnetState::On);
+        assert_eq!(SubnetState::work_out_diff(&d4), SubnetState::On);
+        
+        let d5 = set!(SubnetState::Off, SubnetState::Off, SubnetState::Floating);
+        assert_eq!(SubnetState::work_out_diff(&d5), SubnetState::Off);
+    }
+}
