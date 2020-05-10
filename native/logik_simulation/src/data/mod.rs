@@ -266,9 +266,7 @@ impl Simulator {
             }
         }
         
-        for (subnet, proposals) in diff {
-            self.update_subnet(subnet, SubnetState::work_out_diff(&proposals), subnets);
-        }
+        self.apply_state_diff(diff, subnets);
     }
     
     /// Takes in a component id and the difference between the old state and the current and
