@@ -77,7 +77,7 @@ namespace LogikUI.Toolbar
                 // to shrink.
                 Wire? modifying = null;
                 bool movingEnd = false;
-                foreach (var bWire in editor.Wires.WiresList)
+                foreach (var bWire in editor.Scene.Wires.WiresList)
                 {
                     if (CurrentWire.Direction != bWire.Direction)
                         continue;
@@ -137,41 +137,41 @@ namespace LogikUI.Toolbar
                         // One of the cases is where the modified wire should split another already
                         // existing wire.
 
-                        WireTransaction? modifyTransaction = editor.Wires.CreateModifyWireTransaction(modify, modifiedWire);
+                        WireTransaction? modifyTransaction = editor.Scene.Wires.CreateModifyWireTransaction(modify, modifiedWire);
                         if (modifyTransaction != null)
                         {
-                            editor.Wires.ApplyTransaction(modifyTransaction);
-                            editor.Transactions.PushTransaction(modifyTransaction);
-                            Console.WriteLine($"Modified existing wire! ({modify}) -> ({modifiedWire})\n{modifyTransaction}\n");
+                            editor.Scene.Wires.ApplyTransaction(modifyTransaction);
+                            editor.Scene.Transactions.PushTransaction(modifyTransaction);
+                            //Console.WriteLine($"Modified existing wire! ({modify}) -> ({modifiedWire})\n{modifyTransaction}\n");
                         }
                     }
                     else
                     {
                         // Here we should remove the wire completely
-                        var deleteTransaction = editor.Wires.CreateRemoveWireTransaction(modify);
-                        editor.Wires.ApplyTransaction(deleteTransaction);
-                        editor.Transactions.PushTransaction(deleteTransaction);
-                        Console.WriteLine($"Deleted wire! ({modify})\n{deleteTransaction}\n");
+                        var deleteTransaction = editor.Scene.Wires.CreateRemoveWireTransaction(modify);
+                        editor.Scene.Wires.ApplyTransaction(deleteTransaction);
+                        editor.Scene.Transactions.PushTransaction(deleteTransaction);
+                        //Console.WriteLine($"Deleted wire! ({modify})\n{deleteTransaction}\n");
                     }
                 }
                 else
                 {
-                    var transaction = editor.Wires.CreateAddWireTransaction(CurrentWire);
+                    var transaction = editor.Scene.Wires.CreateAddWireTransaction(CurrentWire);
                     if (transaction != null)
                     {
-                        editor.Wires.ApplyTransaction(transaction);
-                        editor.Transactions.PushTransaction(transaction);
-                        Console.WriteLine($"End wire!\n{transaction}\n");
+                        editor.Scene.Wires.ApplyTransaction(transaction);
+                        editor.Scene.Transactions.PushTransaction(transaction);
+                        //Console.WriteLine($"End wire!\n{transaction}\n");
                     }
                     else
                     {
-                        Console.WriteLine($"No wire created!\n");
+                        //Console.WriteLine($"No wire created!\n");
                     }
                 }
             }
             else
             {
-                Console.WriteLine($"Zero length wire!\n\n");
+                //Console.WriteLine($"Zero length wire!\n\n");
             }
 
             editor.DrawingArea.QueueDraw();
@@ -181,7 +181,7 @@ namespace LogikUI.Toolbar
         {
             if (DraggingWire)
             {
-                editor.Wires.Wire(cr, CurrentWire);
+                editor.Scene.Wires.Wire(cr, CurrentWire);
                 cr.SetSourceRGB(0.3, 0.4, 0.3);
                 cr.Fill();
             }

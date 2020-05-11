@@ -55,14 +55,14 @@ namespace LogikUI.Toolbar
                         // remove multiple wires at the same time.
                         foreach (var wire in SelectedWires)
                         {
-                            var t = editor.Wires.CreateRemoveWireTransaction(wire);
+                            var t = editor.Scene.Wires.CreateRemoveWireTransaction(wire);
                             transactions.Add(t);
-                            editor.DoTransactionNoPush(t);
+                            editor.Scene.DoTransactionNoPush(t);
                         }
 
                         BundledTransaction bundleTransaction = new BundledTransaction(transactions);
                         // Push the transaction onto the stack, we don't need to apply it because it's already applied.
-                        editor.Transactions.PushTransaction(bundleTransaction);
+                        editor.Scene.Transactions.PushTransaction(bundleTransaction);
                         ClearSelection(editor);
                         return true;
                     }
@@ -115,7 +115,7 @@ namespace LogikUI.Toolbar
             }
 
             // FIXME: Do the selecting
-            var wires = editor.Wires;
+            var wires = editor.Scene.Wires;
 
             ClearSelection(editor);
 

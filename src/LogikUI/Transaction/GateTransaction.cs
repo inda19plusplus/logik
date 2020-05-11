@@ -9,7 +9,6 @@ namespace LogikUI.Transaction
 {
     class GateTransaction : Transaction
     {
-        //public IInstance Created;
         // FIXME: We might want to store something else...?
         public bool RemoveComponent;
         public InstanceData Gate;

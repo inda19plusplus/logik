@@ -28,7 +28,8 @@ namespace LogikUI
             // FIXME: Make this be selected with a callback or something
             //editor.CurrentTool = selectTool;
 
-            // FIXME: We don't want to new the components here!!
+            ComponentTool constantTool = new ComponentTool(ComponentType.Constant, "Constant", editor, toolbar);
+
             ComponentTool bufferTool = new ComponentTool(ComponentType.Buffer, "Buffer gate", editor, toolbar);
 
             ComponentTool andTool = new ComponentTool(ComponentType.And, "And gate", editor, toolbar);
@@ -39,13 +40,15 @@ namespace LogikUI
 
             SeparatorToolItem sep = new SeparatorToolItem();
 
-            toolbar.Insert(selectTool, 0);
-            toolbar.Insert(wireTool, 1);
-            toolbar.Insert(sep, 2);
-            toolbar.Insert(bufferTool, 3);
-            toolbar.Insert(andTool, 4);
-            toolbar.Insert(orTool, 5);
-            toolbar.Insert(xorTool, 6);
+            int index = 0;
+            toolbar.Insert(selectTool, index++);
+            toolbar.Insert(wireTool, index++);
+            toolbar.Insert(sep, index++);
+            toolbar.Insert(constantTool, index++);
+            toolbar.Insert(bufferTool, index++);
+            toolbar.Insert(andTool, index++);
+            toolbar.Insert(orTool, index++);
+            toolbar.Insert(xorTool, index++);
 
             return toolbar;
         }

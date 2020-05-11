@@ -24,13 +24,35 @@ namespace LogikUI.Circuit
     {
         public Dictionary<ComponentType, IComponent> Components = new Dictionary<ComponentType, IComponent>()
         {
+            { ComponentType.Constant, new Constant() },
             { ComponentType.Buffer, new BufferGate() },
+            { ComponentType.Not, new NotGate() },
             { ComponentType.And, new AndGate() },
             { ComponentType.Or, new OrGate() },
             { ComponentType.Xor, new XorGate() },
         };
 
         public List<InstanceData> Instances = new List<InstanceData>();
+
+        public int GetNumberOfPorts(InstanceData data)
+        {
+            if (Components.TryGetValue(data.Type, out var comp) == false)
+                return -1;
+
+            return comp!.NumberOfPorts;
+        }
+
+        public void GetTransformedPorts(InstanceData data, Span<Vector2i> ports)
+        {
+            if (Components.TryGetValue(data.Type, out var comp) == false)
+            {
+                Console.WriteLine($"Component '{data.Type}' doesn't have a IComponent implementation. Either you forgot to implement the gate or you've not registered that IComponent in the Dictionary. (Instance: {data})");
+                return;
+            }
+
+            comp!.GetPorts(ports);
+            IComponent.TransformPorts(data, ports);
+        }
 
         public void Draw(Cairo.Context cr)
         {
@@ -40,7 +62,7 @@ namespace LogikUI.Circuit
                 {
                     if (Enum.IsDefined(typeof(ComponentType), instance.Type))
                         // This component is defined in the enum but doesn't have a dictionary entry
-                        Console.WriteLine($"Component '{instance}' doesn't have a IComponent implementation. Either you forgot to implement the gate or you've not registered that IComponent in the Dictionary. (Instance: {instance})");
+                        Console.WriteLine($"Component '{instance.Type}' doesn't have a IComponent implementation. Either you forgot to implement the gate or you've not registered that IComponent in the Dictionary. (Instance: {instance})");
                     else
                         // This is an unknown component type!!
                         Console.WriteLine($"Unknown component type '{instance.Type}'! (Instance: {instance})");

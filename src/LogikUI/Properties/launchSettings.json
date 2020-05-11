@@ -2,7 +2,7 @@
   "profiles": {
     "LogikUI": {
       "commandName": "Project",
-      "nativeDebugging": false
+      "nativeDebugging": true
     }
   }
 }

@@ -175,9 +175,9 @@ impl Data {
         let mut simulating = HashSet::new();
         for subnet in to_simulate {
             for edge in self.edges.get(&(2 * subnet)).unwrap() {
-                if edge.direction != EdgeDirection::ToSubnet {
+                //if edge.direction != EdgeDirection::ToSubnet {
                     simulating.insert((edge.component - 1) / 2);
-                }
+                //}
             }
         }
     
@@ -221,7 +221,10 @@ impl Data {
         let res = comp.evaluate(states).unwrap();
     
         for (port, state) in res {
-            let subnet = dirtying.get(&port).unwrap();
+            let subnet = match dirtying.get(&port) {
+                Some(s) => s,
+                None => continue,
+            };
             self.update_subnet(*subnet, state);
         }
     }

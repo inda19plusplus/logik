@@ -39,17 +39,12 @@ namespace LogikUI.Circuit
 
         public const double DotSpacing = 10d;
 
-        public Wires Wires;
-        public Gates Gates;
-        public TextLabels Labels;
+        public Scene Scene;
 
         public GestureDrag DragGesture;
         public GestureDrag DragGestureCreate;
 
         public ITool? CurrentTool;
-
-        //public Stack<WireTransaction> Transactions = new Stack<WireTransaction>();
-        public TransactionStack Transactions = new TransactionStack();
 
         public CircuitEditor()
         {
@@ -100,28 +95,30 @@ namespace LogikUI.Circuit
             DrawingArea.ParentSet += DrawingArea_ParentSet;
             DrawingArea.ButtonPressEvent += DrawingArea_ButtonPressEvent;
 
-            var wires = new Wire[]
+            var wiresArr = new Wire[]
             {
-                new Wire(new Vector2i(3, 3), 10, Direction.Vertical),
+                /*new Wire(new Vector2i(3, 3), 10, Direction.Vertical),
                 new Wire(new Vector2i(3, 13), 10, Direction.Horizontal),
                 new Wire(new Vector2i(0, 3), 3, Direction.Horizontal),
                 new Wire(new Vector2i(3, 0), 3, Direction.Vertical),
                 new Wire(new Vector2i(0, 13), 3, Direction.Horizontal),
                 new Wire(new Vector2i(13, 12), -9, Direction.Vertical),
                 new Wire(new Vector2i(4, 3), 9, Direction.Horizontal),
-                new Wire(new Vector2i(13, 3), 4, Direction.Horizontal),
+                new Wire(new Vector2i(13, 3), 4, Direction.Horizontal),*/
             };
 
-            Wires = new Wires(wires);
+            var gates = new Gates();
 
-            Gates = new Gates();
+            var wires = new Wires(gates, wiresArr);
 
-            Labels = new TextLabels(new TextLabel[]
+            var labels = new TextLabels(new TextLabel[]
             {
                 new TextLabel(new Vector2d(0, 0), "This is some cool text.", 14),
                 new TextLabel(new Vector2d(40, 10), "Even more cool text :O", 24),
                 new TextLabel(new Vector2d(40, 40), "Woahhh :OOOoooO", 72),
             });
+
+            Scene = new Scene(wires, gates, labels);
         }
 
         public void SetTool(ITool tool)
@@ -129,69 +126,6 @@ namespace LogikUI.Circuit
             CurrentTool?.DeSelect(this);
             CurrentTool = tool;
             CurrentTool.Select(this);
-        }
-
-        /// <summary>
-        /// This applies the given transaction and adds it to the undo stack.
-        /// </summary>
-        public void PushTransaction(Transaction.Transaction transaction)
-        {
-            DoTransactionNoPush(transaction);
-            Transactions.PushTransaction(transaction);
-        }
-
-        /// <summary>
-        /// Applies a transaction without pushing it to the undo stack.
-        /// This method can cause inconsistencies in the undo system and should be used with care.
-        /// </summary>
-        public void DoTransactionNoPush(Transaction.Transaction transaction)
-        {
-            switch (transaction)
-            {
-                case WireTransaction wt:
-                    Wires.ApplyTransaction(wt);
-                    break;
-                case GateTransaction gt:
-                    Gates.ApplyTransaction(gt);
-                    if (gt.ConnectionPointWireEdits != null) 
-                        Wires.ApplyTransaction(gt.ConnectionPointWireEdits);
-                    break;
-                case BundledTransaction bt:
-                    {
-                        foreach (var bundled in bt.BundledTransactions)
-                            DoTransactionNoPush(bundled);
-                        break;
-                    }
-                default:
-                    throw new Exception($"Unknown transaction type! {transaction.GetType()}");
-            }
-        }
-        
-        /// <summary>
-        /// Undos a transaction without changing the undo stack.
-        /// This method can cause inconsistencies in the undo system and should be used with care.
-        /// </summary>
-        public void UndoTransactionNoPush(Transaction.Transaction transaction)
-        {
-            switch (transaction)
-            {
-                case WireTransaction wt:
-                    Wires.RevertTransaction(wt);
-                    break;
-                case GateTransaction gt:
-                    Gates.RevertTransaction(gt);
-                    if (gt.ConnectionPointWireEdits != null)
-                        Wires.RevertTransaction(gt.ConnectionPointWireEdits);
-                    break;
-                case BundledTransaction bt:
-                    {
-                        foreach (var bundled in bt.BundledTransactions)
-                            UndoTransactionNoPush(bundled);
-                        break;
-                    }
-                default:
-                    throw new Exception($"Unknown transaction type! {transaction.GetType()}");
-            }
         }
 
         private void DrawingArea_MotionNotifyEvent(object o, MotionNotifyEventArgs args)
@@ -228,23 +162,16 @@ namespace LogikUI.Circuit
                 if (@event.Key == Gdk.Key.z)
                 {
                     // This is ctrl-z, i.e. undo
-                    if (Transactions.TryUndo(out var transaction))
+                    if (Scene.Undo())
                     {
-                        // We do the no push variant here because
-                        // TryUndo already modified the undo stack.
-                        UndoTransactionNoPush(transaction);
-                        Console.WriteLine($"Undid transaction: {transaction}");
                         DrawingArea.QueueDraw();
                     }
                 }
                 else if (@event.Key == Gdk.Key.y)
                 {
                     // This is ctrl-y, i.e. redo
-                    if (Transactions.TryRedo(out var transaction))
+                    if (Scene.Redo())
                     {
-                        // We do no push here because TryRedo already did the push.
-                        DoTransactionNoPush(transaction);
-                        Console.WriteLine($"Redid transaction: {transaction}");
                         DrawingArea.QueueDraw();
                     }
                 }
@@ -256,11 +183,8 @@ namespace LogikUI.Circuit
                 if (@event.Key == Gdk.Key.Z)
                 {
                     // This is ctrl-shift-z, i.e. redo
-                    if (Transactions.TryRedo(out var transaction))
+                    if (Scene.Redo())
                     {
-                        // We do no push here because TryRedo already did the push.
-                        DoTransactionNoPush(transaction);
-                        Console.WriteLine($"Redid transaction: {transaction}");
                         DrawingArea.QueueDraw();
                     }
                 }
@@ -435,10 +359,8 @@ namespace LogikUI.Circuit
             cr.SetSourceRGB(color.Red, color.Green, color.Blue);
             cr.Fill();
 
-            Wires.Draw(cr);
-            Gates.Draw(cr);
-            Labels.Draw(cr);
-
+            Scene.Draw(cr);
+            
             CurrentTool?.Draw(this, cr);
             
             if (cr.Status != Cairo.Status.Success)

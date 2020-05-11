@@ -1,5 +1,5 @@
 use crate::data::Data;
-use crate::data::component::{Component, Output, AND};
+use crate::data::component::{Component, Input, AND};
 use std::iter;
 use crate::data::subnet::SubnetState;
 // Converts a rust function definition into one that can be called from c (and by extension c#).
@@ -55,7 +55,7 @@ pub extern "C" fn add_component(data: *mut Data, component: i32) -> i32 {
     let data = unsafe { &mut *data};
     
     let component: Box<dyn Component> = match component {
-        0 => Box::new(Output {}),
+        1 => Box::new(Input {}),
         _ => Box::new(AND {}) // TODO: make me the same as the ID:s in C#
     };
     
@@ -112,5 +112,9 @@ pub extern "C" fn subnet_state(data: *mut Data, subnet: i32) -> SubnetState {
 pub extern "C" fn port_state(data: *mut Data, component: i32, port: i32) -> SubnetState {
     let data = unsafe { &mut *data };
     
-    data.port_state(component, port as usize).unwrap()
+    // FIXME: This is a temporary fix and should not be checked in
+    match data.port_state(component, port as usize) {
+        Some(state) => state,
+        None => SubnetState::Floating,
+    }
 }
