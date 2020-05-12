@@ -35,10 +35,10 @@ namespace LogikUI.Interop
         public static extern bool RemoveComponent(Data data, int componentId);
         
         [DllImport(Lib, EntryPoint = "link", ExactSpelling = true, CallingConvention = CallingConv)]
-        public static extern void Link(Data data, int componentId, int port, int subnetId);
+        public static extern bool Link(Data data, int componentId, int port, int subnetId);
         
         [DllImport(Lib, EntryPoint = "unlink", ExactSpelling = true, CallingConvention = CallingConv)]
-        public static extern void Unlink(Data data, int componentId, int port, int subnetId);
+        public static extern bool Unlink(Data data, int componentId, int port, int subnetId);
         
         [DllImport(Lib, EntryPoint = "tick", ExactSpelling = true, CallingConvention = CallingConv)]
         public static extern void Tick(Data data);
