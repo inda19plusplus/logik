@@ -31,6 +31,7 @@ namespace LogikUI
             ComponentTool constantTool = new ComponentTool(ComponentType.Constant, "Constant", editor, toolbar);
 
             ComponentTool bufferTool = new ComponentTool(ComponentType.Buffer, "Buffer gate", editor, toolbar);
+            ComponentTool notTool = new ComponentTool(ComponentType.Not, "Not gate", editor, toolbar);
 
             ComponentTool andTool = new ComponentTool(ComponentType.And, "And gate", editor, toolbar);
 
@@ -46,6 +47,7 @@ namespace LogikUI
             toolbar.Insert(sep, index++);
             toolbar.Insert(constantTool, index++);
             toolbar.Insert(bufferTool, index++);
+            toolbar.Insert(notTool, index++);
             toolbar.Insert(andTool, index++);
             toolbar.Insert(orTool, index++);
             toolbar.Insert(xorTool, index++);
@@ -80,7 +82,8 @@ namespace LogikUI
         // Hopefully this can be fixed sooner rather than later...
         static void Main()
         {
-            Backend = Logic.Init();
+            Console.ResetColor();
+            Backend = LogLogic.Init();
             
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
@@ -160,7 +163,7 @@ namespace LogikUI
 
         private static void Wnd_Destroyed(object? sender, EventArgs e)
         {
-            Logic.Exit(Backend);
+            LogLogic.Exit(Backend);
             Application.Quit();
         }
     }

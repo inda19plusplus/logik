@@ -51,8 +51,8 @@ namespace LogikUI.Simulation.Gates
         static void DrawRoundPort(Context cr, InstanceData data, Span<Vector2i> ports, int index)
         {
             // If this component has an ID get the port state, otherwise floating
-            var state = data.ID != 0 ? 
-                Logic.PortState(Program.Backend, data.ID, index) :
+            var state = data.ID != 0 ?
+                LogLogic.PortState(Program.Backend, data.ID, index) :
                 ValueState.Floating;
             var color = Wires.GetValueColor(new Value(state));
 
@@ -62,6 +62,9 @@ namespace LogikUI.Simulation.Gates
             cr.ClosePath();
             cr.SetSourceColor(color);
             cr.Fill();
+
+            //cr.MoveTo(port);
+            //cr.ShowText(index.ToString());
         }
 
         // FIXME: Tripple-check that this does the correct transformation

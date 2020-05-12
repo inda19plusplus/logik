@@ -7,7 +7,6 @@ using LogikUI.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace LogikUI.Circuit
 {
@@ -143,6 +142,19 @@ namespace LogikUI.Circuit
             Wires.Draw(cr, Subnets);
             Gates.Draw(cr);
             Labels.Draw(cr);
+
+            // Draw the subnet id next to all connections (this is for debug)
+            foreach (var net in Subnets)
+            {
+                foreach (var (comp, port) in net.ComponentPorts)
+                {
+                    Span<Vector2i> ports = stackalloc Vector2i[Gates.GetNumberOfPorts(comp)];
+                    Gates.GetTransformedPorts(comp, ports);
+
+                    cr.MoveTo(ports[port] * CircuitEditor.DotSpacing);
+                    cr.ShowText(net.ID.ToString());
+                }
+            }
         }
 
         private Subnet? FindSubnet(Vector2i pos)
@@ -166,7 +178,9 @@ namespace LogikUI.Circuit
             List<Subnet> addedSubnets = new List<Subnet>();
             List<Subnet> deletedSubnets = new List<Subnet>();
 
-            List<Subnet> checkSplitSubnets = new List<Subnet>();
+            // FIXME: Implement equality checks and hash function for subnets or
+            // don't use a hashset for this...
+            HashSet<Subnet> checkSplitSubnets = new HashSet<Subnet>();
 
             foreach (var old in removed)
             {
@@ -248,12 +262,41 @@ namespace LogikUI.Circuit
                     else
                     {
                         // Here we need to merge the different subnets.
-                        Console.WriteLine($"Merging subnet ({endNet}) into subnet ({startNet}).");
-                        Subnets.Remove(endNet);
-                        startNet.Merge(endNet);
+                        // FIXME: Should ID zero subnets even be allowed here?
+                        // Should we check for merges later?
+                        // Should we make a list?
+                        Subnet merged;
+                        if (startNet.ID != 0 && endNet.ID != 0)
+                        {
+                            Console.WriteLine($"Merging subnet ({endNet}) into subnet ({startNet}).");
+                            Subnets.Remove(endNet);
+                            startNet.Merge(endNet);
+                            merged = startNet;
+                        }
+                        else if (startNet.ID != 0)
+                        {
+                            Console.WriteLine($"Merging subnet ({endNet}) into subnet ({startNet}).");
+                            Subnets.Remove(endNet);
+                            startNet.Merge(endNet);
+                            merged = startNet;
+                        }
+                        else if (endNet.ID != 0)
+                        {
+                            Console.WriteLine($"Merging subnet ({startNet}) into subnet ({endNet}).");
+                            Subnets.Remove(startNet);
+                            endNet.Merge(startNet);
+                            merged = endNet;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Warn? We are merging two subnets that both have ID zero. Subnet1: {startNet}, Subnet2: {endNet}");
+                            Subnets.Remove(endNet);
+                            startNet.Merge(endNet);
+                            merged = startNet;
+                        }
 
                         // Don't forget to add the wire that merged these subnets
-                        startNet.AddWire(@new);
+                        merged.AddWire(@new);
 
                         Console.WriteLine($"\tResult: {startNet}");
                     }
@@ -303,6 +346,9 @@ namespace LogikUI.Circuit
 
                 bool usedSplitSubnet = false;
 
+                bool noSplit = false;
+                var unclaimedComponents = new List<(InstanceData, int)>(split.ComponentPorts);
+
                 while (wiresLeft.Count > 0)
                 {
                     // This means that there still are wires left that doesn't 
@@ -321,14 +367,10 @@ namespace LogikUI.Circuit
                             Wire wire = toCheck[i];
                             if (wire.IsPointOnWire(currentWire.Pos))
                             {
-                                //wires.Add(wire);
-                                //toCheck.RemoveAt(i);
                                 FloodFill(wires, toCheck, wire);
                             }
                             else if (wire.IsPointOnWire(currentWire.EndPos))
                             {
-                                //wires.Add(wire);
-                                //toCheck.RemoveAt(i);
                                 FloodFill(wires, toCheck, wire);
                             }
 
@@ -357,6 +399,7 @@ namespace LogikUI.Circuit
                             // Here we didn't have to split
                             // and we know we are done here.
                             Console.WriteLine($"No split.");
+                            noSplit = true;
                             break;
                         }
                         else
@@ -370,13 +413,9 @@ namespace LogikUI.Circuit
 
                             componentCheckSubnet = split;
 
-                            // If we are splitting we want to unlink all components from the original
-                            // subnet so that we can recheck all connections.
-                            // We only do this once. (n.b. this is because of the usedSplitSubnet bool)
-                            foreach (var (comp, port) in split.ComponentPorts)
-                            {
-                                Logic.Unlink(Program.Backend, comp.ID, port, split.ID);
-                            }
+                            // Clear the component list of this subnet as we are
+                            // going to recheck all of it's components.
+                            componentCheckSubnet.ComponentPorts.Clear();
 
                             usedSplitSubnet = true;
                         }
@@ -385,7 +424,10 @@ namespace LogikUI.Circuit
                     {
                         // Here we create a new subnet
                         var sub = new Subnet(SubnetIDCounter++);
-                        Logic.AddSubnet(Program.Backend, sub.ID);
+
+                        LogLogic.AddSubnet(Program.Backend, sub.ID);
+                        Console.WriteLine($"AddSubnet(Subnet: {sub.ID})");
+
                         sub.Wires = island;
                         Console.WriteLine($"Split part of subnet {split} into new subnet: {sub}.");
 
@@ -396,7 +438,7 @@ namespace LogikUI.Circuit
 
                     // Here we should re-link all of the components that are connected
                     // to this split
-                    foreach (var (comp, port) in split.ComponentPorts)
+                    foreach (var (comp, port) in unclaimedComponents)
                     {
                         Span<Vector2i> portLocs = stackalloc Vector2i[Gates.GetNumberOfPorts(comp)];
                         Gates.GetTransformedPorts(comp, portLocs);
@@ -409,9 +451,30 @@ namespace LogikUI.Circuit
                                 if (wire.IsConnectionPoint(loc))
                                 {
                                     componentCheckSubnet.AddComponent(comp, i);
+
                                     Console.WriteLine($"Added component ({comp}, port: {i}) to split subnet: {componentCheckSubnet}.");
                                 }
                             }
+                        }
+                    }
+
+                    // Remove these components from the list to check.
+                    foreach (var val in componentCheckSubnet.ComponentPorts)
+                    {
+                        unclaimedComponents.Remove(val);
+                    }
+                }
+
+                if (noSplit == false)
+                {
+                    // Here we did split the subnet so we want to take care of unclaimed components
+                    foreach (var (comp, port) in unclaimedComponents)
+                    {
+                        Console.WriteLine($"Removing unclaimed component after split: {comp}, port: {port}");
+                        // This component should be unlinked.
+                        if (LogLogic.Unlink(Program.Backend, comp.ID, port, split.ID) == false)
+                        {
+                            Console.WriteLine($"Could not unlink component: {comp.ID}, port: {port}, subnet: {split.ID}");
                         }
                     }
                 }
@@ -421,7 +484,7 @@ namespace LogikUI.Circuit
             {
                 // Here we should figure out a new subnet id
                 addedNet.ID = SubnetIDCounter++;
-                Logic.AddSubnet(Program.Backend, addedNet.ID);
+                LogLogic.AddSubnet(Program.Backend, addedNet.ID);
                 Console.WriteLine($"Added new subnet: {addedNet}");
 
                 foreach (var comp in Gates.Instances)
@@ -447,7 +510,7 @@ namespace LogikUI.Circuit
             foreach (var removedNet in deletedSubnets)
             {
                 Console.WriteLine($"Removed subnet: {removedNet}");
-                Logic.RemoveSubnet(Program.Backend, removedNet.ID);
+                LogLogic.RemoveSubnet(Program.Backend, removedNet.ID);
                 removedNet.ID = 0;
 
                 Subnets.Remove(removedNet);
@@ -459,10 +522,8 @@ namespace LogikUI.Circuit
             foreach (var net in Subnets)
             {
                 Console.WriteLine($"\t{net}");
-                Logic.DirtySubnet(Program.Backend, net.ID);
             }
-
-            //Logic.Tick(Program.Backend);
+            Console.WriteLine("---- ---- ---- ----");
         }
 
         // FIXME: Structure this better!

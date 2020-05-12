@@ -108,7 +108,8 @@ namespace LogikUI.Circuit
         {
             if (transaction.RemoveComponent == false)
             {
-                transaction.Gate.ID = Logic.AddComponent(Program.Backend, transaction.Gate.Type);
+                transaction.Gate.ID = LogLogic.AddComponent(Program.Backend, transaction.Gate.Type);
+
                 Instances.Add(transaction.Gate);
             }
             else
@@ -116,9 +117,14 @@ namespace LogikUI.Circuit
                 if (transaction.Gate.ID == 0)
                     throw new InvalidOperationException("Cannot delete a gate that doesn't have a valid id! (Maybe you forgot to apply the transaction before?)");
 
-                if (Logic.RemoveComponent(Program.Backend, transaction.Gate.ID) == false)
+                if (LogLogic.RemoveComponent(Program.Backend, transaction.Gate.ID) == false)
                 {
+                    Console.WriteLine($"RemoveComponent(Type: {transaction.Gate.ID}) -> false");
                     Console.WriteLine($"Warn: Rust said we couldn't remove this gate id: {transaction.Gate.ID}. ({transaction.Gate})");
+                }
+                else
+                {
+                    Console.WriteLine($"RemoveComponent(Type: {transaction.Gate.ID}) -> true");
                 }
 
                 if (Instances.Remove(transaction.Gate) == false)
@@ -138,7 +144,7 @@ namespace LogikUI.Circuit
                 if (transaction.Gate.ID == 0)
                     throw new InvalidOperationException("Cannot revert a transaction where the gates doesn't have a valid id! (Maybe you forgot to apply the transaction before?)");
 
-                if (Logic.RemoveComponent(Program.Backend, transaction.Gate.ID) == false)
+                if (LogLogic.RemoveComponent(Program.Backend, transaction.Gate.ID) == false)
                 {
                     Console.WriteLine($"Warn: Rust said we couldn't remove this gate id: {transaction.Gate.ID}. ({transaction.Gate})");
                 }
@@ -151,7 +157,7 @@ namespace LogikUI.Circuit
             else
             {
                 // Here we are reverting a delete, i.e. adding it back again
-                transaction.Gate.ID = Logic.AddComponent(Program.Backend, transaction.Gate.Type);
+                transaction.Gate.ID = LogLogic.AddComponent(Program.Backend, transaction.Gate.Type);
                 Instances.Add(transaction.Gate);
             }
             

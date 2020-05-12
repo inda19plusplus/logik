@@ -16,6 +16,8 @@ namespace LogikUI.Util
                 // FIXME: A placeholder graphic?
                 // FIXME: Proper graphic for constant, or just removing constants from the toolbar?
                 ComponentType.Constant => BufferGate(),
+                ComponentType.Not => BufferGate(),
+
                 ComponentType.Buffer => BufferGate(),
                 ComponentType.And => AndGate(),
                 ComponentType.Or  => OrGate(),

@@ -70,6 +70,9 @@ namespace LogikUI.Circuit
                     double y = connection.Y * CircuitEditor.DotSpacing;
                     cr.Arc(x, y, ConnectionRadius, 0, Math.PI * 2);
                     cr.ClosePath();
+
+                    //cr.MoveTo(x, y);
+                    //cr.ShowText(bundle.ID.ToString());
                 }
 
                 // Get the value of the subnet if there is one.
@@ -77,7 +80,7 @@ namespace LogikUI.Circuit
                 Value value = Value.Floating;
                 if (bundle.ID != 0)
                 {
-                    var state = Logic.SubnetState(Program.Backend, bundle.ID);
+                    var state = LogLogic.SubnetState(Program.Backend, bundle.ID);
                     value = state switch
                     {
                         ValueState.Floating => Value.Floating,
@@ -169,7 +172,7 @@ namespace LogikUI.Circuit
 
                 // If there where more than one connection here
                 // we want to display a connection here.
-                if (count > 1) addConnection = true;
+                if (count > 2) addConnection = true;
 
                 if (addConnection) connections.Add(startOfGroup);
             }
@@ -342,15 +345,28 @@ namespace LogikUI.Circuit
                 newWire.Direction = mergedWire.Direction;
                 newWire.Pos = pos;
                 newWire.Length = (split - pos).ManhattanDistance;
-                if (newWire.Length < 0) Debugger.Break();
-                pos = newWire.EndPos;
-                Added.Add(newWire);
-                Console.WriteLine($"Split wire at {split}. Result: ({newWire})");
+
+                // If the split results in non-zero length wire we add it
+                if (newWire.Length > 0)
+                {
+                    pos = newWire.EndPos;
+                    Added.Add(newWire);
+                    Console.WriteLine($"Split wire at {split}. Result: ({newWire})");
+                }
             }
             // Here we need to add the last part of the wire
             Wire w = new Wire(pos, (mergedWire.EndPos - pos).ManhattanDistance, mergedWire.Direction);
-            Added.Add(w);
-            Console.WriteLine($"End part of split: {w}");
+            // If the end part is has a length greater than zero add it
+            if (w.Length > 0)
+            {
+                Added.Add(w);
+                Console.WriteLine($"End part of split: {w}");
+            }
+            else
+            {
+                Console.WriteLine($"No end needed for split.");
+            }
+            
 
             // FIXME: We want to deduplicate the values in Added and Deleted
             // If both lists contain exactly the same wires we want to return
@@ -595,6 +611,17 @@ namespace LogikUI.Circuit
                     }
                 }
             }
+
+            // Remove all wires with zero length
+            Added.RemoveAll(w =>
+            {
+                if (w.Length == 0)
+                {
+                    Console.WriteLine($"Warn: Trying to add a wire with zero length while modifying ! {w}");
+                    return true;
+                }
+                else return false;
+            });
 
             return new WireTransaction(modify, Deleted, Added);
         }
