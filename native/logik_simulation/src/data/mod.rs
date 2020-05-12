@@ -127,7 +127,7 @@ impl Data {
         };
         
         self.add_edge(subnet, component, port, direction);
-        self.simulation.update_component(component, &self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
+        self.simulation.update_component(component, &self.components, &mut self.subnets, &self.component_edges);
         self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
         
         true
@@ -143,7 +143,7 @@ impl Data {
             return false;
         }
         self.simulation.dirty_subnet(subnet);
-        self.simulation.update_component(component, &self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
+        self.simulation.update_component(component, &self.components, &mut self.subnets, &self.component_edges);
         self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
         
         true
@@ -268,7 +268,7 @@ impl Simulator {
         let mut diff: HashMap<i32, HashSet<SubnetState>> = HashMap::new();
         
         for s in simulating {
-            let d = self.simulate(s, &old_state, components, subnets, subnet_edges, component_edges);
+            let d = self.simulate(s, &old_state, components, subnets, component_edges);
             for (k, v) in d.into_iter() {
                 diff.entry(k).or_default().extend(v.into_iter());
             }
@@ -285,12 +285,11 @@ impl Simulator {
         old_state: &HashMap<i32, SubnetState>,
         components: &HashMap<i32, Box<dyn Component>>,
         subnets: &HashMap<i32, Subnet>,
-        subnet_edges: &HashMap<i32, HashSet<Edge>>,
         component_edges: &HashMap<i32, HashSet<Edge>>
     ) -> HashMap<i32, HashSet<SubnetState>>
     {
         let comp = &**components.get(&component).unwrap();
-        let edges = component_edges.get(&component).unwrap();
+        let edges = component_edges.get(&component);
         let mut searching = HashSet::new();
         let mut dirty_ports = HashSet::new();
         for (port_idx, port_type) in comp.ports_type()
@@ -307,7 +306,7 @@ impl Simulator {
         let mut states = HashMap::new();
         let mut dirtying = HashMap::new();
         
-        for edge in edges {
+        for edge in edges.unwrap_or(&HashSet::new()) {
             if searching.contains(&edge.port) {
                 let val = subnets.get(&edge.subnet).unwrap().val();
                 let old = match old_state.get(&edge.subnet) {
@@ -341,14 +340,13 @@ impl Simulator {
         component: i32,
         components: &HashMap<i32, Box<dyn Component>>,
         subnets: &mut HashMap<i32, Subnet>,
-        subnet_edges: &HashMap<i32, HashSet<Edge>>,
         component_edges: &HashMap<i32, HashSet<Edge>>
     ) {
         let mut old_state = HashMap::new();
         
         std::mem::swap(&mut old_state, &mut self.changed_subnets);
         
-        let diff = self.simulate(component, &old_state, components, subnets, subnet_edges, component_edges);
+        let diff = self.simulate(component, &old_state, components, subnets, component_edges);
         
         self.apply_state_diff(diff, subnets);
     }
@@ -410,7 +408,7 @@ impl Simulator {
         }
         
         for u in updating {
-            self.update_component(u, components, subnets, subnet_edges, component_edges);
+            self.update_component(u, components, subnets, component_edges);
         }
         
         self.process_until_clean(components, subnets, subnet_edges, component_edges);
