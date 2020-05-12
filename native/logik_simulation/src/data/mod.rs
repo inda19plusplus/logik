@@ -18,9 +18,8 @@ pub struct Data {
     components_free: BinaryHeap<Reverse<i32>>,
     subnets: HashMap<i32, Subnet>,
     // <id, subnet>
-    edges: HashMap<i32, HashSet<Edge>>, // key is node, value is all edges associated with the node
-    // components live on odd indices
-    // subnets live on even indices
+    subnet_edges: HashMap<i32, HashSet<Edge>>,
+    component_edges: HashMap<i32, HashSet<Edge>>,
     clocks: Vec<i32>,
     simulation: Simulator,
 }
@@ -31,7 +30,8 @@ impl Data {
             components: HashMap::new(),
             components_free: BinaryHeap::new(),
             subnets: HashMap::new(),
-            edges: HashMap::new(),
+            subnet_edges: HashMap::new(),
+            component_edges: HashMap::new(),
             clocks: Vec::new(),
             simulation: Simulator::new(),
         }
@@ -73,14 +73,14 @@ impl Data {
     
     pub(crate) fn remove_component(&mut self, id: i32) -> bool {
         if self.components.remove(&id).is_none() {
-            return false
+            return false;
         };
         
         self.components_free.push(Reverse(id));
     
         let mut to_remove = Vec::new();
     
-        if let Some(edges) = self.edges.get(&id) {
+        if let Some(edges) = self.component_edges.get(&id) {
             for edge in edges {
                 to_remove.push(edge.clone());
             }
@@ -88,10 +88,10 @@ impl Data {
     
         for r in to_remove {
             self.remove_edge(&r);
-            self.simulation.dirty_subnet(r.subnet / 2);
+            self.simulation.dirty_subnet(r.subnet);
         }
         
-        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.edges);
+        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
         
         true
     }
@@ -100,12 +100,12 @@ impl Data {
         self.subnets.insert(id, Subnet::new()).is_none()
     }
     
-    pub(crate) fn remove_subnet(&mut self, id: i32) -> bool {
-        if self.subnets.remove(&id).is_none() {
+    pub(crate) fn remove_subnet(&mut self, subnet: i32) -> bool {
+        if self.subnets.remove(&subnet).is_none() {
             return false;
         }
     
-        if let Some(edges) = self.edges.get(&(2 * id)) {
+        if let Some(edges) = self.subnet_edges.get(&subnet) {
             let mut to_remove = Vec::new();
     
             for edge in edges {
@@ -127,8 +127,8 @@ impl Data {
         };
         
         self.add_edge(subnet, component, port, direction);
-        self.simulation.update_component(component, &self.components, &mut self.subnets, &self.edges);
-        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.edges);
+        self.simulation.update_component(component, &self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
+        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
         
         true
     }
@@ -143,8 +143,8 @@ impl Data {
             return false;
         }
         self.simulation.dirty_subnet(subnet);
-        self.simulation.update_component(component, &self.components, &mut self.subnets, &self.edges);
-        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.edges);
+        self.simulation.update_component(component, &self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
+        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
         
         true
     }
@@ -153,7 +153,7 @@ impl Data {
         let edge = Edge::new(subnet, component, port, direction);
     
         let mut removing = Vec::new();
-        if let Entry::Occupied(inner) = self.edges.entry(2 * subnet) {
+        if let Entry::Occupied(inner) = self.subnet_edges.entry(subnet) {
             let same = inner.get().iter().find(|e| e.same_nodes(&edge));
             if let Some(same) = same { //This edge already exists
                 removing.push(same.clone());
@@ -166,22 +166,22 @@ impl Data {
         
         // here, we're guaranteed to not have an edge between the subnet and the component's port
         // so we can just put in edges without worry of collision
-        self.edges.entry(2 * component + 1).or_default().insert(edge.clone());
-        self.edges.entry(2 * subnet).or_default().insert(edge);
+        self.component_edges.entry(component).or_default().insert(edge.clone());
+        self.subnet_edges.entry(subnet).or_default().insert(edge);
     }
     
     fn remove_edge(&mut self, edge: &Edge) -> bool {
-        match self.edges.get_mut(&(edge.component)) {
+        match self.component_edges.get_mut(&(edge.component)) {
             Some(t) => t.remove(edge),
             None => return false,
         };
-        self.edges.get_mut(&(edge.subnet)).unwrap().remove(edge);
+        self.subnet_edges.get_mut(&(edge.subnet)).unwrap().remove(edge);
         // If an edge exists in one direction, there should also exist one in the other direction
-        if self.edges.get(&(edge.component)).unwrap().len() == 0 {
-            self.edges.remove(&(edge.component));
+        if self.component_edges.get(&(edge.component)).unwrap().len() == 0 {
+            self.component_edges.remove(&(edge.component));
         }
-        if self.edges.get(&(edge.subnet)).unwrap().len() == 0 {
-            self.edges.remove(&(edge.subnet));
+        if self.subnet_edges.get(&(edge.subnet)).unwrap().len() == 0 {
+            self.subnet_edges.remove(&(edge.subnet));
         }
         true
     }
@@ -197,9 +197,9 @@ impl Data {
     
     /// Gets the state of a subnet which a port is connected to
     pub(crate) fn port_state(&self, component: i32, port: usize) -> Option<SubnetState> {
-        for edge in self.edges.get(&(2 * component + 1))? {
+        for edge in self.component_edges.get(&component)? {
             if edge.port == port {
-                return Some(self.subnets.get(&(edge.subnet / 2))?.val())
+                return Some(self.subnets.get(&edge.subnet)?.val())
             }
         }
         
@@ -207,7 +207,7 @@ impl Data {
     }
     
     pub(crate) fn time_step(&mut self) {
-        self.simulation.time_step(&self.clocks, &self.components, &mut self.subnets, &self.edges);
+        self.simulation.time_step(&self.clocks, &self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
     }
 }
 
@@ -218,7 +218,7 @@ impl Data {
     }
     
     fn advance_time(&mut self) {
-        self.simulation.advance_time(&self.components, &mut self.subnets, &self.edges);
+        self.simulation.advance_time(&self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
     }
     
     fn update_silent(&mut self, subnet: i32, state: SubnetState) {
@@ -244,7 +244,8 @@ impl Simulator {
         &mut self,
         components: &HashMap<i32, Box<dyn Component>>,
         subnets: &mut HashMap<i32, Subnet>,
-        edges: &HashMap<i32, HashSet<Edge>>
+        subnet_edges: &HashMap<i32, HashSet<Edge>>,
+        component_edges: &HashMap<i32, HashSet<Edge>>
     ) {
         let to_simulate = match self.dirty_subnets.pop_front() {
             Some(t) => t,
@@ -253,9 +254,9 @@ impl Simulator {
         
         let mut simulating = HashSet::new();
         for subnet in to_simulate {
-            for edge in edges.get(&(2 * subnet)).unwrap_or(&HashSet::new()) {
+            for edge in subnet_edges.get(&subnet).unwrap_or(&HashSet::new()) {
                 if edge.direction != EdgeDirection::ToSubnet {
-                    simulating.insert((edge.component - 1) / 2);
+                    simulating.insert(edge.component);
                 }
             }
         }
@@ -267,7 +268,7 @@ impl Simulator {
         let mut diff: HashMap<i32, HashSet<SubnetState>> = HashMap::new();
         
         for s in simulating {
-            let d = self.simulate(s, &old_state, components, subnets, edges);
+            let d = self.simulate(s, &old_state, components, subnets, subnet_edges, component_edges);
             for (k, v) in d.into_iter() {
                 diff.entry(k).or_default().extend(v.into_iter());
             }
@@ -284,11 +285,12 @@ impl Simulator {
         old_state: &HashMap<i32, SubnetState>,
         components: &HashMap<i32, Box<dyn Component>>,
         subnets: &HashMap<i32, Subnet>,
-        edges: &HashMap<i32, HashSet<Edge>>
+        subnet_edges: &HashMap<i32, HashSet<Edge>>,
+        component_edges: &HashMap<i32, HashSet<Edge>>
     ) -> HashMap<i32, HashSet<SubnetState>>
     {
         let comp = &**components.get(&component).unwrap();
-        let edges = edges.get(&(2 * component + 1)).unwrap();
+        let edges = component_edges.get(&component).unwrap();
         let mut searching = HashSet::new();
         let mut dirty_ports = HashSet::new();
         for (port_idx, port_type) in comp.ports_type()
@@ -307,15 +309,15 @@ impl Simulator {
         
         for edge in edges {
             if searching.contains(&edge.port) {
-                let val = subnets.get(&(edge.subnet / 2)).unwrap().val();
-                let old = match old_state.get(&(edge.subnet / 2)) {
+                let val = subnets.get(&edge.subnet).unwrap().val();
+                let old = match old_state.get(&edge.subnet) {
                     Some(t) => *t,
                     None => val,
                 };
                 let diff = StateChange::new(old, val);
                 states.insert(edge.port, diff);
             } else if dirty_ports.contains(&edge.port) {
-                dirtying.insert(edge.port, edge.subnet / 2);
+                dirtying.insert(edge.port, edge.subnet);
             }
         }
         
@@ -339,13 +341,14 @@ impl Simulator {
         component: i32,
         components: &HashMap<i32, Box<dyn Component>>,
         subnets: &mut HashMap<i32, Subnet>,
-        edges: &HashMap<i32, HashSet<Edge>>
+        subnet_edges: &HashMap<i32, HashSet<Edge>>,
+        component_edges: &HashMap<i32, HashSet<Edge>>
     ) {
         let mut old_state = HashMap::new();
         
         std::mem::swap(&mut old_state, &mut self.changed_subnets);
         
-        let diff = self.simulate(component, &old_state, components, subnets, edges);
+        let diff = self.simulate(component, &old_state, components, subnets, subnet_edges, component_edges);
         
         self.apply_state_diff(diff, subnets);
     }
@@ -381,11 +384,12 @@ impl Simulator {
         &mut self,
         components: &HashMap<i32, Box<dyn Component>>,
         subnets: &mut HashMap<i32, Subnet>,
-        edges: &HashMap<i32, HashSet<Edge>>
+        subnet_edges: &HashMap<i32, HashSet<Edge>>,
+        component_edges: &HashMap<i32, HashSet<Edge>>
     ) -> bool {
         const MAX_ITERS: i32 = 1000;
         for _ in 0..MAX_ITERS {
-            self.advance_time(components, subnets, edges);
+            self.advance_time(components, subnets, subnet_edges, component_edges);
         }
         
         false
@@ -397,7 +401,8 @@ impl Simulator {
         clocks: &[i32],
         components: &HashMap<i32, Box<dyn Component>>,
         subnets: &mut HashMap<i32, Subnet>,
-        edges: &HashMap<i32, HashSet<Edge>>
+        subnet_edges: &HashMap<i32, HashSet<Edge>>,
+        component_edges: &HashMap<i32, HashSet<Edge>>
     ) {
         let mut updating = Vec::new();
         for clock in clocks {
@@ -405,10 +410,10 @@ impl Simulator {
         }
         
         for u in updating {
-            self.update_component(u, components, subnets, edges);
+            self.update_component(u, components, subnets, subnet_edges, component_edges);
         }
         
-        self.process_until_clean(components, subnets, edges);
+        self.process_until_clean(components, subnets, subnet_edges, component_edges);
     }
 }
 
@@ -423,11 +428,7 @@ struct Edge {
 
 impl Edge {
     fn new(subnet: i32, component: i32, port: usize, direction: EdgeDirection) -> Self {
-        Self {
-            subnet: 2 * subnet,
-            component: 2 * component + 1,
-            port, direction
-        }
+        Self { subnet, component, port, direction }
     }
     
     fn same_nodes(&self, other: &Self) -> bool {
