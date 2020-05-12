@@ -61,7 +61,7 @@ impl Data {
         let idx = self.alloc_component(component);
     
         for port in ports {
-            self.add_edge(port.2, idx, port.1, port.0.into());
+            assert!(self.add_edge(port.2, idx, port.1, port.0.into()));
         }
         
         Ok(idx)
@@ -126,7 +126,9 @@ impl Data {
             None => return false,
         };
         
-        self.add_edge(subnet, component, port, direction);
+        if !self.add_edge(subnet, component, port, direction) {
+            return false;
+        }
         self.simulation.update_component(component, &self.components, &mut self.subnets, &self.component_edges);
         self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
         
@@ -149,12 +151,20 @@ impl Data {
         true
     }
     
-    fn add_edge(&mut self, subnet: i32, component: i32, port: usize, direction: EdgeDirection) {
+    fn add_edge(&mut self, subnet: i32, component: i32, port: usize, direction: EdgeDirection) -> bool {
         let edge = Edge::new(subnet, component, port, direction);
     
         let mut removing = Vec::new();
-        if let Entry::Occupied(inner) = self.subnet_edges.entry(subnet) {
-            let same = inner.get().iter().find(|e| e.same_nodes(&edge));
+        if let Entry::Occupied(inner) = self.component_edges.entry(component) {
+            let mut same = None;
+            for e in inner.get() {
+                if e.same_nodes(&edge) {
+                    same = Some(e.clone());
+                }
+                if e.component == edge.component && e.port == edge.port && e.subnet != edge.subnet {
+                    return false;
+                }
+            }
             if let Some(same) = same { //This edge already exists
                 removing.push(same.clone());
             }
@@ -168,6 +178,8 @@ impl Data {
         // so we can just put in edges without worry of collision
         self.component_edges.entry(component).or_default().insert(edge.clone());
         self.subnet_edges.entry(subnet).or_default().insert(edge);
+        
+        true
     }
     
     fn remove_edge(&mut self, edge: &Edge) -> bool {
