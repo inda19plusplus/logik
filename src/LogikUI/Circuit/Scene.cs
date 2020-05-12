@@ -480,6 +480,15 @@ namespace LogikUI.Circuit
                 }
             }
 
+            foreach (var removedNet in deletedSubnets)
+            {
+                Console.WriteLine($"Removed subnet: {removedNet}");
+                LogLogic.RemoveSubnet(Program.Backend, removedNet.ID);
+                removedNet.ID = 0;
+
+                Subnets.Remove(removedNet);
+            }
+            
             foreach (var addedNet in addedSubnets)
             {
                 // Here we should figure out a new subnet id
@@ -505,15 +514,6 @@ namespace LogikUI.Circuit
                         }
                     }
                 }
-            }
-
-            foreach (var removedNet in deletedSubnets)
-            {
-                Console.WriteLine($"Removed subnet: {removedNet}");
-                LogLogic.RemoveSubnet(Program.Backend, removedNet.ID);
-                removedNet.ID = 0;
-
-                Subnets.Remove(removedNet);
             }
 
             Console.WriteLine();

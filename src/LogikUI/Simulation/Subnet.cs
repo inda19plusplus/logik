@@ -61,6 +61,9 @@ namespace LogikUI.Simulation
         public void Merge(Subnet toMerge)
         {
             Wires.AddRange(toMerge.Wires);
+            
+            // Remove the subnet that we merged
+            LogLogic.RemoveSubnet(Program.Backend, toMerge.ID);
 
             if (ID == 0)
                 Console.WriteLine($"Warn: Trying to merge wires into a subnet with ID zero! {this}");
@@ -70,9 +73,7 @@ namespace LogikUI.Simulation
             {
                 AddComponent(instance, port);
             }
-
-            // Remove the subnet that we merged
-            LogLogic.RemoveSubnet(Program.Backend, toMerge.ID);
+            
             toMerge.ID = 0;
         }
 
