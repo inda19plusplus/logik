@@ -1,7 +1,12 @@
 ﻿using Cairo;
+using LogikUI.Interop;
+using LogikUI.Simulation;
+using LogikUI.Simulation.Gates;
 using LogikUI.Transaction;
+using LogikUI.Util;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace LogikUI.Circuit
@@ -12,6 +17,11 @@ namespace LogikUI.Circuit
         public Gates Gates;
         public TextLabels Labels;
 
+        // FIXME!!
+        public int SubnetIDCounter = 1;
+
+        public List<Subnet> Subnets = new List<Subnet>();
+
         public TransactionStack Transactions = new TransactionStack();
 
         public Scene(Wires wires, Gates gates, TextLabels labels)
@@ -19,6 +29,8 @@ namespace LogikUI.Circuit
             Wires = wires;
             Gates = gates;
             Labels = labels;
+
+            Subnets = CreateSubnetsFromWires(Wires.WiresList);
         }
 
         /// <summary>
@@ -40,13 +52,19 @@ namespace LogikUI.Circuit
             {
                 case WireTransaction wt:
                     Wires.ApplyTransaction(wt);
+                    // Update the subnets
+                    UpdateSubnets(wt.Created, wt.Deleted);
                     break;
                 case GateTransaction gt:
                     Gates.ApplyTransaction(gt);
                     if (gt.ConnectionPointWireEdits != null)
                         Wires.ApplyTransaction(gt.ConnectionPointWireEdits);
                     // FIXME: Clean this up, this is just so that we can get something simulating
-                    Wires.AddComponent(gt.Gate);
+                    this.AddComponent(gt.Gate);
+                    // Update the subnets
+                    UpdateSubnets(
+                        gt.ConnectionPointWireEdits?.CreatedWires ?? new List<Wire>(),
+                        gt.ConnectionPointWireEdits?.DeletedWires ?? new List<Wire>());
                     break;
                 case BundledTransaction bt:
                     {
@@ -69,13 +87,19 @@ namespace LogikUI.Circuit
             {
                 case WireTransaction wt:
                     Wires.RevertTransaction(wt);
+                    // Update the subnets, but in reverse
+                    UpdateSubnets(wt.Deleted, wt.Created);
                     break;
                 case GateTransaction gt:
                     Gates.RevertTransaction(gt);
                     if (gt.ConnectionPointWireEdits != null)
                         Wires.RevertTransaction(gt.ConnectionPointWireEdits);
                     // FIXME: Clean this up, this is just so that we can get something simulating
-                    Wires.RemoveComponent(gt.Gate);
+                    this.RemoveComponent(gt.Gate);
+                    // Update the subnets, but in reverse
+                    UpdateSubnets(
+                        gt.ConnectionPointWireEdits?.DeletedWires ?? new List<Wire>(),
+                        gt.ConnectionPointWireEdits?.CreatedWires ?? new List<Wire>());
                     break;
                 case BundledTransaction bt:
                     {
@@ -115,9 +139,421 @@ namespace LogikUI.Circuit
 
         public void Draw(Context cr)
         {
-            Wires.Draw(cr);
+            // FIXME: Make this a static method and do the subnet loop here instead.
+            Wires.Draw(cr, Subnets);
             Gates.Draw(cr);
             Labels.Draw(cr);
+        }
+
+        private Subnet? FindSubnet(Vector2i pos)
+        {
+            foreach (var bundle in Subnets)
+            {
+                foreach (var wire in bundle.Wires)
+                {
+                    if (wire.IsPointOnWire(pos))
+                    {
+                        return bundle;
+                    }
+
+                }
+            }
+            return null;
+        }
+
+        public void UpdateSubnets(List<Wire> added, List<Wire> removed)
+        {
+            List<Subnet> addedSubnets = new List<Subnet>();
+            List<Subnet> deletedSubnets = new List<Subnet>();
+
+            List<Subnet> checkSplitSubnets = new List<Subnet>();
+
+            foreach (var old in removed)
+            {
+                var startNet = FindSubnet(old.Pos);
+                var endNet = FindSubnet(old.EndPos);
+
+                if (startNet != null && endNet != null)
+                {
+                    if (startNet == endNet)
+                    {
+                        // We are removing a wire from a subnet
+                        // So here we want to figure out if we have to split this subnet
+                        startNet.RemoveWire(old);
+
+                        // If there are no wires left, delete this subnet
+                        // otherwise we need to check if the deletion
+                        // led to any splits in the subnet
+                        if (startNet.Wires.Count == 0)
+                        {
+                            deletedSubnets.Add(startNet);
+                        }
+                        else
+                        {
+                            checkSplitSubnets.Add(startNet);
+                        }
+                    }
+                    else
+                    {
+                        // This is f***ed in more ways than one...
+                        Console.WriteLine($"Error! This should not happen! Trying to remove a wire containing to more than one subnet! (Wire: {old}, Subnet1: {startNet}, Subnet2:{endNet})");
+                    }
+                }
+                else if (startNet != null)
+                {
+                    // We are removing from one subnet
+                    if (startNet.RemoveWire(old))
+                    {
+                        Console.WriteLine($"Warn: Tried to remove a wire from a subnet that didn't contain that wire. (Wire: {old}, Subnet: {startNet})");
+                    }
+
+                    if (startNet.Wires.Count == 0)
+                        deletedSubnets.Add(startNet);
+
+                    Console.WriteLine($"Removed wire to subnet: {startNet}");
+                }
+                else if (endNet != null)
+                {
+                    // We are removing from one subnet
+                    if (endNet.RemoveWire(old))
+                    {
+                        Console.WriteLine($"Warn: Tried to remove a wire from a subnet that didn't contain that wire. (Wire: {old}, Subnet: {endNet})");
+                    }
+
+                    if (endNet.Wires.Count == 0)
+                        deletedSubnets.Add(endNet);
+
+                    Console.WriteLine($"Removed wire to subnet: {endNet}");
+                }
+                else
+                {
+                    // Here we are removing a wire that didn't belong to any subnet!?
+                    Console.WriteLine($"Error! This should not happen! Trying to remove a wire not contained in any subnet! (Wire: {old})");
+                }
+            }
+
+            foreach (var @new in added)
+            {
+                var startNet = FindSubnet(@new.Pos);
+                var endNet = FindSubnet(@new.EndPos);
+
+                if (startNet != null && endNet != null)
+                {
+                    if (startNet == endNet)
+                    {
+                        // Here they are the same subnet.
+                        // So we just add the wire.
+                        startNet.AddWire(@new);
+                    }
+                    else
+                    {
+                        // Here we need to merge the different subnets.
+                        Console.WriteLine($"Merging subnet ({endNet}) into subnet ({startNet}).");
+                        Subnets.Remove(endNet);
+                        startNet.Merge(endNet);
+
+                        // Don't forget to add the wire that merged these subnets
+                        startNet.AddWire(@new);
+
+                        Console.WriteLine($"\tResult: {startNet}");
+                    }
+                }
+                else if (startNet != null)
+                {
+                    // Here we just add this wire to the subnet,
+                    // it's not going to change anything.
+                    startNet.AddWire(@new);
+                    Console.WriteLine($"Added wire to subnet: {startNet}");
+                }
+                else if (endNet != null)
+                {
+                    // Here we just add this wire to the subnet,
+                    // it's not going to change anything.
+                    endNet.AddWire(@new);
+                    Console.WriteLine($"Added wire to subnet: {endNet}");
+                }
+                else
+                {
+                    // This means that this wire should be in it's own subnet.
+                    // It might get merged into another subnet later though..
+                    var sub = new Subnet(0);
+                    sub.AddWire(@new);
+                    addedSubnets.Add(sub);
+
+                    // NOTE: do we want to do this?
+                    Subnets.Add(sub);
+                    Console.WriteLine($"Added single wire subnet: {sub}");
+                }
+            }
+
+            foreach (var split in checkSplitSubnets)
+            {
+                // Here we need to check if this subnet 
+                // has to be split into multiple subnets
+
+                if (split.ID == 0)
+                {
+                    Console.WriteLine($"We don't need to check for splits on this subnet because it has been removed! Subnet: {split}");
+                    continue;
+                }
+
+                Console.WriteLine($"Checking subnet ({split}) for splits!");
+
+                List<Wire> wiresLeft = new List<Wire>(split.Wires);
+
+                bool usedSplitSubnet = false;
+
+                while (wiresLeft.Count > 0)
+                {
+                    // This means that there still are wires left that doesn't 
+                    // have a subnet
+
+                    // FIXME: Switch to union find for this...
+                    static void FloodFill(List<Wire> wires, List<Wire> toCheck, Wire currentWire)
+                    {
+                        if (wires.Contains(currentWire))
+                            return;
+
+                        wires.Add(currentWire);
+
+                        for (int i = toCheck.Count - 1; i >= 0; i--)
+                        {
+                            Wire wire = toCheck[i];
+                            if (wire.IsPointOnWire(currentWire.Pos))
+                            {
+                                //wires.Add(wire);
+                                //toCheck.RemoveAt(i);
+                                FloodFill(wires, toCheck, wire);
+                            }
+                            else if (wire.IsPointOnWire(currentWire.EndPos))
+                            {
+                                //wires.Add(wire);
+                                //toCheck.RemoveAt(i);
+                                FloodFill(wires, toCheck, wire);
+                            }
+
+                            // Do don't need to check anymore
+                            if (wires.Count == toCheck.Count)
+                                return;
+                        }
+                    }
+
+                    Wire startWire = wiresLeft[0];
+                    List<Wire> island = new List<Wire>();
+                    FloodFill(island, wiresLeft, startWire);
+
+                    // Remove all the used wires
+                    foreach (var wire in island)
+                    {
+                        wiresLeft.Remove(wire);
+                    }
+
+                    // Now we have a self contained area of wires
+                    Subnet componentCheckSubnet;
+                    if (usedSplitSubnet == false)
+                    {
+                        if (island.Count == split.Wires.Count)
+                        {
+                            // Here we didn't have to split
+                            // and we know we are done here.
+                            Console.WriteLine($"No split.");
+                            break;
+                        }
+                        else
+                        {
+                            // Here we just replace the list of wires in the split subnet
+                            Console.WriteLine($"Split original subnet {split} to contain {island.Count} wires.");
+                            split.Wires = island;
+
+                            // We don't need to add this subnet to 
+                            // Components because it is already in that list
+
+                            componentCheckSubnet = split;
+
+                            // If we are splitting we want to unlink all components from the original
+                            // subnet so that we can recheck all connections.
+                            // We only do this once. (n.b. this is because of the usedSplitSubnet bool)
+                            foreach (var (comp, port) in split.ComponentPorts)
+                            {
+                                Logic.Unlink(Program.Backend, comp.ID, port, split.ID);
+                            }
+
+                            usedSplitSubnet = true;
+                        }
+                    }
+                    else
+                    {
+                        // Here we create a new subnet
+                        var sub = new Subnet(SubnetIDCounter++);
+                        Logic.AddSubnet(Program.Backend, sub.ID);
+                        sub.Wires = island;
+                        Console.WriteLine($"Split part of subnet {split} into new subnet: {sub}.");
+
+                        Subnets.Add(sub);
+
+                        componentCheckSubnet = sub;
+                    }
+
+                    // Here we should re-link all of the components that are connected
+                    // to this split
+                    foreach (var (comp, port) in split.ComponentPorts)
+                    {
+                        Span<Vector2i> portLocs = stackalloc Vector2i[Gates.GetNumberOfPorts(comp)];
+                        Gates.GetTransformedPorts(comp, portLocs);
+
+                        for (int i = 0; i < portLocs.Length; i++)
+                        {
+                            var loc = portLocs[i];
+                            foreach (var wire in island)
+                            {
+                                if (wire.IsConnectionPoint(loc))
+                                {
+                                    componentCheckSubnet.AddComponent(comp, i);
+                                    Console.WriteLine($"Added component ({comp}, port: {i}) to split subnet: {componentCheckSubnet}.");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (var addedNet in addedSubnets)
+            {
+                // Here we should figure out a new subnet id
+                addedNet.ID = SubnetIDCounter++;
+                Logic.AddSubnet(Program.Backend, addedNet.ID);
+                Console.WriteLine($"Added new subnet: {addedNet}");
+
+                foreach (var comp in Gates.Instances)
+                {
+                    Span<Vector2i> portLocs = stackalloc Vector2i[Gates.GetNumberOfPorts(comp)];
+                    Gates.GetTransformedPorts(comp, portLocs);
+
+                    for (int i = 0; i < portLocs.Length; i++)
+                    {
+                        var loc = portLocs[i];
+                        foreach (var wire in addedNet.Wires)
+                        {
+                            if (wire.IsConnectionPoint(loc))
+                            {
+                                addedNet.AddComponent(comp, i);
+                                Console.WriteLine($"Added component ({comp}, port: {i}) to the new subnet: {addedNet}.");
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (var removedNet in deletedSubnets)
+            {
+                Console.WriteLine($"Removed subnet: {removedNet}");
+                Logic.RemoveSubnet(Program.Backend, removedNet.ID);
+                removedNet.ID = 0;
+
+                Subnets.Remove(removedNet);
+            }
+
+            Console.WriteLine();
+            Console.WriteLine();
+            Console.WriteLine("---- Subnet status ----");
+            foreach (var net in Subnets)
+            {
+                Console.WriteLine($"\t{net}");
+                Logic.DirtySubnet(Program.Backend, net.ID);
+            }
+
+            //Logic.Tick(Program.Backend);
+        }
+
+        // FIXME: Structure this better!
+        // This is so that we can get something simulating.
+        public void AddComponent(InstanceData data)
+        {
+            Span<Vector2i> ports = stackalloc Vector2i[Gates.GetNumberOfPorts(data)];
+            Gates.GetTransformedPorts(data, ports);
+
+            for (int i = 0; i < ports.Length; i++)
+            {
+                foreach (var net in Subnets)
+                {
+                    foreach (var wire in net.Wires)
+                    {
+                        if (wire.IsConnectionPoint(ports[i]))
+                        {
+                            net.AddComponent(data, i);
+                            Console.WriteLine($"Added component ({data}, port: {i}) to the subnet: {net}.");
+                            // We found a bundle so we don't have to look for
+                            // any more bundles
+                            goto breakBundles;
+                        }
+                    }
+                }
+            breakBundles:
+                continue;
+            }
+        }
+
+        // FIXME: Structure this better!
+        // This is so that we can get something simulating.
+        public void RemoveComponent(InstanceData data)
+        {
+            int ports = Gates.GetNumberOfPorts(data);
+            int count = 0;
+            foreach (var net in Subnets)
+            {
+                for (int i = 0; i < ports; i++)
+                {
+                    if (net.RemoveComponent(data, i))
+                    {
+                        Console.WriteLine($"Removed component ({data}, port: {i}) from subnet: {net}");
+                        count++;
+                    }
+                }
+            }
+
+            if (count > ports)
+                Console.WriteLine($"Warn: Removed component {data} from {count} subnets which is more than the number of ports the component has. {ports}");
+        }
+
+        // FIXME: We might want to make this more efficient!
+        public static List<Subnet> CreateSubnetsFromWires(List<Wire> wires)
+        {
+            HashSet<Vector2i> positions = new HashSet<Vector2i>();
+            foreach (var w in wires)
+            {
+                positions.Add(w.Pos);
+                positions.Add(w.EndPos);
+            }
+
+            UnionFind<Vector2i> nets = new UnionFind<Vector2i>(positions);
+
+            foreach (var w in wires)
+            {
+                nets.Union(w.Pos, w.EndPos);
+            }
+
+            Dictionary<int, Subnet> bundlesDict = new Dictionary<int, Subnet>();
+            foreach (var w in wires)
+            {
+                int root = nets.Find(w.Pos).Index;
+                if (bundlesDict.TryGetValue(root, out var bundle) == false)
+                {
+                    bundle = new Subnet(0);
+                    bundlesDict[root] = bundle;
+                }
+
+                // Because C# doesn't detect that bundle != null here we do the '!'
+                bundle!.AddWire(w);
+            }
+
+            var bundles = bundlesDict.Values.ToList();
+            //Console.WriteLine($"Created bundles:");
+            //foreach (var bundle in bundles)
+            //{
+            //    Console.WriteLine($"  Bundle:\n    {string.Join("\n    ", bundle.Wires)}\n\n");
+            //}
+
+            return bundles;
         }
     }
 }

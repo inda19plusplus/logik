@@ -140,8 +140,7 @@ namespace LogikUI.Toolbar
                         WireTransaction? modifyTransaction = editor.Scene.Wires.CreateModifyWireTransaction(modify, modifiedWire);
                         if (modifyTransaction != null)
                         {
-                            editor.Scene.Wires.ApplyTransaction(modifyTransaction);
-                            editor.Scene.Transactions.PushTransaction(modifyTransaction);
+                            editor.Scene.PushTransaction(modifyTransaction);
                             //Console.WriteLine($"Modified existing wire! ({modify}) -> ({modifiedWire})\n{modifyTransaction}\n");
                         }
                     }
@@ -149,8 +148,7 @@ namespace LogikUI.Toolbar
                     {
                         // Here we should remove the wire completely
                         var deleteTransaction = editor.Scene.Wires.CreateRemoveWireTransaction(modify);
-                        editor.Scene.Wires.ApplyTransaction(deleteTransaction);
-                        editor.Scene.Transactions.PushTransaction(deleteTransaction);
+                        editor.Scene.PushTransaction(deleteTransaction);
                         //Console.WriteLine($"Deleted wire! ({modify})\n{deleteTransaction}\n");
                     }
                 }
@@ -159,8 +157,7 @@ namespace LogikUI.Toolbar
                     var transaction = editor.Scene.Wires.CreateAddWireTransaction(CurrentWire);
                     if (transaction != null)
                     {
-                        editor.Scene.Wires.ApplyTransaction(transaction);
-                        editor.Scene.Transactions.PushTransaction(transaction);
+                        editor.Scene.PushTransaction(transaction);
                         //Console.WriteLine($"End wire!\n{transaction}\n");
                     }
                     else
