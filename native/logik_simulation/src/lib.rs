@@ -1,3 +1,3 @@
-pub mod data;
+mod data;
 mod ffi;
 mod macros;
