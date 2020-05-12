@@ -139,7 +139,9 @@ impl Data {
             None => return false,
         };
         
-        self.remove_edge(&Edge::new(subnet, component, port, direction));
+        if !self.remove_edge(&Edge::new(subnet, component, port, direction)) {
+            return false;
+        }
         self.simulation.dirty_subnet(subnet);
         self.simulation.update_component(component, &self.components, &mut self.subnets, &self.edges);
         self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.edges);
@@ -168,15 +170,20 @@ impl Data {
         self.edges.entry(2 * subnet).or_default().insert(edge);
     }
     
-    fn remove_edge(&mut self, edge: &Edge) {
-        self.edges.get_mut(&(edge.component)).unwrap().remove(edge);
+    fn remove_edge(&mut self, edge: &Edge) -> bool {
+        match self.edges.get_mut(&(edge.component)) {
+            Some(t) => t.remove(edge),
+            None => return false,
+        };
         self.edges.get_mut(&(edge.subnet)).unwrap().remove(edge);
+        // If an edge exists in one direction, there should also exist one in the other direction
         if self.edges.get(&(edge.component)).unwrap().len() == 0 {
             self.edges.remove(&(edge.component));
         }
         if self.edges.get(&(edge.subnet)).unwrap().len() == 0 {
             self.edges.remove(&(edge.subnet));
         }
+        true
     }
     
     fn port_direction_component(&self, component: i32, port: usize) -> Option<EdgeDirection> {
