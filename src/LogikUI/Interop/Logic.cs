@@ -10,6 +10,92 @@ using LogikUI.Simulation;
 
 namespace LogikUI.Interop
 {
+    static class LogLogic
+    {
+        public static void Print(string str)
+        {
+            var c = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"[Logic] {str}");
+            Console.ForegroundColor = c;
+        }
+
+        public static Data Init()
+        {
+            var data = Logic.Init();
+            Print($"Init() -> {data}");
+            return data;
+        }
+
+        public static void Exit(Data data)
+        {
+            Print($"Exit() -> {data}");
+            Logic.Exit(data);
+        }
+
+        public static bool AddSubnet(Data data, int subnetId)
+        {
+            var ret = Logic.AddSubnet(data, subnetId);
+            Print($"AddSubnet(Subnet: {subnetId}) -> {ret}");
+            return ret;
+        }
+
+        public static bool RemoveSubnet(Data data, int subnetId)
+        {
+            var ret = Logic.RemoveSubnet(data, subnetId);
+            Print($"RemoveSubnet(Subnet: {subnetId}) -> {ret}");
+            return ret;
+        }
+
+        public static int AddComponent(Data data, ComponentType componentType)
+        {
+            var ret = Logic.AddComponent(data, componentType);
+            Print($"AddComponent(Type: {componentType}) -> {ret}");
+            return ret;
+        }
+
+        public static bool RemoveComponent(Data data, int componentId)
+        {
+            var ret = Logic.RemoveComponent(data, componentId);
+            Print($"RemoveComponent(Component: {componentId}) -> {ret}");
+            return ret;
+        }
+
+        public static bool Link(Data data, int componentId, int port, int subnetId)
+        {
+            var ret = Logic.Link(data, componentId, port, subnetId);
+            Print($"Link(Component: {componentId}, Port: {port}, Subnet: {subnetId}) -> {ret}");
+            return ret;
+        }
+
+        public static bool Unlink(Data data, int componentId, int port, int subnetId)
+        {
+            var ret = Logic.Unlink(data, componentId, port, subnetId);
+            Print($"Unlink(Component: {componentId}, Port: {port}, Subnet: {subnetId}) -> {ret}");
+            return ret;
+        }
+
+        public static void Tick(Data data)
+        {
+            Print($"Tick()");
+            Logic.Tick(data);
+        }
+
+        public static ValueState SubnetState(Data data, int subnet)
+        {
+            var ret = Logic.SubnetState(data, subnet);
+            //Print($"SubnetState(Subnet: {subnet}) -> {ret}");
+            return ret;
+        }
+
+        public static ValueState PortState(Data data, int component, int port)
+        {
+            var ret = Logic.PortState(data, component, port);
+            //Print($"SubnetState(Component: {component}, Port: {port}) -> {ret}");
+            return ret;
+        }
+    }
+
     static class Logic
     {
         const string Lib = "logik_simulation";

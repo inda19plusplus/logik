@@ -24,7 +24,7 @@ namespace LogikUI.Toolbar
         public ComponentTool(ComponentType type, string name, CircuitEditor circuitEditor, Gtk.Toolbar toolbar) 
             : base(Util.Icon.GetComponentImage(type), name, circuitEditor, toolbar)
         {
-            if (circuitEditor.Gates.Components.TryGetValue(type, out var component) == false)
+            if (circuitEditor.Scene.Gates.Components.TryGetValue(type, out var component) == false)
             {
                 throw new InvalidOperationException($"There is no ICompoennt for the component type '{type}'");
             }
@@ -110,18 +110,18 @@ namespace LogikUI.Toolbar
             VisualPosition = StartPosition + editor.RoundDistToGrid(endOffset);
             StartPosition = VisualPosition;
 
-            var transaction = editor.Gates.CreateAddGateTransaction(
+            var transaction = editor.Scene.Gates.CreateAddGateTransaction(editor.Scene.Wires,
                     InstanceData.Create(BaseComponent.Type, VisualPosition, CompOrientation)
                 );
 
-            editor.Gates.ApplyTransaction(transaction);
-            editor.Transactions.PushTransaction(transaction);
+            editor.Scene.PushTransaction(transaction);
+
+            Console.WriteLine($"Created gate transaction: \n{transaction}");
 
             StartPosition = VisualPosition;
             DraggingComponent = false;
 
             editor.DrawingArea.QueueDraw();
-            // FIXME: Add the component!
         }
 
         public override void Draw(CircuitEditor editor, Context cr)

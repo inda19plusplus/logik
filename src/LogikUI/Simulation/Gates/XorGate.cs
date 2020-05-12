@@ -47,16 +47,11 @@ namespace LogikUI.Simulation.Gates
                 Span<Vector2i> points = stackalloc Vector2i[NumberOfPorts];
                 GetPorts(points);
 
-                foreach (var p in points) {
-                    var port = p * CircuitEditor.DotSpacing;
-
-                    // FIXME: Magic number radius...
-                    cr.Arc(port.X, port.Y, 2, 0, Math.PI * 2);
-                    cr.ClosePath();
+                for (int i = 0; i < NumberOfPorts; i++)
+                {
+                    IComponent.DrawRoundPort(cr, data, points, i);
                 }
             }
-            cr.SetSourceRGB(0.2, 0.9, 0.2);
-            cr.Fill();
         }
     }
 }

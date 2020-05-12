@@ -20,7 +20,6 @@ namespace LogikUI.Simulation.Gates
                 Type = type,
                 Position = position,
                 Orientation = orientation,
-                ID = -1, // Represents unassigned beacuse rust will never give a component the ID -1
             };
         }
 

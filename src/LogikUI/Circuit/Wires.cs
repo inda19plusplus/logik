@@ -1,132 +1,35 @@
-﻿using Gtk;
+﻿using LogikUI.Interop;
 using LogikUI.Simulation;
+using LogikUI.Simulation.Gates;
 using LogikUI.Transaction;
 using LogikUI.Util;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Reflection;
 
 namespace LogikUI.Circuit
 {
-    enum Direction
-    {
-        Vertical,
-        Horizontal,
-    }
-
-    // FIXME: Move to it's own file.
-    struct Wire : IEquatable<Wire>
-    {
-        public Vector2i Pos;
-        public int Length;
-        public Direction Direction;
-
-        public Vector2i EndPos => GetEndPosition();
-
-        public Wire(Vector2i pos, int length, Direction orientation)
-        {
-            Pos = pos;
-            Length = length;
-            Direction = orientation;
-
-            // TODO: Remove this as we shouldn't create wires with negative length
-            if (Length < 0)
-            {
-                int vertical = Direction == Direction.Vertical ? 1 : 0;
-                int horizontal = 1 - vertical;
-
-                Pos += new Vector2i(horizontal, vertical) * Length;
-                Length = -Length;
-            }
-        }
-
-        public Vector2i GetEndPosition()
-        {
-            return Pos + (Direction == Direction.Vertical ?
-                new Vector2i(0, Length) :
-                new Vector2i(Length, 0));
-        }
-
-        /// <summary>
-        /// Checks to see if a point lays on the wire including the wires start and end points.
-        /// </summary>
-        public bool IsPointOnWire(Vector2i point)
-        {
-            var diff = point - Pos;
-            if (diff.X * diff.Y != 0)
-                return false;
-            else if (Direction == Direction.Vertical && diff.X == 0)
-                return diff.Y >= 0 && diff.Y <= Length;
-            else if (Direction == Direction.Horizontal && diff.Y == 0)
-                return diff.X >= 0 && diff.X <= Length;
-            else return false;
-        }
-
-        /// <summary>
-        /// Checks to see if a point lays on the wire excluding the wires start and end points.
-        /// </summary>
-        public bool IsPointInsideWire(Vector2i point)
-        {
-            var diff = point - Pos;
-            if (diff.X * diff.Y != 0)
-                return false;
-            else if (Direction == Direction.Vertical && diff.X == 0)
-                return diff.Y > 0 && diff.Y < Length;
-            else if (Direction == Direction.Horizontal && diff.Y == 0)
-                return diff.X > 0 && diff.X < Length;
-            else return false;
-        }
-
-        public bool IsConnectionPoint(Vector2i point)
-        {
-            return Pos == point || EndPos == point;
-        }
-
-        public override string ToString()
-        {
-            return $"Pos: {Pos}, Length: {Length}, Direction: {Direction}";
-        }
-
-        public override bool Equals(object? obj)
-        {
-            return obj is Wire wire && Equals(wire);
-        }
-
-        public bool Equals(Wire other)
-        {
-            return Pos.Equals(other.Pos) &&
-                   Length == other.Length &&
-                   Direction == other.Direction;
-        }
-
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(Pos, Length, Direction);
-        }
-
-        public static bool operator ==(Wire left, Wire right)
-        {
-            return left.Equals(right);
-        }
-
-        public static bool operator !=(Wire left, Wire right)
-        {
-            return !(left == right);
-        }
-    }
-
     class Wires
     {
-        public List<Wire> WiresList;
-        public List<WireBundle> Bundles;
+        // FIXME: We might not want to do it like this....
+        public Gates Gates;
 
-        public Wires(Wire[] wires)
+        public List<Wire> WiresList;
+
+        // NOTE: This can be changed to a ref to Gates, idk what is better
+        public List<Vector2i> ConnectionPoints = new List<Vector2i>();
+
+        public Wires(Gates gates, Wire[] wires)
         {
+            Gates = gates;
+
             WiresList = new List<Wire>(wires);
-            Bundles = CreateBundlesFromWires(WiresList);
+            //Bundles = CreateBundlesFromWires(new List<Wire>(wires));
         }
 
         public const double WireWidth = 2;
@@ -155,70 +58,42 @@ namespace LogikUI.Circuit
             else return new Cairo.Color(0.3, 0.3, 0.3);
         }
 
-        public void Draw(Cairo.Context cr)
+        public void Draw(Cairo.Context cr, List<Subnet> Subnets)
         {
-            //WireArray(cr, WiresList);
-            //cr.SetSourceRGB(0.2, 0.9, 0.2);
-            //cr.SetSourceColor(GetValueColor(Value.Error));
-            //cr.Fill();
-
-            foreach (var bundle in Bundles)
+            foreach (var bundle in Subnets)
             {
                 WireArray(cr, bundle.Wires);
 
-                foreach (var connection in FindConnectionPoints(bundle.Wires))
+                foreach (var connection in FindConnectionPoints(bundle.Wires, ConnectionPoints))
                 {
                     double x = connection.X * CircuitEditor.DotSpacing;
                     double y = connection.Y * CircuitEditor.DotSpacing;
                     cr.Arc(x, y, ConnectionRadius, 0, Math.PI * 2);
                     cr.ClosePath();
+
+                    //cr.MoveTo(x, y);
+                    //cr.ShowText(bundle.ID.ToString());
                 }
 
-                cr.SetSourceRGB(0.2, 0.9, 0.2);
-                cr.SetSourceColor(GetValueColor(bundle.Subnet?.Value ?? Value.Floating));
+                // Get the value of the subnet if there is one.
+                // FIXME: We shouldn't have to check that there is one...
+                Value value = Value.Floating;
+                if (bundle.ID != 0)
+                {
+                    var state = LogLogic.SubnetState(Program.Backend, bundle.ID);
+                    value = state switch
+                    {
+                        ValueState.Floating => Value.Floating,
+                        ValueState.Zero => Value.Zero,
+                        ValueState.One => Value.One,
+                        ValueState.Error => Value.Error,
+                        _ => throw new InvalidOperationException($"We got an unknown subnet state from the backend! State: {state}"),
+                    };
+                }
+                cr.SetSourceColor(GetValueColor(value));
                 cr.Fill();
-            }
-            
-            //WireArray(cr, Powered);
-            //cr.SetSourceRGB(0.2, 0.9, 0.2);
-            //cr.Fill();
+            }  
 
-            //WireArray(cr, UnPowered);
-            //cr.SetSourceRGB(0.1, 0.4, 0.1);
-            //cr.Fill();
-
-            /*
-            foreach (var connection in FindConnectionPoints(WiresList))
-            {
-                double x = connection.X * CircuitEditor.DotSpacing;
-                double y = connection.Y * CircuitEditor.DotSpacing;
-                cr.Arc(x, y, ConnectionRadius, 0, Math.PI * 2);
-                cr.ClosePath();
-            }
-            cr.SetSourceRGB(0.2, 0.9, 0.2);
-            cr.Fill();*/
-
-            /*
-            foreach (var connection in PoweredConnections)
-            {
-                double x = connection.X * CircuitEditor.DotSpacing;
-                double y = connection.Y * CircuitEditor.DotSpacing;
-                cr.Arc(x, y, ConnectionRadius, 0, Math.PI * 2);
-                cr.ClosePath();
-            }
-            cr.SetSourceRGB(0.2, 0.9, 0.2);
-            cr.Fill();
-
-            foreach (var connection in UnPoweredConnections)
-            {
-                double x = connection.X * CircuitEditor.DotSpacing;
-                double y = connection.Y * CircuitEditor.DotSpacing;
-                cr.Arc(x, y, ConnectionRadius, 0, Math.PI * 2);
-                cr.ClosePath();
-            }
-            cr.SetSourceRGB(0.1, 0.4, 0.1);
-            cr.Fill();
-            */
         }
 
         public void Wire(Cairo.Context cr, Wire wire)
@@ -258,40 +133,7 @@ namespace LogikUI.Circuit
             }
         }
 
-        public static List<Vector2i> FindConnectionPoints(Wire[] wires)
-        {
-            // Calculate all points
-            Vector2i[] points = new Vector2i[wires.Length * 2];
-            for (int i = 0; i < wires.Length; i++)
-            {
-                points[i * 2] = wires[i].Pos;
-                
-                int vert = wires[i].Direction == Direction.Vertical ? 1 : 0;
-                int horiz = 1 - vert;
-                points[i * 2 + 1] = wires[i].Pos + new Vector2i(horiz, vert) * wires[i].Length;
-            }
-
-            Array.Sort(points, (p1, p2) => p1.X == p2.X ? p1.Y - p2.Y : p1.X - p2.X);
-
-            List<Vector2i> connections = new List<Vector2i>();
-
-            Vector2i last = points[0];
-            int count = 0;
-            for (int i = 1; i < points.Length; i++)
-            {
-                if (last == points[i]) count++;
-                else
-                {
-                    if (count > 1) connections.Add(last);
-                    count = 0;
-                }
-                last = points[i];
-            }
-
-            return connections;
-        }
-
-        public static List<Vector2i> FindConnectionPoints(List<Wire> wires)
+        public static List<Vector2i> FindConnectionPoints(List<Wire> wires, List<Vector2i> connectionPoints)
         {
             // Calculate all points
             Vector2i[] points = new Vector2i[wires.Count * 2];
@@ -308,17 +150,31 @@ namespace LogikUI.Circuit
 
             List<Vector2i> connections = new List<Vector2i>();
 
-            Vector2i last = points[0];
-            int count = 0;
-            for (int i = 1; i < points.Length; i++)
+            for (int i = 0; i < points.Length; i++)
             {
-                if (last == points[i]) count++;
-                else
+                bool addConnection = false;
+                int count = 1;
+                Vector2i startOfGroup = points[i];
+
+                // We always want a connection point if a wires connects
+                // to a connection point.
+                if (connectionPoints.Contains(startOfGroup))
+                    addConnection = true;
+
+                while (i + count < points.Length &&
+                    startOfGroup == points[i + count])
                 {
-                    if (count > 1) connections.Add(last);
-                    count = 0;
+                    count++;
                 }
-                last = points[i];
+
+                // We do -1 here because the for loop is going to add one.
+                i += count - 1;
+
+                // If there where more than one connection here
+                // we want to display a connection here.
+                if (count > 2) addConnection = true;
+
+                if (addConnection) connections.Add(startOfGroup);
             }
 
             return connections;
@@ -330,6 +186,13 @@ namespace LogikUI.Circuit
 
             List<Wire> Deleted = new List<Wire>();
             List<Wire> Added = new List<Wire>();
+
+            // FIXME: A better/cleaner order would be:
+            // - Check if what wires the current wire splits
+            //   - A the same time check if this wire is contained and early out in that case
+            // - The figure out all of the splitpoints that are going to happen to this wire
+            // - Merge this wire in with the splitpoint wires going in the same direction
+            // - Add the connectionpoints to the points list and do the split of the current wire
 
             // This dictionary maps wires to the point where they intersect this wire
             // If there exists a mapping but the value is null, that means both ends
@@ -349,8 +212,6 @@ namespace LogikUI.Circuit
                 else if (end)
                     SplitPoints[bWire] = bWire.EndPos;
             }
-
-            // FIXME: Add other split points like component connection points!
 
             // After we've found all of the intersection points we can check
             // if the ends of the added wire will split some other wire.
@@ -419,6 +280,14 @@ namespace LogikUI.Circuit
 
             List<Vector2i> Points = new List<Vector2i>();
 
+            foreach (var connection in ConnectionPoints)
+            {
+                // We only need to check the added wire for these points
+                // as the merge shouldn't merge over a connection.
+                if (wire.IsPointInsideWire(connection))
+                    Points.Add(connection);
+            }
+
             // Now we should merge or remove wires that are going in the same direction as us.
             Wire mergedWire = wire;
             foreach (var (splitWire, location) in SplitPoints)
@@ -431,7 +300,8 @@ namespace LogikUI.Circuit
                     Deleted.Add(splitWire);
                     continue;
                 }
-                else if (wire.Direction == splitWire.Direction)
+                else if (wire.Direction == splitWire.Direction && 
+                    ConnectionPoints.Contains(location.Value) == false)
                 {
                     // This means that we should merge the two wires.
                     // We can do that by deleting the existing wire and
@@ -475,15 +345,28 @@ namespace LogikUI.Circuit
                 newWire.Direction = mergedWire.Direction;
                 newWire.Pos = pos;
                 newWire.Length = (split - pos).ManhattanDistance;
-                if (newWire.Length < 0) Debugger.Break();
-                pos = newWire.EndPos;
-                Added.Add(newWire);
-                Console.WriteLine($"Split wire at {split}. Result: ({newWire})");
+
+                // If the split results in non-zero length wire we add it
+                if (newWire.Length > 0)
+                {
+                    pos = newWire.EndPos;
+                    Added.Add(newWire);
+                    Console.WriteLine($"Split wire at {split}. Result: ({newWire})");
+                }
             }
             // Here we need to add the last part of the wire
             Wire w = new Wire(pos, (mergedWire.EndPos - pos).ManhattanDistance, mergedWire.Direction);
-            Added.Add(w);
-            Console.WriteLine($"End part of split: {w}");
+            // If the end part is has a length greater than zero add it
+            if (w.Length > 0)
+            {
+                Added.Add(w);
+                Console.WriteLine($"End part of split: {w}");
+            }
+            else
+            {
+                Console.WriteLine($"No end needed for split.");
+            }
+            
 
             // FIXME: We want to deduplicate the values in Added and Deleted
             // If both lists contain exactly the same wires we want to return
@@ -539,8 +422,19 @@ namespace LogikUI.Circuit
                 }
             }
 
+            // Here we check if either our start or end position
+            // has a connection point, if we do we don't want to
+            // merge in that direction.
+            bool connectionPointAtStart = false;
+            bool connectionPointAtEnd = false;
+            foreach (var connection in ConnectionPoints)
+            {
+                connectionPointAtStart |= connection == wire.Pos;
+                connectionPointAtEnd |= connection == wire.EndPos;
+            }
+
             // Do some sanity checking to see that nothing is going horribly wrong.
-            
+
             if (StartPosAffectedWires.Count > 3)
             {
                 Console.WriteLine($"Warn: The removed wires start position connected to more than 3 wires. This should be impossible!\n{string.Join(", ", StartPosAffectedWires.Select(w => $"({w})"))}");
@@ -558,7 +452,9 @@ namespace LogikUI.Circuit
 
             // We are only ever going to merge wires if there are two of them,
             // and only if they are going in the same direction.
-            if (StartPosAffectedWires.Count == 2)
+            // But if there is a connection point at that end we don't want to
+            // merge because then we will merge over the connection point.
+            if (connectionPointAtStart == false && StartPosAffectedWires.Count == 2)
             {
                 Wire a = StartPosAffectedWires[0];
                 Wire b = StartPosAffectedWires[1];
@@ -580,7 +476,7 @@ namespace LogikUI.Circuit
                 }
             }
 
-            if (EndPosAffectedWires.Count == 2)
+            if (connectionPointAtEnd == false &&  EndPosAffectedWires.Count == 2)
             {
                 Wire a = EndPosAffectedWires[0];
                 Wire b = EndPosAffectedWires[1];
@@ -612,6 +508,8 @@ namespace LogikUI.Circuit
             // This means that the point that was should maybe trigger a merge
             // and that the new point should maybe trigger a split.
 
+            // FIXME: Consider connection points...
+
             // First thing is to find the point that is being moved
             Vector2i removedPosition;
             Vector2i addedPosition;
@@ -637,39 +535,52 @@ namespace LogikUI.Circuit
 
             // Check merge at removed point
             {
-                // There can only be three wires connected to this point
-                Span<Wire> removedPointWires = stackalloc Wire[3];
-                int wiresFound = 0;
-                foreach (var bWire in WiresList)
+                bool removedPointHasConnection = false;
+                foreach (var connection in ConnectionPoints)
                 {
-                    if (bWire == modify) continue;
-
-                    if (bWire.IsPointOnWire(removedPosition))
-                    {
-                        removedPointWires[wiresFound] = bWire;
-                        wiresFound++;
-                    }
+                    removedPointHasConnection |= removedPosition == connection;
                 }
 
-                // Here we should check if we should merge the wiress
-                if (wiresFound == 2)
+                // If there is a connection point at the removed position
+                // we don't have to do any merging. We only have to consider
+                // merging wires if there are no connection points at the
+                // removed position.
+                if (removedPointHasConnection == false)
                 {
-                    Wire a = removedPointWires[0];
-                    Wire b = removedPointWires[1];
-                    if (a.Direction == b.Direction)
+                    // There can only be three wires connected to this point
+                    Span<Wire> removedPointWires = stackalloc Wire[3];
+                    int wiresFound = 0;
+                    foreach (var bWire in WiresList)
                     {
-                        Deleted.Add(a);
-                        Deleted.Add(b);
+                        if (bWire == modify) continue;
 
-                        var minPos = Vector2i.ComponentWiseMin(a.Pos, b.Pos);
-                        var maxPos = Vector2i.ComponentWiseMax(a.EndPos, b.EndPos);
-                        var diff = maxPos - minPos;
+                        if (bWire.IsPointOnWire(removedPosition))
+                        {
+                            removedPointWires[wiresFound] = bWire;
+                            wiresFound++;
+                        }
+                    }
 
-                        Wire merged;
-                        merged.Direction = a.Direction;
-                        merged.Pos = minPos;
-                        merged.Length = diff.ManhattanDistance;
-                        Added.Add(merged);
+                    // Here we should check if we should merge the wiress
+                    if (wiresFound == 2)
+                    {
+                        Wire a = removedPointWires[0];
+                        Wire b = removedPointWires[1];
+                        if (a.Direction == b.Direction)
+                        {
+                            Deleted.Add(a);
+                            Deleted.Add(b);
+
+                            var minPos = Vector2i.ComponentWiseMin(a.Pos, b.Pos);
+                            var maxPos = Vector2i.ComponentWiseMax(a.EndPos, b.EndPos);
+                            var diff = maxPos - minPos;
+
+                            Wire merged;
+                            merged.Direction = a.Direction;
+                            merged.Pos = minPos;
+                            merged.Length = diff.ManhattanDistance;
+                            Added.Add(merged);
+                        }
                     }
                 }
             }
@@ -701,7 +612,113 @@ namespace LogikUI.Circuit
                 }
             }
 
+            // Remove all wires with zero length
+            Added.RemoveAll(w =>
+            {
+                if (w.Length == 0)
+                {
+                    Console.WriteLine($"Warn: Trying to add a wire with zero length while modifying ! {w}");
+                    return true;
+                }
+                else return false;
+            });
+
             return new WireTransaction(modify, Deleted, Added);
+        }
+
+        public ConnectionPointsTransaction CreateAddConnectionPointsTransaction(Span<Vector2i> connectionPoints)
+        {
+            // Here we want to check for wires that should be split as a result of adding the connection points.
+
+            List<Wire> Added = new List<Wire>();
+            List<Wire> Deleted = new List<Wire>();
+
+            foreach (var connection in connectionPoints)
+            {
+                foreach (var bWire in WiresList)
+                {
+                    if (bWire.IsPointInsideWire(connection))
+                    {
+                        // Here we should split the wire
+                        // The diff will be in non-zero in only one direction so this will work fine.
+                        var diff = connection - bWire.Pos;
+                        Deleted.Add(bWire);
+                        Added.Add(new Wire(bWire.Pos, diff.ManhattanDistance, bWire.Direction));
+                        Added.Add(new Wire(bWire.Pos + diff, bWire.Length - diff.ManhattanDistance, bWire.Direction));
+                    }
+                }
+            }
+
+            // No changes, so we don't create wire changes for this.
+            if (Added.Count == 0 && Deleted.Count == 0)
+                return new ConnectionPointsTransaction(false, connectionPoints, null, null);
+
+            // FIXME: We want to de-deplicate the changes
+
+            // FIXME: We want to do something better for the first argument!!!
+            // This will lead to 0 debuggability as it will look like connectionpoints
+            // are zero length wires at the origin...
+            // We probably want to create it's own transaction type
+            return new ConnectionPointsTransaction(false, connectionPoints, Deleted, Added);
+        }
+
+        public ConnectionPointsTransaction CreateRemoveConnectionPointsTransaction(Span<Vector2i> connectionPoints)
+        {
+            // Here we want to check for wires that should be merged as a result of removint the connection points.
+
+            List<Wire> Added = new List<Wire>();
+            List<Wire> Deleted = new List<Wire>();
+
+            foreach (var connection in connectionPoints)
+            {
+                // There can only be four wires connected to this point
+                Span<Wire> removedPointWires = stackalloc Wire[4];
+                int wiresFound = 0;
+                foreach (var bWire in WiresList)
+                {
+                    if (bWire.IsPointOnWire(connection))
+                    {
+                        removedPointWires[wiresFound] = bWire;
+                        wiresFound++;
+                    }
+                }
+
+                if (wiresFound == 2)
+                {
+                    // Here we should check if the two wires are going in the
+                    // same direction, and merge them if they are.
+                    Wire a = removedPointWires[0];
+                    Wire b = removedPointWires[1];
+                    if (a.Direction == b.Direction)
+                    {
+                        // Here we should merge these wires.
+                        Deleted.Add(a);
+                        Deleted.Add(b);
+
+                        var minPos = Vector2i.ComponentWiseMin(a.Pos, b.Pos);
+                        var maxPos = Vector2i.ComponentWiseMax(a.EndPos, b.EndPos);
+                        var diff = maxPos - minPos;
+
+                        Wire merged;
+                        merged.Direction = a.Direction;
+                        merged.Pos = minPos;
+                        merged.Length = diff.ManhattanDistance;
+                        Added.Add(merged);
+                    }
+                }
+            }
+
+            // No changes, so we don't create wire changes for this.
+            if (Added.Count == 0 && Deleted.Count == 0)
+                return new ConnectionPointsTransaction(false, connectionPoints, null, null);
+
+            // FIXME: We want to de-deplicate the changes
+
+            // FIXME: We want to do something better for the first argument!!!
+            // This will lead to 0 debuggability as it will look like connectionpoints
+            // are zero length wires at the origin...
+            // We probably want to create it's own transaction type
+            return new ConnectionPointsTransaction(false, connectionPoints, Deleted, Added);
         }
 
         public void ApplyTransaction(WireTransaction transaction)
@@ -718,10 +735,6 @@ namespace LogikUI.Circuit
             {
                 WiresList.Add(awire);
             }
-
-            // Re-calculate the bundles
-            // FIXME: We might want to make this more efficient!
-            Bundles = CreateBundlesFromWires(WiresList);
         }
 
         public void RevertTransaction(WireTransaction transaction)
@@ -740,51 +753,54 @@ namespace LogikUI.Circuit
             {
                 WiresList.Add(wire);
             }
-
-            // Re-calculate the bundles
-            // FIXME: We want to make this more efficient!
-            Bundles = CreateBundlesFromWires(WiresList);
         }
 
-        // FIXME: We might want to make this more efficient!
-        public static List<WireBundle> CreateBundlesFromWires(List<Wire> wires)
+        public void ApplyTransaction(ConnectionPointsTransaction transaction)
         {
-            HashSet<Vector2i> positions = new HashSet<Vector2i>();
-            foreach (var w in wires)
+            // Now we have figured out all of the additions and deletions.
+            // So now we can actually add and remove the appropriate wires.
+            if (transaction.DeletedWires != null)
             {
-                positions.Add(w.Pos);
-                positions.Add(w.EndPos);
-            }
-
-            UnionFind<Vector2i> nets = new UnionFind<Vector2i>(positions);
-
-            foreach (var w in wires)
-            {
-                nets.Union(w.Pos, w.EndPos);
-            }
-
-            Dictionary<int, WireBundle> bundlesDict = new Dictionary<int, WireBundle>();
-            foreach (var w in wires)
-            {
-                int root = nets.Find(w.Pos).Index;
-                if (bundlesDict.TryGetValue(root, out var bundle) == false)
+                foreach (var dwire in transaction.DeletedWires)
                 {
-                    bundle = new WireBundle();
-                    bundlesDict[root] = bundle;
+                    if (WiresList.Remove(dwire) == false)
+                        Console.WriteLine($"Warn: Tried to remove a wire that didn't exist! {dwire}");
                 }
-
-                // Because C# doesn't detect that bundle != null here we do the '!'
-                bundle!.AddWire(w);
             }
 
-            var bundles = bundlesDict.Values.ToList();
-            //Console.WriteLine($"Created bundles:");
-            //foreach (var bundle in bundles)
-            //{
-            //    Console.WriteLine($"  Bundle:\n    {string.Join("\n    ", bundle.Wires)}\n\n");
-            //}
+            if (transaction.CreatedWires != null)
+            {
+                foreach (var awire in transaction.CreatedWires)
+                {
+                    WiresList.Add(awire);
+                }
+            }
 
-            return bundles;
+            ConnectionPoints.AddRange(transaction.ControlPoints);
+        }
+
+        public void RevertTransaction(ConnectionPointsTransaction transaction)
+        {
+            // FIXME: We want to know if this is the last transaction created for the wires.
+
+            // We want to delete the wires that where created and recreate the ones removed
+
+            foreach (var wire in transaction.CreatedWires ?? Enumerable.Empty<Wire>())
+            {
+                if (WiresList.Remove(wire) == false)
+                    Console.WriteLine($"Warn: Removing non-existent wire when reverting transaction! ({wire})");
+            }
+
+            foreach (var wire in transaction.DeletedWires ?? Enumerable.Empty<Wire>())
+            {
+                WiresList.Add(wire);
+            }
+
+            foreach (var point in transaction.ControlPoints)
+            {
+                if (ConnectionPoints.Remove(point) == false)
+                    Console.WriteLine($"Warn: Removing non-existent connection point when reverting transaction! ({point})");
+            }
         }
     }
 }

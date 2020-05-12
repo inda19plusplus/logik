@@ -1,8 +1,10 @@
 ﻿using Cairo;
 using LogikUI.Circuit;
+using LogikUI.Interop;
 using LogikUI.Util;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -43,6 +45,43 @@ namespace LogikUI.Simulation.Gates
             public void Dispose()
             {
                 Context.Matrix = ResetMatrix;
+            }
+        }
+
+        static void DrawRoundPort(Context cr, InstanceData data, Span<Vector2i> ports, int index)
+        {
+            // If this component has an ID get the port state, otherwise floating
+            var state = data.ID != 0 ?
+                LogLogic.PortState(Program.Backend, data.ID, index) :
+                ValueState.Floating;
+            var color = Wires.GetValueColor(new Value(state));
+
+            var port = ports[index] * CircuitEditor.DotSpacing;
+
+            cr.Arc(port.X, port.Y, 2, 0, Math.PI * 2);
+            cr.ClosePath();
+            cr.SetSourceColor(color);
+            cr.Fill();
+
+            //cr.MoveTo(port);
+            //cr.ShowText(index.ToString());
+        }
+
+        // FIXME: Tripple-check that this does the correct transformation
+        // This is important because this information is never displayed
+        // so we will never visually notice it's wrong...
+        static void TransformPorts(InstanceData data, Span<Vector2i> ports)
+        {
+            for (int i = 0; i < ports.Length; i++)
+            {
+                ports[i] = data.Orientation switch
+                {
+                    Orientation.East =>  data.Position + ports[i],
+                    Orientation.South => data.Position + new Vector2i(-ports[i].Y, ports[i].X),
+                    Orientation.West =>  data.Position + new Vector2i(-ports[i].X, -ports[i].Y),
+                    Orientation.North => data.Position + new Vector2i(ports[i].Y, ports[i].X),
+                    _ => throw new InvalidEnumArgumentException(nameof(data.Orientation), (int)data.Orientation, typeof(Orientation)),
+                };
             }
         }
     }
