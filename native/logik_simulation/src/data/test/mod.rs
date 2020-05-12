@@ -56,14 +56,16 @@ fn test_adding_components() {
     
     assert!(data.add_component(Box::new(OutputGate {}), vec![Some(0)]).is_ok());
     
-    assert_eq!(data.edges, map!(
-            3 => set!(edge!(0, 3, 0, 0)),
-            0 => set!(edge!(0, 3, 0, 0), edge!(0, 5, 2, 2), edge!(0, 7, 0, 0)),
-            5 => set!(edge!(0, 5, 2, 2), edge!(2, 5, 0, 0), edge!(10, 5, 1, 0)),
-            2 => set!(edge!(2, 5, 0, 0)),
-            10 => set!(edge!(10, 5, 1, 0)),
-            7 => set!(edge!(0, 7, 0, 0))
-        ));
+    assert_eq!(data.component_edges, map!(
+        1 => set!(edge!(0, 1, 0, 0)),
+        2 => set!(edge!(0, 2, 2, 2), edge!(1, 2, 0, 0), edge!(5, 2, 1, 0)),
+        3 => set!(edge!(0, 3, 0, 0))
+    ));
+    assert_eq!(data.subnet_edges, map!(
+        0 => set!(edge!(0, 1, 0, 0), edge!(0, 2, 2, 2), edge!(0, 3, 0, 0)),
+        1 => set!(edge!(1, 2, 0, 0)),
+        5 => set!(edge!(5, 2, 1, 0))
+    ));
     
     assert!(data.add_component(Box::new(AND {}), vec![]).is_err());
 }
@@ -75,22 +77,27 @@ fn test_removing_subnets() {
     data.add_subnet(0);
     data.add_subnet(1);
     
-    assert_eq!(data.edges, map!());
+    assert_eq!(data.component_edges, map!());
+    assert_eq!(data.subnet_edges, map!());
     
     assert!(data.add_component(Box::new(OutputGate {}), vec![Some(0)]).is_ok());
     
-    assert_eq!(data.edges, map!(
-            0 => set!(edge!(0, 3, 0, 0)),
-            3 => set!(edge!(0, 3, 0, 0))
-        ));
+    assert_eq!(data.component_edges, map!(
+        1 => set!(edge!(0, 1, 0, 0))
+    ));
+    assert_eq!(data.subnet_edges, map!(
+        0 => set!(edge!(0, 1, 0, 0))
+    ));
     
     assert!(data.remove_subnet(0));
     
-    assert_eq!(data.edges, map!());
+    assert_eq!(data.component_edges, map!());
+    assert_eq!(data.subnet_edges, map!());
     
     assert!(data.remove_subnet(1));
     
-    assert_eq!(data.edges, map!());
+    assert_eq!(data.component_edges, map!());
+    assert_eq!(data.subnet_edges, map!());
     
     assert!(!data.remove_subnet(0));
     assert!(!data.remove_subnet(3));

@@ -306,7 +306,7 @@ impl Component for Clock {
         }
     }
     
-    fn evaluate(&self, data: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+    fn evaluate(&self, _: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
         let val = match self.state.get() {
             true => SubnetState::On,
             false => SubnetState::Off
