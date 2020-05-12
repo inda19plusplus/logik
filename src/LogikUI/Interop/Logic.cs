@@ -42,10 +42,7 @@ namespace LogikUI.Interop
         
         [DllImport(Lib, EntryPoint = "tick", ExactSpelling = true, CallingConvention = CallingConv)]
         public static extern void Tick(Data data);
-        
-        [DllImport(Lib, EntryPoint = "dirty_subnet", ExactSpelling = true, CallingConvention = CallingConv)]
-        public static extern void DirtySubnet(Data data, int subnet);
-        
+
         [DllImport(Lib, EntryPoint = "subnet_state", ExactSpelling = true, CallingConvention = CallingConv)]
         public static extern ValueState SubnetState(Data data, int subnet);
 
