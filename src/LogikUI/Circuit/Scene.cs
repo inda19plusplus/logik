@@ -250,6 +250,7 @@ namespace LogikUI.Circuit
             {
                 var startNet = FindSubnet(@new.Pos);
                 var endNet = FindSubnet(@new.EndPos);
+                Subnet? receiver = null;
 
                 if (startNet != null && endNet != null)
                 {
@@ -258,6 +259,7 @@ namespace LogikUI.Circuit
                         // Here they are the same subnet.
                         // So we just add the wire.
                         startNet.AddWire(@new);
+                        receiver = startNet;
                     }
                     else
                     {
@@ -297,6 +299,7 @@ namespace LogikUI.Circuit
 
                         // Don't forget to add the wire that merged these subnets
                         merged.AddWire(@new);
+                        receiver = merged;
 
                         Console.WriteLine($"\tResult: {startNet}");
                     }
@@ -307,6 +310,7 @@ namespace LogikUI.Circuit
                     // it's not going to change anything.
                     startNet.AddWire(@new);
                     Console.WriteLine($"Added wire to subnet: {startNet}");
+                    receiver = startNet;
                 }
                 else if (endNet != null)
                 {
@@ -314,6 +318,7 @@ namespace LogikUI.Circuit
                     // it's not going to change anything.
                     endNet.AddWire(@new);
                     Console.WriteLine($"Added wire to subnet: {endNet}");
+                    receiver = endNet;
                 }
                 else
                 {
@@ -322,10 +327,26 @@ namespace LogikUI.Circuit
                     var sub = new Subnet(0);
                     sub.AddWire(@new);
                     addedSubnets.Add(sub);
-
+                    receiver = sub;
                     // NOTE: do we want to do this?
                     Subnets.Add(sub);
                     Console.WriteLine($"Added single wire subnet: {sub}");
+                }
+                
+                foreach (var comp in Gates.Instances)
+                {
+                    Span<Vector2i> portLocs = stackalloc Vector2i[Gates.GetNumberOfPorts(comp)];
+                    Gates.GetTransformedPorts(comp, portLocs);
+
+                    for (int i = 0; i < portLocs.Length; i++)
+                    {
+                        var loc = portLocs[i];
+                        var wire = @new;
+                        if (wire.IsConnectionPoint(loc))
+                        { 
+                            receiver.AddComponent(comp, i); Console.WriteLine($"Added component ({comp}, port: {i}) to the new subnet: {receiver}.");
+                        }
+                    }
                 }
             }
 
@@ -526,6 +547,8 @@ namespace LogikUI.Circuit
             Console.WriteLine("---- ---- ---- ----");
         }
 
+        
+        
         // FIXME: Structure this better!
         // This is so that we can get something simulating.
         public void AddComponent(InstanceData data)
