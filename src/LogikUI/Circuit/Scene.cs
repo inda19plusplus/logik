@@ -259,7 +259,7 @@ namespace LogikUI.Circuit
                         // Here they are the same subnet.
                         // So we just add the wire.
                         startNet.AddWire(@new);
-                        receiver = startNet;
+                        //receiver = startNet;
                     }
                     else
                     {
@@ -299,7 +299,7 @@ namespace LogikUI.Circuit
 
                         // Don't forget to add the wire that merged these subnets
                         merged.AddWire(@new);
-                        receiver = merged;
+                        //receiver = merged;
 
                         Console.WriteLine($"\tResult: {startNet}");
                     }
@@ -327,7 +327,6 @@ namespace LogikUI.Circuit
                     var sub = new Subnet(0);
                     sub.AddWire(@new);
                     addedSubnets.Add(sub);
-                    receiver = sub;
                     // NOTE: do we want to do this?
                     Subnets.Add(sub);
                     Console.WriteLine($"Added single wire subnet: {sub}");
@@ -344,7 +343,8 @@ namespace LogikUI.Circuit
                         var wire = @new;
                         if (wire.IsConnectionPoint(loc))
                         { 
-                            receiver.AddComponent(comp, i); Console.WriteLine($"Added component ({comp}, port: {i}) to the new subnet: {receiver}.");
+                            receiver?.AddComponent(comp, i); 
+                            Console.WriteLine($"Added component ({comp}, port: {i}) to the new subnet: {receiver}.");
                         }
                     }
                 }
