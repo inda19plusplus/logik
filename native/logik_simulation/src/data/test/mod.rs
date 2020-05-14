@@ -1,7 +1,7 @@
 use crate::data::component::components::*;
 use crate::{map, set};
 use super::*;
-use crate::data::component::statefuls::SRFlipFlop;
+use crate::data::component::statefuls::{SRFlipFlop, Constant};
 use std::cell::Cell;
 
 macro_rules! edge {
@@ -370,4 +370,34 @@ fn test_linking() {
     assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![]));
     
     assert_eq!(data.subnets.get(&2).unwrap().val(), SubnetState::On);
+}
+
+#[test]
+fn test_simulating_loop() {
+    let mut data = Data::new();
+    
+    data.add_subnet(1);
+    
+    assert!(data.add_component(Box::new(Constant::new()), vec![Some(1)]).is_ok());
+    assert!(data.add_component(Box::new(NOT {}), vec![Some(1), Some(1)]).is_ok());
+    
+    data.simulation.dirty_subnet(1);
+    
+    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![set!(1)]));
+    assert_eq!(data.subnets, map!(
+        1 => subnet!(SubnetState::Floating)
+    ));
+    
+    data.advance_time();
+    
+    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![set!(1)]));
+    assert_eq!(data.subnets, map!(
+        1 => subnet!(SubnetState::Error)
+    ));
+    
+    data.advance_time();
+    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![]));
+    assert_eq!(data.subnets, map!(
+        1 => subnet!(SubnetState::Error)
+    ));
 }

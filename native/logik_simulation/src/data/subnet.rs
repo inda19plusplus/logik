@@ -86,5 +86,8 @@ mod test {
         
         let d5 = set!(SubnetState::Off, SubnetState::Off, SubnetState::Floating);
         assert_eq!(SubnetState::work_out_diff(&d5), SubnetState::Off);
+        
+        let d6 = set!(SubnetState::Off, SubnetState::On);
+        assert_eq!(SubnetState::work_out_diff(&d6), SubnetState::Error);
     }
 }
