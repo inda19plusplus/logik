@@ -52,7 +52,7 @@ namespace LogikUI.Simulation
         {
             if (ComponentPorts.Remove((data, port)))
             {
-                if(LogLogic.Unlink(Program.Backend, data.ID, port, ID))
+                if(LogLogic.Unlink(Program.Backend, data.ID, port, ID) == false)
                 {
                     Console.WriteLine($"Warn: Could not unlink component {data.ID} port {port} from subnet {ID}");
                     return false;
