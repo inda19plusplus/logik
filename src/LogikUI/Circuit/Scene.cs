@@ -428,7 +428,10 @@ namespace LogikUI.Circuit
                     if (idx != 0) //The island is not the OG island and needs to be relinked
                     {
                         lookup[0].RemoveComponent(comp, port);
-                        lookup[idx].AddComponent(comp, port);
+                        if (idx != -1)
+                        {
+                            lookup[idx].AddComponent(comp, port);
+                        }
                     }
                 }
             }
