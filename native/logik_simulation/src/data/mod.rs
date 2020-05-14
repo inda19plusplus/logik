@@ -210,13 +210,7 @@ impl Data {
     
     /// Gets the state of a subnet which a port is connected to
     pub(crate) fn port_state(&self, component: i32, port: usize) -> Option<SubnetState> {
-        for edge in self.component_edges.get(&component)? {
-            if edge.port == port {
-                return Some(self.subnets.get(&edge.subnet)?.val())
-            }
-        }
-        
-        None
+        self.components.get(&component)?.1.get(port).map(|e| *e)
     }
     
     pub(crate) fn time_step(&mut self) {
