@@ -250,7 +250,6 @@ namespace LogikUI.Circuit
             {
                 var startNet = FindSubnet(@new.Pos);
                 var endNet = FindSubnet(@new.EndPos);
-                Subnet? receiver = null;
 
                 if (startNet != null && endNet != null)
                 {
@@ -259,7 +258,6 @@ namespace LogikUI.Circuit
                         // Here they are the same subnet.
                         // So we just add the wire.
                         startNet.AddWire(@new);
-                        //receiver = startNet;
                     }
                     else
                     {
@@ -299,7 +297,6 @@ namespace LogikUI.Circuit
 
                         // Don't forget to add the wire that merged these subnets
                         merged.AddWire(@new);
-                        //receiver = merged;
 
                         Console.WriteLine($"\tResult: {startNet}");
                     }
@@ -310,7 +307,6 @@ namespace LogikUI.Circuit
                     // it's not going to change anything.
                     startNet.AddWire(@new);
                     Console.WriteLine($"Added wire to subnet: {startNet}");
-                    receiver = startNet;
                 }
                 else if (endNet != null)
                 {
@@ -318,7 +314,6 @@ namespace LogikUI.Circuit
                     // it's not going to change anything.
                     endNet.AddWire(@new);
                     Console.WriteLine($"Added wire to subnet: {endNet}");
-                    receiver = endNet;
                 }
                 else
                 {
@@ -331,50 +326,32 @@ namespace LogikUI.Circuit
                     Subnets.Add(sub);
                     Console.WriteLine($"Added single wire subnet: {sub}");
                 }
-                
-                foreach (var comp in Gates.Instances)
-                {
-                    Span<Vector2i> portLocs = stackalloc Vector2i[Gates.GetNumberOfPorts(comp)];
-                    Gates.GetTransformedPorts(comp, portLocs);
-
-                    for (int i = 0; i < portLocs.Length; i++)
-                    {
-                        var loc = portLocs[i];
-                        var wire = @new;
-                        if (wire.IsConnectionPoint(loc))
-                        { 
-                            receiver?.AddComponent(comp, i); 
-                            Console.WriteLine($"Added component ({comp}, port: {i}) to the new subnet: {receiver}.");
-                        }
-                    }
-                }
             }
 
             foreach (var split in checkSplitSubnets)
             {
                 // Here we need to check if this subnet 
                 // has to be split into multiple subnets
-
+                
                 if (split.ID == 0)
                 {
                     Console.WriteLine($"We don't need to check for splits on this subnet because it has been removed! Subnet: {split}");
                     continue;
                 }
 
+                if (split.Wires.Count == 0)
+                {
+                    Console.WriteLine($"We don't need to try to split a subnet without wires. Subnet: {split}");
+                    continue;
+                }
+                
                 Console.WriteLine($"Checking subnet ({split}) for splits!");
 
                 List<Wire> wiresLeft = new List<Wire>(split.Wires);
-
-                bool usedSplitSubnet = false;
-
-                bool noSplit = false;
-                var unclaimedComponents = new List<(InstanceData, int)>(split.ComponentPorts);
+                List<List<Wire>> islands = new List<List<Wire>>();
 
                 while (wiresLeft.Count > 0)
                 {
-                    // This means that there still are wires left that doesn't 
-                    // have a subnet
-
                     // FIXME: Switch to union find for this...
                     static void FloodFill(List<Wire> wires, List<Wire> toCheck, Wire currentWire)
                     {
@@ -400,7 +377,7 @@ namespace LogikUI.Circuit
                                 return;
                         }
                     }
-
+                    
                     Wire startWire = wiresLeft[0];
                     List<Wire> island = new List<Wire>();
                     FloodFill(island, wiresLeft, startWire);
@@ -410,93 +387,48 @@ namespace LogikUI.Circuit
                     {
                         wiresLeft.Remove(wire);
                     }
-
-                    // Now we have a self contained area of wires
-                    Subnet componentCheckSubnet;
-                    if (usedSplitSubnet == false)
-                    {
-                        if (island.Count == split.Wires.Count)
-                        {
-                            // Here we didn't have to split
-                            // and we know we are done here.
-                            Console.WriteLine($"No split.");
-                            noSplit = true;
-                            break;
-                        }
-                        else
-                        {
-                            // Here we just replace the list of wires in the split subnet
-                            Console.WriteLine($"Split original subnet {split} to contain {island.Count} wires.");
-                            split.Wires = island;
-
-                            // We don't need to add this subnet to 
-                            // Components because it is already in that list
-
-                            componentCheckSubnet = split;
-
-                            // Clear the component list of this subnet as we are
-                            // going to recheck all of it's components.
-                            componentCheckSubnet.ComponentPorts.Clear();
-
-                            usedSplitSubnet = true;
-                        }
-                    }
-                    else
-                    {
-                        // Here we create a new subnet
-                        var sub = new Subnet(SubnetIDCounter++);
-
-                        LogLogic.AddSubnet(Program.Backend, sub.ID);
-                        Console.WriteLine($"AddSubnet(Subnet: {sub.ID})");
-
-                        sub.Wires = island;
-                        Console.WriteLine($"Split part of subnet {split} into new subnet: {sub}.");
-
-                        Subnets.Add(sub);
-
-                        componentCheckSubnet = sub;
-                    }
-
-                    // Here we should re-link all of the components that are connected
-                    // to this split
-                    foreach (var (comp, port) in unclaimedComponents)
-                    {
-                        Span<Vector2i> portLocs = stackalloc Vector2i[Gates.GetNumberOfPorts(comp)];
-                        Gates.GetTransformedPorts(comp, portLocs);
-
-                        for (int i = 0; i < portLocs.Length; i++)
-                        {
-                            var loc = portLocs[i];
-                            foreach (var wire in island)
-                            {
-                                if (wire.IsConnectionPoint(loc))
-                                {
-                                    componentCheckSubnet.AddComponent(comp, i);
-
-                                    Console.WriteLine($"Added component ({comp}, port: {i}) to split subnet: {componentCheckSubnet}.");
-                                }
-                            }
-                        }
-                    }
-
-                    // Remove these components from the list to check.
-                    foreach (var val in componentCheckSubnet.ComponentPorts)
-                    {
-                        unclaimedComponents.Remove(val);
-                    }
+                    
+                    islands.Add(island);
                 }
+                
+                var lookup = new Dictionary<int, Subnet>();
 
-                if (noSplit == false)
+                split.Wires = islands[0];
+                lookup.Add(0, split);
+                
+                for (int i = 1; i < islands.Count; i++)
                 {
-                    // Here we did split the subnet so we want to take care of unclaimed components
-                    foreach (var (comp, port) in unclaimedComponents)
+                    var island = islands[i];
+
+                    // Generate new subnets for every island
+                    var newSubnet = new Subnet(SubnetIDCounter++);
+
+                    LogLogic.AddSubnet(Program.Backend, newSubnet.ID);
+                    Console.WriteLine($"AddSubnet(Subnet: {newSubnet.ID})");
+
+                    newSubnet.Wires = island;
+                    Console.WriteLine($"Split part of subnet {split} into new subnet: {newSubnet}.");
+
+                    Subnets.Add(newSubnet);
+                    
+                    lookup.Add(i, newSubnet);
+                }
+                
+                var unclaimedComponents = new List<(InstanceData, int)>(split.ComponentPorts);
+
+                foreach (var (comp, port) in unclaimedComponents)
+                {
+                    Span<Vector2i> portLocs = stackalloc Vector2i[Gates.GetNumberOfPorts(comp)];
+                    Gates.GetTransformedPorts(comp, portLocs);
+                    var portLoc = portLocs[port];
+                    
+                    // Gets the index of the island with the component 
+                    var idx = islands.FindIndex(list => list.Exists(wire => wire.IsConnectionPoint(portLoc)));
+
+                    if (idx != 0) //The island is not the OG island and needs to be relinked
                     {
-                        Console.WriteLine($"Removing unclaimed component after split: {comp}, port: {port}");
-                        // This component should be unlinked.
-                        if (LogLogic.Unlink(Program.Backend, comp.ID, port, split.ID) == false)
-                        {
-                            Console.WriteLine($"Could not unlink component: {comp.ID}, port: {port}, subnet: {split.ID}");
-                        }
+                        lookup[0].RemoveComponent(comp, port);
+                        lookup[idx].AddComponent(comp, port);
                     }
                 }
             }
@@ -516,25 +448,57 @@ namespace LogikUI.Circuit
                 addedNet.ID = SubnetIDCounter++;
                 LogLogic.AddSubnet(Program.Backend, addedNet.ID);
                 Console.WriteLine($"Added new subnet: {addedNet}");
+            }
 
-                foreach (var comp in Gates.Instances)
+            foreach (var subnet in Subnets)
+            {
+                foreach (var wire in subnet.RemovedWires)
                 {
-                    Span<Vector2i> portLocs = stackalloc Vector2i[Gates.GetNumberOfPorts(comp)];
-                    Gates.GetTransformedPorts(comp, portLocs);
-
-                    for (int i = 0; i < portLocs.Length; i++)
+                    Console.WriteLine($"Needs updating: {wire}");
+                    foreach (var comp in Gates.Instances)
                     {
-                        var loc = portLocs[i];
-                        foreach (var wire in addedNet.Wires)
+                        Span<Vector2i> portLocs = stackalloc Vector2i[Gates.GetNumberOfPorts(comp)];
+                        Gates.GetTransformedPorts(comp, portLocs);
+
+                        for (int i = 0; i < portLocs.Length; i++)
                         {
-                            if (wire.IsConnectionPoint(loc))
+                            var loc = portLocs[i];
+                            if (wire.IsConnectionPoint(loc)) 
                             {
-                                addedNet.AddComponent(comp, i);
-                                Console.WriteLine($"Added component ({comp}, port: {i}) to the new subnet: {addedNet}.");
+                                if (subnet.ComponentPorts.Contains((comp, i)))
+                                {
+                                    subnet.RemoveComponent(comp, i); 
+                                    Console.WriteLine($"Added component ({comp}, port: {i}) to the new subnet: {subnet}.");
+                                }
                             }
                         }
                     }
                 }
+                subnet.RemovedWires.Clear();
+                
+                foreach (var wire in subnet.AddedWires)
+                {
+                    Console.WriteLine($"Needs updating: {wire}");
+                    foreach (var comp in Gates.Instances)
+                    {
+                        Span<Vector2i> portLocs = stackalloc Vector2i[Gates.GetNumberOfPorts(comp)];
+                        Gates.GetTransformedPorts(comp, portLocs);
+
+                        for (int i = 0; i < portLocs.Length; i++)
+                        {
+                            var loc = portLocs[i];
+                            if (wire.IsConnectionPoint(loc)) 
+                            {
+                                if (subnet.ComponentPorts.Contains((comp, i)) == false)
+                                {
+                                    subnet.AddComponent(comp, i);
+                                    Console.WriteLine($"Added component ({comp}, port: {i}) to the new subnet: {subnet}.");
+                                }
+                            }
+                        }
+                    }
+                }
+                subnet.AddedWires.Clear();
             }
 
             Console.WriteLine();

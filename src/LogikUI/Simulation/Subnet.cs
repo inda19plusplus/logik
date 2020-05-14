@@ -14,6 +14,8 @@ namespace LogikUI.Simulation
         public int ID;
         public List<Wire> Wires = new List<Wire>();
         public List<(InstanceData Instance, int Port)> ComponentPorts = new List<(InstanceData, int)>();
+        public List<Wire> AddedWires = new List<Wire>();
+        public List<Wire> RemovedWires = new List<Wire>();
 
         public Subnet(int id)
         {
@@ -25,11 +27,13 @@ namespace LogikUI.Simulation
             if (Wires.Contains(wire))
                 Console.WriteLine($"Warn: Adding duplicate wire to wire bundle! (Wire: {wire})");
 
+            AddedWires.Add(wire);
             Wires.Add(wire);
         }
 
         public bool RemoveWire(Wire wire)
         {
+            RemovedWires.Add(wire);
             return Wires.Remove(wire);
         }
 
@@ -63,12 +67,17 @@ namespace LogikUI.Simulation
             Wires.AddRange(toMerge.Wires);
             
             // Remove the subnet that we merged
-            LogLogic.RemoveSubnet(Program.Backend, toMerge.ID);
+            if (toMerge.ID != 0)
+            {
+                LogLogic.RemoveSubnet(Program.Backend, toMerge.ID);
+            }
 
             if (ID == 0)
                 Console.WriteLine($"Warn: Trying to merge wires into a subnet with ID zero! {this}");
 
             // Here we link all of the components to this subnet
+            AddedWires.AddRange(toMerge.AddedWires);
+            RemovedWires.AddRange(toMerge.RemovedWires);
             foreach (var (instance, port) in toMerge.ComponentPorts)
             {
                 AddComponent(instance, port);
