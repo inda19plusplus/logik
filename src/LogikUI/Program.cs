@@ -1,16 +1,12 @@
 ﻿using Gtk;
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Globalization;
 using System.Reflection;
 using LogikUI.Component;
 using LogikUI.Hierarchy;
 using LogikUI.Circuit;
 using LogikUI.Util;
-using System.Globalization;
-using System.Reflection;
 using LogikUI.Interop;
 using LogikUI.Simulation;
 using LogikUI.Toolbar;
@@ -73,7 +69,7 @@ namespace LogikUI
             fcd.AddFilter(all);
         }
 
-        static MenuBar CreateMenuBar(Window parent) 
+        static MenuBar CreateMenuBar(Window parent, CircuitEditor editor) 
         {
             MenuItem open = new MenuItem("Open...");
             open.Activated += (object? sender, EventArgs e) =>
@@ -94,6 +90,13 @@ namespace LogikUI
                         Console.WriteLine($"- wires: { FileManager.Wires }");
                         Console.WriteLine($"- components: { FileManager.Components }");
                         Console.WriteLine($"- labels: { FileManager.Labels }");
+
+                        var lables = new TextLabels(FileManager.Labels.ToArray());
+                        var gates = new Gates();
+                        gates.Instances = FileManager.Components;
+                        var wires = new Wires(gates, FileManager.Wires.ToArray());
+
+                        editor.Scene = new Scene(wires, gates, lables);
                     }
                     catch (Exception err)
                     {
@@ -109,7 +112,7 @@ namespace LogikUI
             MenuItem saveAs = new MenuItem("Save As...");
             saveAs.Activated += (object? sender, EventArgs e) =>
             {
-                FileChooserDialog fcd = new FileChooserDialog("Save Project", parent, FileChooserAction.Open,
+                FileChooserDialog fcd = new FileChooserDialog("Save Project", parent, FileChooserAction.Save,
                     Stock.Save, ResponseType.Ok,
                     Stock.Cancel, ResponseType.Cancel);
                 AddFilters(fcd);
@@ -118,6 +121,10 @@ namespace LogikUI
                 {
                     try
                     {
+                        FileManager.Labels = new List<TextLabel>(editor.Scene.Labels.Labels);
+                        FileManager.Wires = editor.Scene.Wires.WiresList;
+                        FileManager.Components = editor.Scene.Gates.Instances;
+
                         FileManager.Save(fcd.Filename);
 
                         Console.WriteLine($"Successfully saved and parsed project file { fcd.Filename }.");
@@ -231,7 +238,7 @@ namespace LogikUI
 
             //Add the label to the form
             VBox box = new VBox(false, 0);
-            box.PackStart(CreateMenuBar(wnd), false, false, 0);
+            box.PackStart(CreateMenuBar(wnd, circuitEditor), false, false, 0);
             box.PackStart(CreateToolbar(circuitEditor), false, false, 0);
             box.PackEnd(hPaned, true, true, 0);
             box.Expand = true;

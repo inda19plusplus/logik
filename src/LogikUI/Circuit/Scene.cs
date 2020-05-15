@@ -31,6 +31,12 @@ namespace LogikUI.Circuit
 
             // FIXME: Register these subnets with the backend!
             Subnets = CreateSubnetsFromWires(Wires.WiresList);
+            foreach (var net in Subnets)
+            {
+                net.ID = SubnetIDCounter++;
+                LogLogic.AddSubnet(Program.Backend, net.ID);
+                Console.WriteLine($"Added new subnet: {net}");
+            }
         }
 
         /// <summary>
@@ -164,6 +170,7 @@ namespace LogikUI.Circuit
                 }
             }
 
+            /*
             foreach (var instance in Gates.Instances)
             {
                 var bounds = Gates.GetBounds(instance);
@@ -172,6 +179,7 @@ namespace LogikUI.Circuit
             }
             cr.SetSourceRGB(0.2, 0.2, 0.2);
             cr.Stroke();
+            */
         }
 
         private Subnet? FindSubnet(Vector2i pos)
