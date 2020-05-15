@@ -17,6 +17,21 @@ namespace LogikUI.File
     /// </summary>
     static class FileManager
     {
+
+        private static Dictionary<string, ComponentType> types = new Dictionary<string, ComponentType>()
+         {
+             { "buffer", ComponentType.Buffer },
+             { "and", ComponentType.And },
+             { "or", ComponentType.Or },
+             { "xor", ComponentType.Xor },
+         };
+        private static Dictionary<string, Circuit.Orientation> orientations = new Dictionary<string, Circuit.Orientation>()
+         {
+             { "north", Circuit.Orientation.North },
+             { "south", Circuit.Orientation.South },
+             { "west", Circuit.Orientation.West },
+             { "east", Circuit.Orientation.East },
+         };
         private static string filename;
 
         /// <summary>
@@ -24,7 +39,7 @@ namespace LogikUI.File
         /// </summary>
         public static bool IsNew { get; private set; } = true;
         public static List<Wire> Wires { get; set; } = new List<Wire>();
-        public static List<IInstance> Components { get; set; } = new List<IInstance>();
+        public static List<InstanceData> Components { get; set; } = new List<InstanceData>();
         public static List<TextLabel> Labels { get; set; } = new List<TextLabel>();
 
         private static void ValidationCallBack(object sender, ValidationEventArgs args)
