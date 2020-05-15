@@ -79,9 +79,10 @@ circuit
                       <xs:element name="type">
                         <xs:simpleType>
                           <xs:restriction base="xs:string">
+                          <xs:enumeration value="buffer"/>
                             <xs:enumeration value="and"/>
-                            <xs:enumeration value="dFlipFlop"/>
-                            <xs:enumeration value="not"/>
+                            <xs:enumeration value="or"/>
+                             <xs:enumeration value="xor"/>
                           </xs:restriction>
                         </xs:simpleType>
                       </xs:element>
