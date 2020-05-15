@@ -68,6 +68,6 @@ namespace LogikUI.Util
         public static implicit operator Vector2d(Cairo.PointD point) => new Vector2d(point.X, point.Y);
         public static implicit operator Cairo.PointD(Vector2d vec) => new Cairo.PointD(vec.X, vec.Y);
 
-        
+        public static Vector2d Abs(Vector2d vec) => new Vector2d(Math.Abs(vec.X), Math.Abs(vec.Y));
     }
 }

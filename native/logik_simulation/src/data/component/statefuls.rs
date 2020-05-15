@@ -31,6 +31,26 @@ impl Component for Constant {
         };
         map!(0 => val)
     }
+
+    fn pressed(&self) -> SubnetState{
+        match self.state.get(){
+            true => {
+                self.state.set(false);
+                return SubnetState::Off
+            }
+            false => {
+                self.state.set(true);
+                return SubnetState::On
+            }
+        }
+    }
+
+    fn released(&self) -> SubnetState {
+        match self.state.get(){
+            true => SubnetState::On,
+            false => SubnetState::Off,
+        }
+    }
 }
 
 impl Constant {
@@ -111,6 +131,7 @@ impl Component for Switch {
         };
         map!(0 => val)
     }
+
     fn pressed(&self) -> SubnetState{
         match self.state.get(){
             true => {

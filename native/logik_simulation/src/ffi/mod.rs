@@ -124,6 +124,7 @@ pub extern "C" fn press_component(data: *mut Data, id: i32) -> SubnetState {
    data.press_component(id)
 }
 
+#[no_mangle]
 pub extern "C" fn release_component(data: *mut Data, id: i32) -> SubnetState {
     let data = unsafe { &mut *data };
 

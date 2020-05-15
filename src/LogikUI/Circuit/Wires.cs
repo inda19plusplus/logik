@@ -710,15 +710,11 @@ namespace LogikUI.Circuit
 
             // No changes, so we don't create wire changes for this.
             if (Added.Count == 0 && Deleted.Count == 0)
-                return new ConnectionPointsTransaction(false, connectionPoints, null, null);
+                return new ConnectionPointsTransaction(true, connectionPoints, null, null);
 
             // FIXME: We want to de-deplicate the changes
 
-            // FIXME: We want to do something better for the first argument!!!
-            // This will lead to 0 debuggability as it will look like connectionpoints
-            // are zero length wires at the origin...
-            // We probably want to create it's own transaction type
-            return new ConnectionPointsTransaction(false, connectionPoints, Deleted, Added);
+            return new ConnectionPointsTransaction(true, connectionPoints, Deleted, Added);
         }
 
         public void ApplyTransaction(WireTransaction transaction)
@@ -776,7 +772,20 @@ namespace LogikUI.Circuit
                 }
             }
 
-            ConnectionPoints.AddRange(transaction.ControlPoints);
+            if (transaction.RemovingPoints)
+            {
+                foreach (var removed in transaction.ControlPoints)
+                {
+                    if (ConnectionPoints.Remove(removed) == false)
+                    {
+                        Console.WriteLine($"Warn: Tried to remove non-existant controlpoint: {removed}.");
+                    }
+                }
+            }
+            else
+            {
+                ConnectionPoints.AddRange(transaction.ControlPoints);
+            }
         }
 
         public void RevertTransaction(ConnectionPointsTransaction transaction)
@@ -796,10 +805,17 @@ namespace LogikUI.Circuit
                 WiresList.Add(wire);
             }
 
-            foreach (var point in transaction.ControlPoints)
+            if (transaction.RemovingPoints)
             {
-                if (ConnectionPoints.Remove(point) == false)
-                    Console.WriteLine($"Warn: Removing non-existent connection point when reverting transaction! ({point})");
+                ConnectionPoints.AddRange(transaction.ControlPoints);
+            }
+            else
+            {
+                foreach (var point in transaction.ControlPoints)
+                {
+                    if (ConnectionPoints.Remove(point) == false)
+                        Console.WriteLine($"Warn: Removing non-existent connection point when reverting transaction! ({point})");
+                }
             }
         }
     }
