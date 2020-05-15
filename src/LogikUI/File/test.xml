@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<circuit
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="structure.xsd"
+>
+  <wires>
+    <wire>
+      <from x="0" y="10"/>
+      <to x="10" y="10"/>
+    </wire>
+  </wires>
+
+  <components>
+    <component>
+      <type>and</type>
+      <location x="10" y="10"/>
+      <orientation>north</orientation>
+    </component>
+  </components>
+
+  <labels>
+    <label size="12">
+      <location x="20" y="20"/>
+      <text>This is a label.</text>
+    </label>
+  </labels>
+</circuit>

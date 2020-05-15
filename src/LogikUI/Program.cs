@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Globalization;
+using System.Reflection;
 using LogikUI.Component;
 using LogikUI.Hierarchy;
 using LogikUI.Circuit;
@@ -13,6 +15,7 @@ using LogikUI.Interop;
 using LogikUI.Simulation;
 using LogikUI.Toolbar;
 using LogikUI.Simulation.Gates;
+using LogikUI.File;
 
 namespace LogikUI
 {
@@ -55,15 +58,99 @@ namespace LogikUI
             return toolbar;
         }
 
-        static MenuBar CreateMenuBar() {
-            MenuBar bar = new MenuBar();
+        static void AddFilters(FileChooserDialog fcd)
+        {
+            FileFilter filter = new FileFilter();
+            filter.Name = "Project Files";
+            filter.AddPattern("*.xml");
+            filter.AddPattern("*.XML");
+
+            FileFilter all = new FileFilter();
+            all.Name = "All files";
+            all.AddPattern("*");
+
+            fcd.AddFilter(filter);
+            fcd.AddFilter(all);
+        }
+
+        static MenuBar CreateMenuBar(Window parent) 
+        {
+            MenuItem open = new MenuItem("Open...");
+            open.Activated += (object? sender, EventArgs e) =>
+            {
+                FileChooserDialog fcd = new FileChooserDialog("Open Project", parent, FileChooserAction.Open,
+                    Stock.Open, ResponseType.Ok,
+                    Stock.Cancel, ResponseType.Cancel);
+                fcd.SelectMultiple = false;
+                AddFilters(fcd);
+
+                if (fcd.Run() == (int)ResponseType.Ok)
+                {
+                    try
+                    {
+                        FileManager.Load(fcd.Filename);
+
+                        Console.WriteLine($"Successfully read and parsed project file { fcd.Filename }.");
+                        Console.WriteLine($"- wires: { FileManager.Wires }");
+                        Console.WriteLine($"- components: { FileManager.Components }");
+                        Console.WriteLine($"- labels: { FileManager.Labels }");
+                    }
+                    catch (Exception err)
+                    {
+                        // FIXME: Do something if parse fails?
+
+                        Output.WriteError($"Failed to read and parse project file { fcd.Filename }.", err);
+                    }
+                }
+
+                fcd.Dispose();
+            };
+
+            MenuItem saveAs = new MenuItem("Save As...");
+            saveAs.Activated += (object? sender, EventArgs e) =>
+            {
+                FileChooserDialog fcd = new FileChooserDialog("Save Project", parent, FileChooserAction.Open,
+                    Stock.Save, ResponseType.Ok,
+                    Stock.Cancel, ResponseType.Cancel);
+                AddFilters(fcd);
+
+                if (fcd.Run() == (int)ResponseType.Ok)
+                {
+                    try
+                    {
+                        FileManager.Save(fcd.Filename);
+
+                        Console.WriteLine($"Successfully saved and parsed project file { fcd.Filename }.");
+                        Console.WriteLine($"- wires: { FileManager.Wires }");
+                        Console.WriteLine($"- components: { FileManager.Components }");
+                        Console.WriteLine($"- labels: { FileManager.Labels }");
+                    }
+                    catch (Exception err)
+                    {
+                        // FIXME: Do something if parse fails?
+
+                        Output.WriteError($"Failed to write and parse project file { fcd.Filename }.", err);
+                    }
+                }
+
+                fcd.Dispose();
+            };
+
+            MenuItem save = new MenuItem("Save...");
+            save.Activated += (object? sender, EventArgs e) =>
+            {
+                if (FileManager.IsNew) saveAs.Activate();
+                else FileManager.Save();
+            };
+
+            Menu fileMenu = new Menu();
+            fileMenu.Append(open);
+            fileMenu.Append(save);
+            fileMenu.Append(saveAs);
 
             MenuItem file = new MenuItem("File");
             file.AddEvents((int)Gdk.EventMask.AllEventsMask);
-            bar.Append(file);
-            Menu fileMenu = new Menu();
             file.Submenu = fileMenu;
-            fileMenu.Append(new MenuItem("Open..."));
 
             // FIXME: Hook up callbacks
 
@@ -71,6 +158,9 @@ namespace LogikUI
             // on the ability to close the menu when you've opened it.
             // Atm there is a delay after opening the menu and when
             // you can close it...
+
+            MenuBar bar = new MenuBar();
+            bar.Append(file);
 
             return bar;
         }
@@ -141,7 +231,7 @@ namespace LogikUI
 
             //Add the label to the form
             VBox box = new VBox(false, 0);
-            box.PackStart(CreateMenuBar(), false, false, 0);
+            box.PackStart(CreateMenuBar(wnd), false, false, 0);
             box.PackStart(CreateToolbar(circuitEditor), false, false, 0);
             box.PackEnd(hPaned, true, true, 0);
             box.Expand = true;
