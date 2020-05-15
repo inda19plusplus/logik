@@ -41,6 +41,7 @@ namespace LogikUI.File
         public static List<Wire> Wires { get; set; } = new List<Wire>();
         public static List<InstanceData> Components { get; set; } = new List<InstanceData>();
         public static List<TextLabel> Labels { get; set; } = new List<TextLabel>();
+        public static List<string> RecentFiles { get; set; } = new List<string>();
 
         private static void ValidationCallBack(object sender, ValidationEventArgs args)
         {
@@ -143,25 +144,13 @@ namespace LogikUI.File
                     {
                         XmlNode component = ((XmlNode)_component).FirstChild;
 
-                        IInstance ins;
-                        switch (component.SelectSingleNode("type").InnerText)
-                        {
-                            case "and": ins = default(AndGateInstance); break;
-                            case "dFlipFlop": ins = default(DFlipFlopInstance); break;
-                            default/* case "not" */: ins = default(NotGateInstance); break;
-                        }
 
+
+                        ComponentType type = types[component.SelectSingleNode("type").InnerText];
                         Vector2i location = getPos(component.SelectSingleNode("location"));
+                        Circuit.Orientation orientation = orientations[component.SelectSingleNode("orientation").InnerText];
 
-                        Circuit.Orientation orientation = Circuit.Orientation.North;
-                        switch (component.SelectSingleNode("orientation").InnerText)
-                        {
-                            case "south": orientation = Circuit.Orientation.South; break;
-                            case "east": orientation = Circuit.Orientation.East; break;
-                            case "west": orientation = Circuit.Orientation.West; break;
-                        }
-
-                        Components.Add(ins.Create(location, orientation));
+                        Components.Add(InstanceData.Create(type, location, orientation));
 
                         // FIXME: Update list of gates.
                     }
@@ -184,6 +173,23 @@ namespace LogikUI.File
                         string text = label.SelectSingleNode("text").InnerText;
 
                         Labels.Add(new TextLabel(location, text, size));
+                    }
+                }
+
+                #endregion
+
+                #region Parse Recent Files
+
+                foreach (var _recent_file in doc.SelectNodes("/circuit/recent_files"))
+                {
+                    if (_recent_file != null)
+                    {
+                        XmlNode file = ((XmlNode)_recent_file).FirstChild;
+
+                        string text = file.SelectSingleNode("file_name").InnerText;
+
+                        RecentFiles.Add(text);
+                        
                     }
                 }
 
@@ -283,7 +289,20 @@ namespace LogikUI.File
                 foreach (var component in Components)
                 {
                     xmlWriter.WriteStartElement("component");
-                    
+
+                    xmlWriter.WriteStartElement("type");
+                    xmlWriter.WriteString(component.Type.ToString());
+                    xmlWriter.WriteEndElement();
+
+                    xmlWriter.WriteStartElement("location");
+                    xmlWriter.WriteAttributeString("x", component.Position.X.ToString());
+                    xmlWriter.WriteAttributeString("y", component.Position.X.ToString());
+                    xmlWriter.WriteEndElement();
+
+                    xmlWriter.WriteStartElement("orientation");
+                    xmlWriter.WriteString(component.Orientation.ToString());
+                    xmlWriter.WriteEndElement();
+
                     xmlWriter.WriteEndElement();
                 }
 
@@ -311,6 +330,24 @@ namespace LogikUI.File
                 xmlWriter.WriteEndElement();
                 //end labels
 
+                //recent files
+
+                xmlWriter.WriteStartElement("recent_files");
+
+                foreach (var recent_file in RecentFiles)
+                {
+                    xmlWriter.WriteStartElement("file");
+                    
+                    xmlWriter.WriteString(recent_file);
+                    
+                    xmlWriter.WriteEndElement();
+                }
+
+                xmlWriter.WriteEndElement();
+
+
+                //end recent files
+
 
                 xmlWriter.WriteEndElement();
                 xmlWriter.WriteEndDocument();
@@ -321,14 +358,14 @@ namespace LogikUI.File
                 //e is XmlException || e is XPathException || e is InvalidProjectDataException || e is XmlSchemaException
                 if (e is XmlException || e is InvalidOperationException)
                 {
-                    MessageDialog md = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Info, ButtonsType.Ok, "Not Able To Save Data To File");
+                    MessageDialog md = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Error, ButtonsType.Ok, "Not Able To Save Data To File");
                     md.Run();
                     md.Dispose();
 
                     throw new ArgumentException("Failed to parse to XMl", e);
                 } else
                 {
-                    MessageDialog md = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Info, ButtonsType.Ok, "Not Able To Save Data To File");
+                    MessageDialog md = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Error, ButtonsType.Ok, "Not Able To Save Data To File");
                     md.Run();
                     md.Dispose();
 
