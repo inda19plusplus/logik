@@ -62,7 +62,7 @@ impl Data {
         let idx = self.alloc_component(component);
     
         for port in ports {
-            assert!(self.add_edge(port.2, idx, port.1, port.0.into()));
+            assert!(self.link(idx, port.1, port.2));
         }
         
         Ok(idx)
@@ -271,8 +271,8 @@ impl Simulator {
         };
         
         let mut simulating = HashSet::new();
-        for subnet in to_simulate {
-            for edge in subnet_edges.get(&subnet).unwrap_or(&HashSet::new()) {
+        for subnet in &to_simulate {
+            for edge in subnet_edges.get(subnet).unwrap_or(&HashSet::new()) {
                 if edge.direction != EdgeDirection::ToSubnet {
                     simulating.insert(edge.component);
                 }
@@ -293,11 +293,23 @@ impl Simulator {
                 }
             }
         }
+        
+        to_eval.extend(to_simulate);
     
         let mut diff: HashMap<i32, HashSet<SubnetState>> = HashMap::new();
     
         for evaluating_subnets in to_eval {
-            for edge in subnet_edges.get(&evaluating_subnets).unwrap() {
+            diff.entry(evaluating_subnets).or_default()
+                .extend(subnet_edges.get(&evaluating_subnets).unwrap_or(&HashSet::new())
+                    .into_iter()
+                    .filter(|edge| edge.direction != EdgeDirection::ToComponent)
+                    .map(|edge| *components
+                        .get(&edge.component)
+                        .unwrap()
+                        .1
+                        .get(edge.port)
+                        .unwrap()));
+            /*for edge in subnet_edges.get(&evaluating_subnets).unwrap_or(&HashSet::new()) {
                 if edge.direction != EdgeDirection::ToComponent {
                     diff
                         .entry(evaluating_subnets)
@@ -311,7 +323,7 @@ impl Simulator {
                             .unwrap()
                         );
                 }
-            }
+            }*/
         }
         
         self.apply_state_diff(diff, subnets);
