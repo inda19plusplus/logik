@@ -126,6 +126,17 @@ impl Data {
             Some(t) => t,
             None => return false,
         };
+    
+        let mut linked_to = None;
+        for edge in self.component_edges.get(&component).unwrap_or(&HashSet::new()) {
+            if edge.port == port {
+                linked_to = Some(edge.subnet);
+            }
+        }
+    
+        if let Some(old_subnet) = linked_to {
+            self.unlink(component, port, old_subnet);
+        }
         
         if !self.add_edge(subnet, component, port, direction) {
             return false;

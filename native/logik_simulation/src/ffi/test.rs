@@ -48,3 +48,16 @@ fn test_linking_looped() {
     
     assert_eq!(subnet_state(data, 1), SubnetState::Error);
 }
+
+#[test]
+fn test_relinking() {
+    let data = init();
+    
+    assert!(add_subnet(data, 1));
+    assert!(add_subnet(data, 2));
+    
+    let constant = add_component(data, ComponentId::Constant);
+    
+    assert!(link(data, constant, 0, 1));
+    assert!(link(data, constant, 0, 2));
+}

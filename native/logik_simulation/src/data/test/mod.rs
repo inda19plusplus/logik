@@ -401,3 +401,31 @@ fn test_simulating_loop() {
         1 => subnet!(SubnetState::Error)
     ));
 }
+
+#[test]
+fn test_relinking() {
+    let mut data = Data::new();
+    
+    data.add_subnet(1);
+    data.add_subnet(2);
+    
+    assert!(data.add_component(Box::new(Constant::new()), vec![None]).is_ok());
+    
+    data.link(1, 0, 1);
+    
+    assert_eq!(data.component_edges, map!(
+        1 => set!(edge!(1, 1, 0, 2))
+    ));
+    assert_eq!(data.subnet_edges, map!(
+        1 => set!(edge!(1, 1, 0, 2))
+    ));
+    
+    data.link(1, 0, 2);
+    
+    assert_eq!(data.component_edges, map!(
+        1 => set!(edge!(2, 1, 0, 2))
+    ));
+    assert_eq!(data.subnet_edges, map!(
+        2 => set!(edge!(2, 1, 0, 2))
+    ));
+}
