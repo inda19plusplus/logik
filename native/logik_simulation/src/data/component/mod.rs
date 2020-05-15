@@ -19,6 +19,14 @@ pub(crate) trait Component: Debug {
             .map(|e| self.port_type(e).unwrap())
             .collect()
     }
+    fn pressed(&self) -> SubnetState{
+        return SubnetState::Error
+    }
+
+    fn released(&self) -> SubnetState{
+        return SubnetState::Error
+    }
+
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -78,6 +86,7 @@ pub enum ComponentId {
     Input = 3,
     LED = 5,
     Button = 8,
+    Switch = 9,
     Buffer = 50,
     Not = 51,
     And = 52,
