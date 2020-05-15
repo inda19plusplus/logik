@@ -32,3 +32,32 @@ fn test_removing_all_links() {
     
     exit(data);
 }
+
+#[test]
+fn test_linking_looped() {
+    let data = init();
+    
+    assert!(add_subnet(data, 1));
+    
+    let not = add_component(data, ComponentId::Not);
+    let constant = add_component(data, ComponentId::Constant);
+    
+    assert!(link(data, constant, 0, 1));
+    assert!(link(data, not, 0, 1));
+    assert!(link(data, not, 1, 1));
+    
+    assert_eq!(subnet_state(data, 1), SubnetState::Error);
+}
+
+#[test]
+fn test_relinking() {
+    let data = init();
+    
+    assert!(add_subnet(data, 1));
+    assert!(add_subnet(data, 2));
+    
+    let constant = add_component(data, ComponentId::Constant);
+    
+    assert!(link(data, constant, 0, 1));
+    assert!(link(data, constant, 0, 2));
+}

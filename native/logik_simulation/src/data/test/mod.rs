@@ -1,7 +1,7 @@
 use crate::data::component::components::*;
 use crate::{map, set};
 use super::*;
-use crate::data::component::statefuls::SRFlipFlop;
+use crate::data::component::statefuls::{SRFlipFlop, Constant};
 use std::cell::Cell;
 
 macro_rules! edge {
@@ -111,30 +111,13 @@ fn test_simulation() {
     data.add_subnet(1);
     
     assert!(data.add_component(Box::new(NOT {}), vec![Some(0), Some(1)]).is_ok());
-    
-    data.update_subnet(0, SubnetState::Off);
-    
-    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![set![0]]));
-    assert_eq!(data.subnets, map!(
-            0 => subnet!(SubnetState::Off),
-            1 => subnet!(SubnetState::Floating)
-        ));
-    
-    data.advance_time();
-    
-    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![set![1]]));
-    assert_eq!(data.subnets, map!(
-            0 => subnet!(SubnetState::Off),
-            1 => subnet!(SubnetState::On)
-        ));
-    
-    data.advance_time();
+    assert!(data.add_component(Box::new(Constant { state: Cell::new(false) }), vec![Some(0)]).is_ok());
     
     assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![]));
     assert_eq!(data.subnets, map!(
-            0 => subnet!(SubnetState::Off),
-            1 => subnet!(SubnetState::On)
-        ));
+        0 => subnet!(SubnetState::Off),
+        1 => subnet!(SubnetState::On)
+    ));
 }
 
 #[test]
@@ -146,49 +129,18 @@ fn test_simulation_2() {
     data.add_subnet(5);
     data.add_subnet(7);
     
+    assert!(data.add_component(Box::new(Constant { state: Cell::new(false) }), vec![Some(7)]).is_ok());
+    assert!(data.add_component(Box::new(Constant { state: Cell::new(true) }), vec![Some(2)]).is_ok());
     assert!(data.add_component(Box::new(AND {}), vec![Some(1), Some(2), Some(5)]).is_ok());
     assert!(data.add_component(Box::new(NOT {}), vec![Some(7), Some(1)]).is_ok());
     
-    data.update_subnet(7, SubnetState::Off);
-    data.update_silent(2, SubnetState::On);
-    
-    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![set![7]]));
-    assert_eq!(data.subnets, map!(
-            1 => subnet!(SubnetState::Floating),
-            2 => subnet!(SubnetState::On),
-            5 => subnet!(SubnetState::Floating),
-            7 => subnet!(SubnetState::Off)
-        ));
-    
-    data.advance_time();
-    
-    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![set![1]]));
-    assert_eq!(data.subnets, map!(
-            1 => subnet!(SubnetState::On),
-            2 => subnet!(SubnetState::On),
-            5 => subnet!(SubnetState::Floating),
-            7 => subnet!(SubnetState::Off)
-        ));
-    
-    data.advance_time();
-    
-    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![set![5]]));
-    assert_eq!(data.subnets, map!(
-            1 => subnet!(SubnetState::On),
-            2 => subnet!(SubnetState::On),
-            5 => subnet!(SubnetState::On),
-            7 => subnet!(SubnetState::Off)
-        ));
-    
-    data.advance_time();
-    
     assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![]));
     assert_eq!(data.subnets, map!(
-            1 => subnet!(SubnetState::On),
-            2 => subnet!(SubnetState::On),
-            5 => subnet!(SubnetState::On),
-            7 => subnet!(SubnetState::Off)
-        ));
+        1 => subnet!(SubnetState::On),
+        2 => subnet!(SubnetState::On),
+        5 => subnet!(SubnetState::On),
+        7 => subnet!(SubnetState::Off)
+    ));
 }
 
 #[test]
@@ -206,58 +158,22 @@ fn test_simulation_3() {
     assert!(data.add_component(Box::new(AND {}), vec![Some(1), Some(2), Some(3)]).is_ok());
     assert!(data.add_component(Box::new(NOT {}), vec![Some(5), Some(1)]).is_ok());
     assert!(data.add_component(Box::new(NOT {}), vec![Some(6), Some(2)]).is_ok());
+    assert!(data.add_component(Box::new(Constant { state: Cell::new(false) }), vec![Some(5)]).is_ok());
+    assert!(data.add_component(Box::new(Constant { state: Cell::new(false) }), vec![Some(6)]).is_ok());
     
-    data.update_subnet(5, SubnetState::Off);
-    data.update_subnet(6, SubnetState::Off);
-    
-    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![set![5, 6]]));
+    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![]));
     assert_eq!(data.subnets, map!(
-            1 => subnet!(SubnetState::Floating),
-            2 => subnet!(SubnetState::Floating),
-            3 => subnet!(SubnetState::Floating),
-            4 => subnet!(SubnetState::Floating),
-            5 => subnet!(SubnetState::Off),
-            6 => subnet!(SubnetState::Off)
-        ));
-    
-    data.advance_time();
-    
-    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![set![1, 2]]));
-    assert_eq!(data.subnets, map!(
-            1 => subnet!(SubnetState::On),
-            2 => subnet!(SubnetState::On),
-            3 => subnet!(SubnetState::Floating),
-            4 => subnet!(SubnetState::Floating),
-            5 => subnet!(SubnetState::Off),
-            6 => subnet!(SubnetState::Off)
-        ));
-    
-    data.advance_time();
-    
-    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![set![3]]));
-    assert_eq!(data.subnets, map!(
-            1 => subnet!(SubnetState::On),
-            2 => subnet!(SubnetState::On),
-            3 => subnet!(SubnetState::On),
-            4 => subnet!(SubnetState::Floating),
-            5 => subnet!(SubnetState::Off),
-            6 => subnet!(SubnetState::Off)
-        ));
-    
-    data.advance_time();
-    
-    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![set![4]]));
-    assert_eq!(data.subnets, map!(
-            1 => subnet!(SubnetState::On),
-            2 => subnet!(SubnetState::On),
-            3 => subnet!(SubnetState::On),
-            4 => subnet!(SubnetState::On),
-            5 => subnet!(SubnetState::Off),
-            6 => subnet!(SubnetState::Off)
-        ));
+        1 => subnet!(SubnetState::On),
+        2 => subnet!(SubnetState::On),
+        3 => subnet!(SubnetState::On),
+        4 => subnet!(SubnetState::On),
+        5 => subnet!(SubnetState::Off),
+        6 => subnet!(SubnetState::Off)
+    ));
 }
 
-#[test]
+// probably easiest to implement with buttons and such
+//#[test]
 fn test_sr_latch() {
     let mut data = Data::new();
     
@@ -270,6 +186,8 @@ fn test_sr_latch() {
     
     assert!(data.add_component(Box::new( SRFlipFlop { state: Cell::new(false) }),
                        vec![Some(0), Some(1), Some(2), Some(3), Some(4), Some(5)]).is_ok());
+    assert!(data.add_component(Box::new( Constant { state: Cell::new(true) }), vec![Some(0)]).is_ok());
+    assert!(data.add_component(Box::new( Constant { state: Cell::new(false) }), vec![Some(2)]).is_ok());
     
     data.update_subnet(0, SubnetState::On);
     data.update_subnet(2, SubnetState::Off);
@@ -335,13 +253,10 @@ fn test_error_driving() {
     data.add_subnet(1);
     data.add_subnet(2);
     
+    assert!(data.add_component(Box::new(Constant { state: Cell::new(false) }), vec![Some(0)]).is_ok());
+    assert!(data.add_component(Box::new(Constant { state: Cell::new(true) }), vec![Some(1)]).is_ok());
     assert!(data.add_component(Box::new(NOT {}), vec![Some(0), Some(2)]).is_ok());
     assert!(data.add_component(Box::new(NOT {}), vec![Some(1), Some(2)]).is_ok());
-    
-    data.update_subnet(0, SubnetState::Off);
-    data.update_subnet(1, SubnetState::On);
-    
-    data.advance_time();
     
     assert_eq!(data.subnets, map!(
         0 => subnet!(SubnetState::Off),
@@ -354,20 +269,82 @@ fn test_error_driving() {
 fn test_linking() {
     let mut data = Data::new();
     
-    assert!(data.add_component(Box::new(AND {}), vec![None, None, None]).is_ok());
-    
     data.add_subnet(0);
     data.add_subnet(1);
     data.add_subnet(2);
     
-    data.update_subnet(0, SubnetState::On);
-    data.update_subnet(1, SubnetState::On);
-    
-    assert!(data.link(1, 0, 0));
-    assert!(data.link(1, 1, 1));
-    assert!(data.link(1, 2, 2));
+    assert!(data.add_component(Box::new(AND {}), vec![Some(0), Some(1), Some(2)]).is_ok());
+    assert!(data.add_component(Box::new(Constant { state: Cell::new(true) }), vec![Some(0)]).is_ok());
+    assert!(data.add_component(Box::new(Constant { state: Cell::new(true) }), vec![Some(1)]).is_ok());
     
     assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![]));
     
     assert_eq!(data.subnets.get(&2).unwrap().val(), SubnetState::On);
+}
+
+#[test]
+fn test_simulating_loop() {
+    let mut data = Data::new();
+    
+    data.add_subnet(1);
+    
+    assert!(data.add_component(Box::new(Constant::new()), vec![Some(1)]).is_ok());
+    assert!(data.add_component(Box::new(NOT {}), vec![Some(1), Some(1)]).is_ok());
+    
+    assert_eq!(data.simulation.dirty_subnets, VecDeque::from(vec![]));
+    assert_eq!(data.subnets, map!(
+        1 => subnet!(SubnetState::Error)
+    ));
+}
+
+#[test]
+fn test_relinking() {
+    let mut data = Data::new();
+    
+    data.add_subnet(1);
+    data.add_subnet(2);
+    
+    assert!(data.add_component(Box::new(Constant::new()), vec![None]).is_ok());
+    
+    data.link(1, 0, 1);
+    
+    assert_eq!(data.component_edges, map!(
+        1 => set!(edge!(1, 1, 0, 2))
+    ));
+    assert_eq!(data.subnet_edges, map!(
+        1 => set!(edge!(1, 1, 0, 2))
+    ));
+    
+    data.link(1, 0, 2);
+    
+    assert_eq!(data.component_edges, map!(
+        1 => set!(edge!(2, 1, 0, 2))
+    ));
+    assert_eq!(data.subnet_edges, map!(
+        2 => set!(edge!(2, 1, 0, 2))
+    ));
+}
+
+#[test]
+fn test_unlinking_last() {
+    let mut data = Data::new();
+    
+    data.add_subnet(1);
+    data.add_component(Box::new(Constant::new()), vec![None]).unwrap();
+    
+    assert_eq!(data.subnets, map!(
+        1 => subnet!(SubnetState::Floating)
+    ));
+    
+    assert!(data.link(1, 0, 1));
+    
+    assert_eq!(data.subnets, map!(
+        1 => subnet!(SubnetState::Off)
+    ));
+    
+    assert!(data.unlink(1, 0, 1));
+    
+    assert_eq!(data.subnets, map!(
+        1 => subnet!(SubnetState::Floating)
+    ));
 }

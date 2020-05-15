@@ -4,6 +4,7 @@ using LogikUI.Simulation.Gates;
 using LogikUI.Util;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -41,14 +42,17 @@ namespace LogikUI.Simulation
             ComponentPorts.Add((data, port));
 
             // Tell the backend that this component was connected to this subnet.
-            LogLogic.Link(Program.Backend, data.ID, port, ID);
+            if (LogLogic.Link(Program.Backend, data.ID, port, ID) == false)
+            {
+                Console.WriteLine($"Failed to link the component to this subnet! Comp: {data.ID}, Port: {port}, Subnet: {ID}");
+            }
         }
 
         public bool RemoveComponent(InstanceData data, int port)
         {
             if (ComponentPorts.Remove((data, port)))
             {
-                if(LogLogic.Unlink(Program.Backend, data.ID, port, ID))
+                if(LogLogic.Unlink(Program.Backend, data.ID, port, ID) == false)
                 {
                     Console.WriteLine($"Warn: Could not unlink component {data.ID} port {port} from subnet {ID}");
                     return false;
@@ -61,6 +65,12 @@ namespace LogikUI.Simulation
         public void Merge(Subnet toMerge)
         {
             Wires.AddRange(toMerge.Wires);
+            
+            // Remove the subnet that we merged
+            if (toMerge.ID != 0)
+            {
+                LogLogic.RemoveSubnet(Program.Backend, toMerge.ID);
+            }
 
             if (ID == 0)
                 Console.WriteLine($"Warn: Trying to merge wires into a subnet with ID zero! {this}");
@@ -70,9 +80,7 @@ namespace LogikUI.Simulation
             {
                 AddComponent(instance, port);
             }
-
-            // Remove the subnet that we merged
-            LogLogic.RemoveSubnet(Program.Backend, toMerge.ID);
+            
             toMerge.ID = 0;
         }
 

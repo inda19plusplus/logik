@@ -111,10 +111,7 @@ pub extern "C" fn subnet_state(data: *mut Data, subnet: i32) -> SubnetState {
 pub extern "C" fn port_state(data: *mut Data, component: i32, port: i32) -> SubnetState {
     let data = unsafe { &mut *data };
     
-    match data.port_state(component, port as usize) {
-        Some(state) => state,
-        None => SubnetState::Floating,
-	}
+    data.port_state(component, port as usize).unwrap_or(SubnetState::Floating)
 }
 
 #[no_mangle]
@@ -124,6 +121,7 @@ pub extern "C" fn press_component(data: *mut Data, id: i32) -> SubnetState {
    data.press_component(id)
 }
 
+#[no_mangle]
 pub extern "C" fn release_component(data: *mut Data, id: i32) -> SubnetState {
     let data = unsafe { &mut *data };
 

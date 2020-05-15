@@ -78,6 +78,7 @@ impl StateChange {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 #[repr(i32)]
 pub enum ComponentId {
