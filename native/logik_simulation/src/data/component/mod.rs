@@ -78,6 +78,7 @@ pub enum ComponentId {
     Input = 3,
     LED = 5,
     Button = 8,
+    Switch = 9,
     Buffer = 50,
     Not = 51,
     And = 52,

@@ -42,6 +42,7 @@ pub extern "C" fn add_component(data: *mut Data, component: ComponentId) -> i32 
         ComponentId::Input => Box::new(InputGate {}),
         ComponentId::LED => Box::new(LED {}),
         ComponentId::Button => Box::new(Button::new()),
+        ComponentId::Switch => Box::new(Switch::new()),
         ComponentId::Buffer => Box::new(Buffer {}),
         ComponentId::Not => Box::new(NOT {}),
         ComponentId::And => Box::new(AND {}),

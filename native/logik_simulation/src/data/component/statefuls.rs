@@ -72,6 +72,57 @@ impl Button {
     pub(crate) fn new() -> Self {
         Self { state: Cell::new(false) }
     }
+
+    pub(crate) fn toggle(&self){
+        if self.state.get() == true{
+            self.state.set(false);
+        }else if self.state.get() == false{
+            self.state.set(true);
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct Switch {
+    #[cfg(not(test))]
+    state: Cell<bool>,
+    #[cfg(test)]
+    pub state: Cell<bool>,
+}
+
+impl Component for Switch {
+    fn ports(&self) -> usize {
+        1
+    }
+
+    fn port_type(&self, port: usize) -> Option<PortType> {
+        match port {
+            0 => Some(PortType::Output),
+            _ => None,
+        }
+    }
+
+    fn evaluate(&self, _: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
+        let val = match self.state.get() {
+            true => SubnetState::On,
+            false => SubnetState::Off,
+        };
+        map!(0 => val)
+    }
+}
+
+impl Switch {
+    pub(crate) fn new() -> Self {
+        Self { state: Cell::new(false) }
+    }
+
+    pub(crate) fn toggle(&self) {
+        if self.state.get() == true {
+            self.state.set(false);
+        } else if self.state.get() == false {
+            self.state.set(true);
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -125,6 +176,14 @@ impl DFlipFlop {
     pub(crate) fn new() -> Self {
         Self { state: Cell::new(false) }
     }
+
+    pub(crate) fn toggle(&self){
+        if self.state.get() == true{
+            self.state.set(false);
+        }else if self.state.get() == false{
+            self.state.set(true);
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -174,6 +233,14 @@ impl Component for TFlipFlop {
 impl TFlipFlop {
     pub(crate) fn new() -> Self {
         Self { state: Cell::new(false) }
+    }
+
+    pub(crate) fn toggle(&self){
+        if self.state.get() == true{
+            self.state.set(false);
+        }else if self.state.get() == false{
+            self.state.set(true);
+        }
     }
 }
 
@@ -232,6 +299,14 @@ impl JKFlipFlop {
     pub(crate) fn new() -> Self {
         Self { state: Cell::new(false) }
     }
+
+    pub(crate) fn toggle(&self){
+        if self.state.get() == true{
+            self.state.set(false);
+        }else if self.state.get() == false{
+            self.state.set(true);
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -286,6 +361,14 @@ impl Component for SRFlipFlop {
 impl SRFlipFlop {
     pub(crate) fn new() -> Self {
         Self { state: Cell::new(false) }
+    }
+
+    pub(crate) fn toggle(&self){
+        if self.state.get() == true{
+            self.state.set(false);
+        }else if self.state.get() == false{
+            self.state.set(true);
+        }
     }
 }
 
