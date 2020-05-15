@@ -244,9 +244,12 @@ namespace LogikUI.File
         public static void Save(string filename)
         {
            
-            IsNew = false;
+            
             FileManager.filename = filename;
-
+            if (FileManager.RecentFiles.Contains(filename)) {
+                IsNew = false;
+                FileManager.RecentFiles.Remove(filename);
+            }
             try
             {
                 XmlWriterSettings settings = new XmlWriterSettings();
