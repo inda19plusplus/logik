@@ -66,19 +66,21 @@ impl Component for Button {
         };
         map!(0 => val)
     }
+
+    fn pressed(&self) -> SubnetState{
+        self.state.set(true);
+        return SubnetState::On
+    }
+
+    fn released(&self) -> SubnetState {
+        self.state.set(false);
+        return SubnetState::Off
+    }
 }
 
 impl Button {
     pub(crate) fn new() -> Self {
         Self { state: Cell::new(false) }
-    }
-
-    pub(crate) fn toggle(&self){
-        if self.state.get() == true{
-            self.state.set(false);
-        }else if self.state.get() == false{
-            self.state.set(true);
-        }
     }
 }
 
@@ -109,19 +111,35 @@ impl Component for Switch {
         };
         map!(0 => val)
     }
+    fn pressed(&self) -> SubnetState{
+        match self.state.get(){
+            true => {
+                self.state.set(false);
+                return SubnetState::Off
+            }
+            false => {
+                self.state.set(true);
+                return SubnetState::On
+            }
+        }
+    }
+
+    fn released(&self) -> SubnetState {
+        match self.state.get(){
+            true => {
+                return SubnetState::On
+            }
+            false => {
+                self.state.set(true);
+                return SubnetState::Off
+            }
+        }
+    }
 }
 
 impl Switch {
     pub(crate) fn new() -> Self {
         Self { state: Cell::new(false) }
-    }
-
-    pub(crate) fn toggle(&self) {
-        if self.state.get() == true {
-            self.state.set(false);
-        } else if self.state.get() == false {
-            self.state.set(true);
-        }
     }
 }
 
@@ -170,19 +188,36 @@ impl Component for DFlipFlop {
             4 => vals.1
         )
     }
+
+    fn pressed(&self) -> SubnetState{
+        match self.state.get(){
+            true => {
+                self.state.set(false);
+                return SubnetState::Off
+            }
+            false => {
+                self.state.set(true);
+                return SubnetState::On
+            }
+        }
+    }
+
+    fn released(&self) -> SubnetState {
+        match self.state.get(){
+            true => {
+                return SubnetState::On
+            }
+            false => {
+                self.state.set(true);
+                return SubnetState::Off
+            }
+        }
+    }
 }
 
 impl DFlipFlop {
     pub(crate) fn new() -> Self {
         Self { state: Cell::new(false) }
-    }
-
-    pub(crate) fn toggle(&self){
-        if self.state.get() == true{
-            self.state.set(false);
-        }else if self.state.get() == false{
-            self.state.set(true);
-        }
     }
 }
 
@@ -228,6 +263,31 @@ impl Component for TFlipFlop {
             4 => vals.1
         )
     }
+
+    fn pressed(&self) -> SubnetState{
+        match self.state.get(){
+            true => {
+                self.state.set(false);
+                return SubnetState::Off
+            }
+            false => {
+                self.state.set(true);
+                return SubnetState::On
+            }
+        }
+    }
+
+    fn released(&self) -> SubnetState {
+        match self.state.get(){
+            true => {
+                return SubnetState::On
+            }
+            false => {
+                self.state.set(true);
+                return SubnetState::Off
+            }
+        }
+    }
 }
 
 impl TFlipFlop {
@@ -235,13 +295,6 @@ impl TFlipFlop {
         Self { state: Cell::new(false) }
     }
 
-    pub(crate) fn toggle(&self){
-        if self.state.get() == true{
-            self.state.set(false);
-        }else if self.state.get() == false{
-            self.state.set(true);
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -293,19 +346,36 @@ impl Component for JKFlipFlop {
             5 => vals.1
         )
     }
+
+    fn pressed(&self) -> SubnetState{
+        match self.state.get(){
+            true => {
+                self.state.set(false);
+                return SubnetState::Off
+            }
+            false => {
+                self.state.set(true);
+                return SubnetState::On
+            }
+        }
+    }
+
+    fn released(&self) -> SubnetState {
+        match self.state.get(){
+            true => {
+                return SubnetState::On
+            }
+            false => {
+                self.state.set(true);
+                return SubnetState::Off
+            }
+        }
+    }
 }
 
 impl JKFlipFlop {
     pub(crate) fn new() -> Self {
         Self { state: Cell::new(false) }
-    }
-
-    pub(crate) fn toggle(&self){
-        if self.state.get() == true{
-            self.state.set(false);
-        }else if self.state.get() == false{
-            self.state.set(true);
-        }
     }
 }
 
@@ -356,19 +426,36 @@ impl Component for SRFlipFlop {
             5 => vals.1
         )
     }
+
+    fn pressed(&self) -> SubnetState{
+        match self.state.get(){
+            true => {
+                self.state.set(false);
+                return SubnetState::Off
+            }
+            false => {
+                self.state.set(true);
+                return SubnetState::On
+            }
+        }
+    }
+
+    fn released(&self) -> SubnetState {
+        match self.state.get(){
+            true => {
+                return SubnetState::On
+            }
+            false => {
+                self.state.set(true);
+                return SubnetState::Off
+            }
+        }
+    }
 }
 
 impl SRFlipFlop {
     pub(crate) fn new() -> Self {
         Self { state: Cell::new(false) }
-    }
-
-    pub(crate) fn toggle(&self){
-        if self.state.get() == true{
-            self.state.set(false);
-        }else if self.state.get() == false{
-            self.state.set(true);
-        }
     }
 }
 
