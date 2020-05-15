@@ -189,10 +189,12 @@ namespace LogikUI.File
                     {
                         XmlNode file = ((XmlNode)_recent_file).FirstChild;
 
-                        string text = file.SelectSingleNode("file_name").InnerText;
+                        if (file != null)
+                        {
+                            string text = file.SelectSingleNode("file_name").InnerText;
 
-                        RecentFiles.Add(text);
-                        
+                            RecentFiles.Add(text);
+                        }
                     }
                 }
 
@@ -319,8 +321,14 @@ namespace LogikUI.File
 
                 foreach (var text_label in Labels)
                 {
+                    
                     xmlWriter.WriteStartElement("label");
                     xmlWriter.WriteAttributeString("size", text_label.TextSize.ToString());
+
+                    xmlWriter.WriteStartElement("location");
+                    xmlWriter.WriteAttributeString("x", text_label.Position.X.ToString());
+                    xmlWriter.WriteAttributeString("y", text_label.Position.X.ToString());
+                    xmlWriter.WriteEndElement();
 
                     //text
                     xmlWriter.WriteStartElement("text");
