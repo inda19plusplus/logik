@@ -2,10 +2,10 @@
   "profiles": {
     "LogikUI": {
       "commandName": "Project",
-      "nativeDebugging": true,
       "environmentVariables": {
         "RUST_BACKTRACE": "1"
-      }
+      },
+      "nativeDebugging": false
     }
   }
 }
