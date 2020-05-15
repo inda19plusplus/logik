@@ -246,6 +246,7 @@ namespace LogikUI.Circuit
         
         public Vector2d FromGridToWorld(Vector2i GridPoint) => GridPoint * DotSpacing;
         public Vector2d FromGridDistToWorld(Vector2i GridDist) => GridDist * DotSpacing;
+        public Rect FromGridToWorld(Recti GridRect) => new Rect(FromGridToWorld(GridRect.Position), FromGridToWorld(GridRect.Size));
 
         public Vector2d ToScreen(Vector2d WorldPoint) => (WorldPoint * Scale) + DisplayOffset;
         public Vector2d ToScreenDist(Vector2d WorldDist) => WorldDist * Scale;

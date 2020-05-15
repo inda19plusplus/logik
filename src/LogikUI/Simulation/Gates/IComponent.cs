@@ -18,6 +18,15 @@ namespace LogikUI.Simulation.Gates
         public ComponentType Type { get; }
         public int NumberOfPorts { get; }
 
+        public Rect GetBounds(InstanceData data);
+
+        public bool Contains(InstanceData data, Vector2d point)
+        {
+            Rect rect = GetBounds(data);
+            rect = rect.Rotate(data.Position * CircuitEditor.DotSpacing, data.Orientation);
+            return rect.Contains(point);
+        }
+
         public void GetPorts(Span<Vector2i> ports);
         
         public void Draw(Context cr, InstanceData data);

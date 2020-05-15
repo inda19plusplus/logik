@@ -94,6 +94,20 @@ namespace LogikUI.Interop
             //Print($"SubnetState(Component: {component}, Port: {port}) -> {ret}");
             return ret;
         }
+
+        public static ValueState PressComponent(Data data, int componentId)
+        {
+            var ret = Logic.PressComponent(data, componentId);
+            Print($"PressComponent(Component: {componentId}) -> {ret}");
+            return ret;
+        }
+
+        public static ValueState ReleaseComponent(Data data, int componentId)
+        {
+            var ret = Logic.ReleaseComponent(data, componentId);
+            Print($"ReleaseComponent(Component: {componentId}) -> {ret}");
+            return ret;
+        }
     }
 
     static class Logic
@@ -134,6 +148,12 @@ namespace LogikUI.Interop
 
         [DllImport(Lib, EntryPoint = "port_state", ExactSpelling = true, CallingConvention = CallingConv)]
         public static extern ValueState PortState(Data data, int component, int port);
+
+        [DllImport(Lib, EntryPoint = "press_component", ExactSpelling = true, CallingConvention = CallingConv)]
+        public static extern ValueState PressComponent(Data data, int componentId);
+
+        [DllImport(Lib, EntryPoint = "release_component", ExactSpelling = true, CallingConvention = CallingConv)]
+        public static extern ValueState ReleaseComponent(Data data, int componentId);
     }
 
     public struct Data

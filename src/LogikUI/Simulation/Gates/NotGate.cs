@@ -14,6 +14,16 @@ namespace LogikUI.Simulation.Gates
         public ComponentType Type => ComponentType.Not;
         public int NumberOfPorts => 2;
 
+        public Rect GetBounds(InstanceData data)
+        {
+            var size = new Vector2d(3, 1.5);
+            var p = data.Position - new Vector2d(3, 0.75);
+            return new Rect(
+                p * CircuitEditor.DotSpacing,
+                size * CircuitEditor.DotSpacing
+                );
+        }
+
         public void GetPorts(Span<Vector2i> ports)
         {
             ports[0] = new Vector2i(0, 0);

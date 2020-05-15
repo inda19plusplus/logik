@@ -60,7 +60,14 @@ namespace LogikUI.Circuit
                     if (gt.ConnectionPointWireEdits != null)
                         Wires.ApplyTransaction(gt.ConnectionPointWireEdits);
                     // FIXME: Clean this up, this is just so that we can get something simulating
-                    this.AddComponent(gt.Gate);
+                    if (gt.RemoveComponent)
+                    {
+                        this.RemoveComponent(gt.Gate);
+                    }
+                    else
+                    {
+                        this.AddComponent(gt.Gate);
+                    }
                     // Update the subnets
                     UpdateSubnets(
                         gt.ConnectionPointWireEdits?.CreatedWires ?? new List<Wire>(),
@@ -156,6 +163,15 @@ namespace LogikUI.Circuit
                     cr.ShowText(net.ID.ToString());
                 }
             }
+
+            foreach (var instance in Gates.Instances)
+            {
+                var bounds = Gates.GetBounds(instance);
+                bounds = bounds.Rotate(instance.Position * CircuitEditor.DotSpacing, instance.Orientation);
+                cr.Rectangle(bounds);
+            }
+            cr.SetSourceRGB(0.2, 0.2, 0.2);
+            cr.Stroke();
         }
 
         private Subnet? FindSubnet(Vector2i pos)

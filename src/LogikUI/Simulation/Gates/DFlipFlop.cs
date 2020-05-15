@@ -13,6 +13,17 @@ namespace LogikUI.Simulation.Gates
         public ComponentType Type => ComponentType.DFlipFlop;
         public int NumberOfPorts => 4;
 
+        // FIXME:
+        public Rect GetBounds(InstanceData data)
+        {
+            var size = new Vector2d(4, 5);
+            var p = data.Position - new Vector2d(4, 2.5);
+            return new Rect(
+                p * CircuitEditor.DotSpacing,
+                size * CircuitEditor.DotSpacing
+                );
+        }
+
         public void GetPorts(Span<Vector2i> ports)
         {
             ports[0] = new Vector2i(0, 0);

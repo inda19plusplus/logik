@@ -1,5 +1,6 @@
 ﻿using Cairo;
 using LogikUI.Circuit;
+using LogikUI.Interop;
 using LogikUI.Util;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,23 @@ namespace LogikUI.Simulation.Gates
         public string Name => "And Gate";
         public ComponentType Type => ComponentType.And;
         public int NumberOfPorts => 3;
+
+        public Rect GetBounds(InstanceData data)
+        {
+            var size = new Vector2d(3, 3);
+            var p = data.Position - new Vector2d(3, 1.5);
+            return new Rect(
+                p * CircuitEditor.DotSpacing,
+                size * CircuitEditor.DotSpacing
+                );
+        }
+
+        public bool Contains(InstanceData data, Vector2d point)
+        {
+            Rect rect = new Rect(data.Position * CircuitEditor.DotSpacing, new Vector2i() * CircuitEditor.DotSpacing);
+            rect = rect.Rotate(data.Position * CircuitEditor.DotSpacing, data.Orientation);
+            return rect.Contains(point);
+        }
 
         public void GetPorts(Span<Vector2i> ports)
         {
