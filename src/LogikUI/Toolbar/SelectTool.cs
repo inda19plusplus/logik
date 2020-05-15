@@ -107,7 +107,6 @@ namespace LogikUI.Toolbar
         public override void GestureUpdate(CircuitEditor editor, Vector2d offset)
         {
             SelectionSize = editor.RoundDistToGrid(offset);
-            //Console.WriteLine($"Size: {SelectionSize}");
             editor.DrawingArea.QueueDraw();
         }
 
@@ -209,7 +208,6 @@ namespace LogikUI.Toolbar
             if (Selecting)
             {
                 var size = editor.FromGridDistToWorld(SelectionSize);
-                Console.WriteLine($"Pos: {editor.FromGridToWorld(SelectionStart)}, Size: {size}");
                 cr.Rectangle(editor.FromGridToWorld(SelectionStart), size.X, size.Y);
                 cr.SetSourceRGBA(0.1, 0.1, 0.3, 0.3);
                 cr.Fill();

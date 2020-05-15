@@ -17,21 +17,24 @@ namespace LogikUI.File
     /// </summary>
     static class FileManager
     {
-
         private static Dictionary<string, ComponentType> types = new Dictionary<string, ComponentType>()
          {
+             { "constant", ComponentType.Constant },
              { "buffer", ComponentType.Buffer },
+             { "not", ComponentType.Not },
              { "and", ComponentType.And },
              { "or", ComponentType.Or },
              { "xor", ComponentType.Xor },
-         };
+        };
+
         private static Dictionary<string, Circuit.Orientation> orientations = new Dictionary<string, Circuit.Orientation>()
-         {
-             { "north", Circuit.Orientation.North },
-             { "south", Circuit.Orientation.South },
-             { "west", Circuit.Orientation.West },
-             { "east", Circuit.Orientation.East },
-         };
+        {
+             { "North", Circuit.Orientation.North },
+             { "South", Circuit.Orientation.South },
+             { "West", Circuit.Orientation.West },
+             { "East", Circuit.Orientation.East },
+        };
+
         private static string filename;
 
         /// <summary>
@@ -84,7 +87,7 @@ namespace LogikUI.File
 
                 doc.Load(reader);
 
-                /* STRUCTURE:
+                /** STRUCTURE:
                  *  circuit
                  *    wires
                  *      wire
@@ -146,7 +149,7 @@ namespace LogikUI.File
 
 
 
-                        ComponentType type = types[component.SelectSingleNode("type").InnerText];
+                        ComponentType type = types[component.SelectSingleNode("type").InnerText.ToLower()];
                         Vector2i location = getPos(component.SelectSingleNode("location"));
                         Circuit.Orientation orientation = orientations[component.SelectSingleNode("orientation").InnerText];
 
@@ -243,8 +246,6 @@ namespace LogikUI.File
         // <param name="filename">The path of the new project file.</param>
         public static void Save(string filename)
         {
-           
-            
             FileManager.filename = filename;
             if (FileManager.RecentFiles.Contains(filename)) {
                 IsNew = false;
