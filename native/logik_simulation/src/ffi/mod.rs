@@ -42,6 +42,7 @@ pub extern "C" fn add_component(data: *mut Data, component: ComponentId) -> i32 
         ComponentId::Input => Box::new(InputGate {}),
         ComponentId::LED => Box::new(LED {}),
         ComponentId::Button => Box::new(Button::new()),
+        ComponentId::Switch => Box::new(Switch::new()),
         ComponentId::Buffer => Box::new(Buffer {}),
         ComponentId::Not => Box::new(NOT {}),
         ComponentId::And => Box::new(AND {}),
@@ -111,4 +112,17 @@ pub extern "C" fn port_state(data: *mut Data, component: i32, port: i32) -> Subn
     let data = unsafe { &mut *data };
     
     data.port_state(component, port as usize).unwrap_or(SubnetState::Floating)
+}
+
+#[no_mangle]
+pub extern "C" fn press_component(data: *mut Data, id: i32) -> SubnetState {
+    let data = unsafe { &mut *data };
+
+   data.press_component(id)
+}
+
+pub extern "C" fn release_component(data: *mut Data, id: i32) -> SubnetState {
+    let data = unsafe { &mut *data };
+
+    data.release_component(id)
 }

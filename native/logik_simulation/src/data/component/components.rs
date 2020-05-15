@@ -21,6 +21,8 @@ impl Component for OutputGate {
     fn evaluate(&self, _: HashMap<usize, StateChange>) -> HashMap<usize, SubnetState> {
         map!()
     }
+
+
 }
 
 #[derive(Debug)]

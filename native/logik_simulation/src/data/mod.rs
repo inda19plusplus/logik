@@ -162,6 +162,25 @@ impl Data {
         
         true
     }
+
+    pub(crate) fn press_component(&mut self, id: i32) -> SubnetState {
+        let state = self.components.get(&id).unwrap().pressed();
+
+        self.simulation.update_component(id, &self.components, &mut self.subnets, &self.component_edges);
+        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
+
+        return state
+    }
+
+    pub(crate) fn release_component(&mut self, id: i32) -> SubnetState {
+        let state = self.components.get(&id).unwrap().released();
+
+        self.simulation.update_component(id, &self.components, &mut self.subnets, &self.component_edges);
+        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
+
+        return state
+
+    }
     
     fn add_edge(&mut self, subnet: i32, component: i32, port: usize, direction: EdgeDirection) -> bool {
         let edge = Edge::new(subnet, component, port, direction);
@@ -309,21 +328,6 @@ impl Simulator {
                         .1
                         .get(edge.port)
                         .unwrap()));
-            /*for edge in subnet_edges.get(&evaluating_subnets).unwrap_or(&HashSet::new()) {
-                if edge.direction != EdgeDirection::ToComponent {
-                    diff
-                        .entry(evaluating_subnets)
-                        .or_default()
-                        .insert(
-                            *components
-                            .get(&edge.component)
-                            .unwrap()
-                            .1
-                            .get(edge.port)
-                            .unwrap()
-                        );
-                }
-            }*/
         }
         
         self.apply_state_diff(diff, subnets);
