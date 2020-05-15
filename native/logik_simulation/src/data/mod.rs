@@ -164,19 +164,19 @@ impl Data {
     }
 
     pub(crate) fn press_component(&mut self, id: i32) -> SubnetState {
-        let state = self.components.get(&id).unwrap().pressed();
+        let state = self.components.get(&id).unwrap().0.pressed();
 
-        self.simulation.update_component(id, &self.components, &mut self.subnets, &self.component_edges);
-        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
+        self.simulation.update_component(id, &mut self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
+        self.simulation.process_until_clean(&mut self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
 
         return state
     }
 
     pub(crate) fn release_component(&mut self, id: i32) -> SubnetState {
-        let state = self.components.get(&id).unwrap().released();
+        let state = self.components.get(&id).unwrap().0.released();
 
-        self.simulation.update_component(id, &self.components, &mut self.subnets, &self.component_edges);
-        self.simulation.process_until_clean(&self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
+        self.simulation.update_component(id, &mut self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
+        self.simulation.process_until_clean(&mut self.components, &mut self.subnets, &self.subnet_edges, &self.component_edges);
 
         return state
 
