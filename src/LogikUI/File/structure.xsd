@@ -128,13 +128,8 @@ circuit
             <xs:sequence>
               <xs:choice minOccurs="0" maxOccurs="unbounded">
                 <!-- file representation -->
-                <xs:element name="file" maxOccurs="unbounded">
-                  <xs:complexType>
-                    <xs:sequence>
-                      <xs:element name="file_name" type="xs:string"/>
-                    </xs:sequence>
-                  </xs:complexType>
-                </xs:element>
+                <xs:element name="file" maxOccurs="unbounded" type="xs:string" />
+                  
               </xs:choice>
             </xs:sequence>
           </xs:complexType>
